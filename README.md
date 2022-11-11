@@ -1,6 +1,6 @@
 # ductwork
 
-python library for pressure ductwork calculations.
+python library for ductwork calculations.
 
 ## scope
 duct and duct fittings library  
