@@ -8,7 +8,7 @@ L = 10  # m
 Re = reynolds(v, d_h)
 f = friction_coefficient(Re, k, d_h)
 R = pressure_drop_per_meter(f, d_h, v)
-linear_dp = linear_pressure_drop(R, L)
+linear_dp = linear_pressure_drop(R, L, Beta=1)
 
 print(f"Re: {Re:.0f}")
 print(f"f: {f}")

@@ -25,7 +25,13 @@ def pressure_drop_per_meter(f, d_h, v, rho=1.2):
     return f / d_h * (rho * v**2) / 2
 
 
-def linear_pressure_drop(R, L, Beta=1):
+def roughness_correction_factor(absolute_roughness, diameter, velocity):
+    # XYZ HVAC Systems Duct Design, SMACNA
+    print("SMACNA function placeholder")
+    return 1
+
+
+def linear_pressure_drop(R, L, Beta):
     """Linear pressure drop. [Pa]
     R - pressure drop per meter,
     L - duct legth,
@@ -40,5 +46,3 @@ def local_pressure_drop(dzeta, v, rho=1.2):
     v - velocity
     """
     return dzeta * rho * v**2 / 2
-
-
