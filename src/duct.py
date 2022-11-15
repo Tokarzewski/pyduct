@@ -15,8 +15,9 @@ class ducttype:
     width: Optional[float] = None
     area: float = field(init=False)
     hydraulic_diameter: float = field(init=False)
+    surface_per_meter: float = field(init=False)
 
-    def calc_area(self):
+    def calc_cross_sectional_area(self):
         if self.shape == "round":
             return pi * (self.diameter / 2) ** 2
         else:
@@ -28,9 +29,17 @@ class ducttype:
         else:
             return 2 * self.height * self.width / (self.height + self.width)
 
-    def __post_init__(self):
-        self.area = self.calc_area()
+    def calc_surface_area_per_meter(self):
+        if self.shape == "round":
+            return pi * self.diameter
+        else:
+            return 2 * (self.height + self.width)
+
+    def calculate(self):
+        # print("Start calculating ducttype:", self.name)
+        self.area = self.calc_cross_sectional_area()
         self.hydraulic_diameter = self.calc_hydraulic_diameter()
+        self.surface_per_meter = self.calc_surface_area_per_meter()
 
 
 @dataclass
@@ -39,9 +48,14 @@ class duct:
     ducttype: ducttype
     length: float
     flowrate: float
+    roughness_correction_factor: float = 1
     velocity: float = field(init=False)
     pressure_drop_per_meter: float = field(init=False)
     linear_pressure_drop: float = field(init=False)
+    surface_area: float = field(init=False)
+
+    def calc_surface_area(self):
+        return self.ducttype.surface_per_meter * self.length
 
     def calc_velocity(self):
         return self.flowrate / self.ducttype.area
@@ -54,12 +68,26 @@ class duct:
         f = friction.friction_coefficient(Re, k, d_h)
         return friction.pressure_drop_per_meter(f, d_h, v)
 
+    def calc_roughness_correction_factor(self):
+        absolute_roughness = self.ducttype.absolute_roughness
+        velocity = self.velocity
+        diameter = self.ducttype.hydraulic_diameter
+        return friction.roughness_correction_factor(
+            absolute_roughness, diameter, velocity
+        )
+
     def calc_linear_pressure_drop(self):
         R = self.pressure_drop_per_meter
         L = self.length
-        return friction.linear_pressure_drop(R, L)
+        Beta = self.roughness_correction_factor
+        return friction.linear_pressure_drop(R, L, Beta)
 
-    def __post_init__(self) -> None:
+    def calculate(self) -> None:
+        # print("Start calculating duct:", self.name)
+        self.surface_area = self.calc_surface_area()
         self.velocity = self.calc_velocity()
         self.pressure_drop_per_meter = self.calc_pressure_drop_per_meter()
+        if self.roughness_correction_factor == "autosize":
+            self.roughness_correction_factor = self.calc_roughness_correction_factor()
         self.linear_pressure_drop = self.calc_linear_pressure_drop()
+
