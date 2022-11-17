@@ -68,14 +68,6 @@ class duct:
         f = friction.friction_coefficient(Re, k, d_h)
         return friction.pressure_drop_per_meter(f, d_h, v)
 
-    def calc_roughness_correction_factor(self):
-        absolute_roughness = self.ducttype.absolute_roughness
-        velocity = self.velocity
-        diameter = self.ducttype.hydraulic_diameter
-        return friction.roughness_correction_factor(
-            absolute_roughness, diameter, velocity
-        )
-
     def calc_linear_pressure_drop(self):
         R = self.pressure_drop_per_meter
         L = self.length
@@ -87,7 +79,5 @@ class duct:
         self.surface_area = self.calc_surface_area()
         self.velocity = self.calc_velocity()
         self.pressure_drop_per_meter = self.calc_pressure_drop_per_meter()
-        if self.roughness_correction_factor == "autosize":
-            self.roughness_correction_factor = self.calc_roughness_correction_factor()
         self.linear_pressure_drop = self.calc_linear_pressure_drop()
 

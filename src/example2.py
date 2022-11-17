@@ -4,7 +4,7 @@ from duct import *
 ducttype1 = ducttype("ductype1", "rigid", "rectangular", 0.00009, None, 1, 1)
 duct1 = duct("duct1", ducttype1, 10, 5)
 
-# calculate object
+# calculate objects
 ducttype1.calculate()
 duct1.calculate()
 

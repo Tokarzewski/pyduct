@@ -12,7 +12,6 @@ def friction_coefficient(Re, k, d_h):
     k - absolute roughness [m],
     d_h - hydraulic diameter [m]"""
     import colebrook
-
     return colebrook.eptFriction(Re, k / d_h)
 
 
@@ -23,13 +22,6 @@ def pressure_drop_per_meter(f, d_h, v, rho=1.2):
     v - speed,
     rho - density"""
     return f / d_h * (rho * v**2) / 2
-
-
-def roughness_correction_factor(absolute_roughness, diameter, velocity):
-    # XYZ HVAC Systems Duct Design, SMACNA
-    print("SMACNA function placeholder")
-    return 1
-
 
 def linear_pressure_drop(R, L, Beta):
     """Linear pressure drop. [Pa]
