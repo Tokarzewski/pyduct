@@ -11,3 +11,7 @@ acoustic calculations
 ## dependencies
 
 [colebrook](https://github.com/IMEConsultants/colebrook)
+
+## bibliography
+
+1. Wentylacja i Klimatyzacja - Materiały pomocniczne do projektowania, Jacek Hendiger, Piotr Ziętek, Marta Chludzińska
