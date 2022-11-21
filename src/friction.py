@@ -38,3 +38,17 @@ def local_pressure_drop(dzeta, v, rho=1.2):
     v - velocity
     """
     return dzeta * rho * v**2 / 2
+
+
+def flex_stretch_correction_factor(diameter, stretch_percentage):
+    # Flex is fully stretched, when stretch_percentage = 100
+    # Developed based on chart from ASHRAE Fundamentals
+    # R**2 = 0.995
+    from math import exp
+    return  0.557 * (100 - stretch_percentage) * exp(-4.93 * diameter) + 1
+
+
+def flex_pressure_drop_per_meter(diameter, V):
+    # this is manufacturer and flex designtype specific
+    # probably there is a flex library needed 
+    return 1
