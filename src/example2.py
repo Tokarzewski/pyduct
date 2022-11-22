@@ -1,4 +1,4 @@
-from duct import *
+from ducts import *
 
 # define objects
 ducttype1 = RigidDuctType("ductype1", "rectangular", 0.00009, None, 1, 1)

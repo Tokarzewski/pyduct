@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from math import pi
 from typing import Literal, Optional
 import friction
@@ -12,9 +12,9 @@ class RigidDuctType:
     diameter: Optional[float] = None
     height: Optional[float] = None
     width: Optional[float] = None
-    area: float = field(init=False)
-    hydraulic_diameter: float = field(init=False)
-    surface_per_meter: float = field(init=False)
+    area: Optional[float] = None
+    hydraulic_diameter: Optional[float] = None
+    surface_per_meter: Optional[float] = None
 
     def calc_cross_sectional_area(self):
         if self.shape == "round":
@@ -48,10 +48,10 @@ class RigidDuct:
     length: float
     flowrate: float
     roughness_correction_factor: float = 1
-    velocity: float = field(init=False)
-    pressure_drop_per_meter: float = field(init=False)
-    linear_pressure_drop: float = field(init=False)
-    surface_area: float = field(init=False)
+    velocity: Optional[float] = None
+    pressure_drop_per_meter: Optional[float] = None
+    linear_pressure_drop: Optional[float] = None
+    surface_area: Optional[float] = None
 
     def calc_surface_area(self):
         return self.duct_type.surface_per_meter * self.length
@@ -86,8 +86,8 @@ class FlexDuctType:
     name: str
     absolute_roughness: float
     diameter: float
-    area: float = field(init=False)
-    hydraulic_diameter: float = field(init=False)
+    area: Optional[float] = None
+    hydraulic_diameter: Optional[float] = None
 
     def calc_cross_sectional_area(self):
         return pi * (self.diameter / 2) ** 2
@@ -108,10 +108,10 @@ class FlexDuct:
     length: float
     flowrate: float
     stretch_percentage: float
-    velocity: float = field(init=False)
-    stretch_correction_factor: float = field(init=False)
-    pressure_drop_per_meter: float = field(init=False)
-    linear_pressure_drop: float = field(init=False)
+    velocity: Optional[float] = None
+    stretch_correction_factor: Optional[float] = None
+    pressure_drop_per_meter: Optional[float] = None
+    linear_pressure_drop: Optional[float] = None
 
     def calc_velocity(self):
         return self.flowrate / self.duct_type.area
