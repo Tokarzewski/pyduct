@@ -11,6 +11,7 @@ acoustic calculations
 ## dependencies
 
 [colebrook](https://github.com/IMEConsultants/colebrook)
+[NetworkX](https://github.com/networkx/networkx)
 
 ## bibliography
 
