@@ -23,6 +23,7 @@ def pressure_drop_per_meter(f, d_h, v, rho=1.2):
     rho - density"""
     return f / d_h * (rho * v**2) / 2
 
+
 def linear_pressure_drop(R, L, Beta):
     """Linear pressure drop. [Pa]
     R - pressure drop per meter,
@@ -45,10 +46,10 @@ def flex_stretch_correction_factor(diameter, stretch_percentage):
     # Developed based on chart from ASHRAE Fundamentals
     # R**2 = 0.995
     from math import exp
-    return  0.557 * (100 - stretch_percentage) * exp(-4.93 * diameter) + 1
+    return 0.557 * (100 - stretch_percentage) * exp(-4.93 * diameter) + 1
 
 
 def flex_pressure_drop_per_meter(diameter, V):
     # this is manufacturer and flex designtype specific
-    # probably there is a flex library needed 
+    # a flex library is needed
     return 1

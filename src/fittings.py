@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from typing import Optional
-import networkx as nx
 
 
 @dataclass
@@ -12,6 +11,7 @@ class OneWayFitting:
         self.connector1 = other_fitting.name
         # XYZ record this change in the netowrkx.Graph()
         print(self.name, "connected through", duct.name, "to", self.connector1)
+
 
 @dataclass
 class TwoWayFitting:
