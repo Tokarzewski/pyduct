@@ -48,6 +48,8 @@ class RigidDuct:
     length: float
     flowrate: float
     roughness_correction_factor: float = 1
+    connector1: Optional[str] = None
+    connector2: Optional[str] = None
     velocity: Optional[float] = None
     pressure_drop_per_meter: Optional[float] = None
     linear_pressure_drop: Optional[float] = None
@@ -108,6 +110,8 @@ class FlexDuct:
     length: float
     flowrate: float
     stretch_percentage: float
+    connector1: Optional[str] = None
+    connector2: Optional[str] = None
     velocity: Optional[float] = None
     stretch_correction_factor: Optional[float] = None
     pressure_drop_per_meter: Optional[float] = None
