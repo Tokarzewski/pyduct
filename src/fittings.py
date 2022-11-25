@@ -5,6 +5,7 @@ from typing import Optional
 @dataclass
 class OneWayFitting:
     name: str
+    flowrate: float
     connector1: Optional[str] = None
 
 

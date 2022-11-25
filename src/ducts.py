@@ -46,7 +46,7 @@ class RigidDuct:
     name: str
     duct_type: RigidDuctType
     length: float
-    flowrate: float
+    flowrate: Optional[float] = None
     roughness_correction_factor: float = 1
     connector1: Optional[str] = None
     connector2: Optional[str] = None

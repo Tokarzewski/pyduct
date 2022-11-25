@@ -4,7 +4,7 @@ k = 0.09 / 1000  # m
 d_h = 0.4  # m
 v = 5  # m/s
 L = 10  # m
-dzeta = 0.25 # -
+dzeta = 0.25  # -
 
 Re = reynolds(v, d_h)
 f = friction_coefficient(Re, k, d_h)
