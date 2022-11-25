@@ -15,25 +15,21 @@ def count_connectors(object):
         return 3
     elif hasattr(object, 'connector2'):
         return 2
-    elif hasattr(object, 'connector1'):
-        return 1
     else:
-        return 0
+        return 1
 
 @dataclass
 class Ductwork:
     name: str
     type: Literal["Supply", "Exhaust"]
-    network = nx.Graph()
+    Graph = nx.DiGraph()
 
     def add_object(self, id, object):
-        self.network.add_node(id, object=copy(object))
+        self.Graph.add_node(id, object=copy(object))
         count = count_connectors(object)
         if count == 1:
-            self.network.add_edge(id, f'{id}.1')
+            self.Graph.add_edge(f'{id}.1', id)
         else:
-            connector_pairs = [(id, f'{id}.{x+1}') for x in range(count)]
-            self.network.add_edges_from(connector_pairs)
-
-    def connect_objects_by_connectors(self, connector1_id, connector2_id):
-        self.network.add_edge(connector1_id, connector2_id)
+            self.Graph.add_edge(f'{id}.1', id)
+            connector_pairs = [(id, f'{id}.{x+1}') for x in range(1, count)]
+            self.Graph.add_edges_from(connector_pairs)
