@@ -5,7 +5,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 # ductwork system definition
-sup1 = Ductwork("sup1", "Exhaust")
+sup1 = Ductwork("sup1", "Supply")
 G = sup1.Graph
 
 # define objects
@@ -22,13 +22,13 @@ sup1.add_object("2", duct1)
 sup1.add_object("3", branch)
 sup1.add_object("4", duct1)
 sup1.add_object("5", branch)
-sup1.add_object("6", air_terminal)
+sup1.add_object("6", branch)
 sup1.add_object("8", duct1)
 sup1.add_object("9", air_terminal)
-sup1.add_object("10", branch)
+sup1.add_object("10", air_terminal)
 sup1.add_object("11", cap)
 connections = [('1.1', '2.2'), ('2.1', '3.3'), ('3.1', '4.2'), ('8.1', '3.2'), 
-('9.1', '8.2'), ('4.1', '5.2'), ('6.1', '5.3'), ('5.1', '10.2'), ('11.1', '10.3')]
+('9.1', '8.2'), ('4.1', '5.2'), ('10.1', '5.3'), ('5.1', '6.2'), ('11.1', '6.3')]
 G.add_edges_from(connections)
 
 if __name__ == "__main__":
