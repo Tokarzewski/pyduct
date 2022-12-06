@@ -1,0 +1,37 @@
+{
+  "Ductwork": [
+    {
+      "RigidDuctType": [
+        {
+          "name": "ducttype1",
+          "shape": "rectangular",
+          "absolute_roughness": 0.0001,
+          "width": 1.0,
+          "height": 1.0
+        },
+        {
+          "name": "ducttype2",
+          "shape": "round",
+          "absolute_roughness": 0.0001,
+          "diameter": 1.0
+        }
+      ]
+    },
+    {
+      "RigidDuct": [
+        {
+          "name": "duct1",
+          "duct_type": "ducttype1",
+          "length": 10.0,
+          "flowrate": 0.5
+        },
+        {
+          "name": "duct2",
+          "duct_type": "ducttype2",
+          "length": 30.0,
+          "flowrate": 0.5
+        }
+      ]
+    }
+  ]
+}

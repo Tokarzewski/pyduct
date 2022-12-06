@@ -12,6 +12,8 @@ acoustic calculations
 
 [colebrook](https://github.com/IMEConsultants/colebrook)  
 [NetworkX](https://github.com/networkx/networkx)
+[SciPy](https://github.com/scipy/scipy)
+[Matplotlib](https://github.com/matplotlib/matplotlib)
 
 ## bibliography
 

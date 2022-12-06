@@ -54,7 +54,7 @@ class Ductwork:
 
         fittings34 = set()
         for x, y in G.degree():
-            if y in (3,4):
+            if y in (3, 4):
                 fittings34.add(x)
 
         def pass_flowrate_from(fittings):
@@ -72,21 +72,19 @@ class Ductwork:
         def pass_flowrate_in_fittings(fittings):
             # calculate flowrate in fittings
             set1 = set()
-            dict2 = dict()
+            dictionary = dict()
             for fitting in fittings:
                 c2 = G.nodes[fitting+'.2']["flowrate"]
                 c3 = G.nodes[fitting+'.3']["flowrate"]
                 if None not in (c2, c3):
                     if type(G.nodes[fitting]['object']) == ThreeWayFitting:
                         flowrate = c2 + c3
-                        set1.add(fitting)
-                        dict2.update({fitting+'.1': flowrate})
                     elif type(G.nodes[fitting]['object']) == FourWayFitting and G.nodes[fitting+'.4']["flowrate"] != None:
                         c4 = G.nodes[fitting+'.4']["flowrate"]
                         flowrate = c2 + c3 + c4
-                        set1.add(fitting)
-                        dict2.update({fitting+'.1': flowrate})
-            nx.set_node_attributes(G, dict2, "flowrate")
+                    set1.add(fitting)
+                    dictionary.update({fitting+'.1': flowrate})
+            nx.set_node_attributes(G, dictionary, "flowrate")
             return set1
 
         pass_flowrate_from(air_terminals)

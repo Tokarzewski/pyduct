@@ -24,7 +24,7 @@ def pressure_drop_per_meter(f, d_h, v, rho=1.2):
     return f / d_h * (rho * v**2) / 2
 
 
-def linear_pressure_drop(R, L, Beta):
+def linear_pressure_drop(R, L, Beta = 1):
     """Linear pressure drop. [Pa]
     R - pressure drop per meter,
     L - duct legth,
