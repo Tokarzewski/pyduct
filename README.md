@@ -2,11 +2,20 @@
 
 python library for ductwork calculations.
 
-## scope
+## functionality
 duct and duct fittings library  
-pressure drop calculations  
 ductwork sizing  
+pressure drop calculations  
 acoustic calculations  
+
+## todo
+calculate point pressure drops in fittings
+ductwork sizing
+connector class, point class
+export tabular reports in csv or html format
+schema in json/xml
+3D graph plot
+acoustic calculations
 
 ## dependencies
 
@@ -18,3 +27,4 @@ acoustic calculations
 ## bibliography
 
 1. Wentylacja i Klimatyzacja - Materiały pomocniczne do projektowania, Jacek Hendiger, Piotr Ziętek, Marta Chludzińska
+2. 

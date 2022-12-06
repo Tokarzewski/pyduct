@@ -30,6 +30,8 @@ Library with fitting classification and related pressure loss coefficients (zeta
 
 ### Classification
 
+None? 
+
 
 ### Zeta values from literature
 1. Wentylacja i Klimatyzacja - Materiały pomocniczne do projektowania, Jacek Hendiger, Piotr Ziętek, Marta Chludzińska
