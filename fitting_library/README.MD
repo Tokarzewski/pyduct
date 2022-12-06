@@ -30,7 +30,7 @@ Library with fitting classification and related pressure loss coefficients (zeta
 
 ### Classification
 
-None? 
+1. Residential Duct Systems, Air Conditioning Contractors of America (ACCA)
 
 
 ### Zeta values from literature
