@@ -1,5 +1,3 @@
-import networkx as nx
-import matplotlib.pyplot as plt
 from example4_pass_flowrates import sup1
 from pprint import pprint
 
