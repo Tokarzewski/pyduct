@@ -4,11 +4,11 @@ from ductwork import Ductwork
 import networkx as nx
 import matplotlib.pyplot as plt
 
-# ductwork system definition
+# ductwork definition
 sup1 = Ductwork("sup1", "Supply")
 G = sup1.Graph
 
-# define objects
+# object definition
 air_terminal = OneWayFitting("Air Terminal", 5)
 cap = OneWayFitting("Cap", 0)
 elbow = TwoWayFitting("Elbow")
@@ -16,7 +16,7 @@ branch = ThreeWayFitting("Branch")
 ducttype1 = RigidDuctType("ductype1", "rectangular", 0.00009, None, 1, 1)
 duct1 = RigidDuct("duct1", ducttype1, 10)
 
-# connect object connectors from air_terimnals to AHU
+# add objects to ductowrk
 sup1.add_object("1", air_terminal)
 sup1.add_object("2", duct1)
 sup1.add_object("3", branch)
@@ -27,6 +27,9 @@ sup1.add_object("8", duct1)
 sup1.add_object("9", air_terminal)
 sup1.add_object("10", air_terminal)
 sup1.add_object("11", cap)
+
+# define connections
+# XYZ limitation - they must start from 1
 connections = [('1.1', '2.2'), ('2.1', '3.3'), ('3.1', '4.2'), ('8.1', '3.2'), 
 ('9.1', '8.2'), ('4.1', '5.2'), ('10.1', '5.3'), ('5.1', '6.2'), ('11.1', '6.3')]
 G.add_edges_from(connections)
