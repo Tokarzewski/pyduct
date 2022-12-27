@@ -9,13 +9,13 @@ pressure drop calculations
 acoustic calculations  
 
 ## todo
-calculate point pressure drops in fittings
-ductwork sizing
-connector class, point class
-export tabular reports in csv or html format
-schema in json/xml
-3D graph plot
-acoustic calculations
+calculate point pressure drops in fittings  
+ductwork sizing  
+connector class, point class  
+export tabular reports in csv or html format  
+schema in json/xml  
+3D graph plot  
+acoustic calculations  
 
 ## dependencies
 
