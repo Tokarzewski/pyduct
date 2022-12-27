@@ -12,8 +12,8 @@ class RigidDuctType:
     diameter: Optional[float] = None
     height: Optional[float] = None
     width: Optional[float] = None
-    cross_sectional_area: float = field(init=False)
-    hydraulic_diameter: float = field(init=False)
+    cross_sectional_area: Optional[float] = None
+    hydraulic_diameter: Optional[float] = None
 
     def calc_cross_sectional_area(self):
         if self.shape == "round":
@@ -28,7 +28,7 @@ class RigidDuctType:
             return 2 * self.height * self.width / (self.height + self.width)
 
     def calculate(self):
-        # print("Start calculating RigidDuctType:", self.name)
+        #print("Start calculating RigidDuctType:", self.name)
         self.cross_sectional_area = self.calc_cross_sectional_area()
         self.hydraulic_diameter = self.calc_hydraulic_diameter()
 
@@ -40,6 +40,7 @@ class FlexDuctType:
     diameter: float
     cross_sectional_area: float = field(init=False)
     hydraulic_diameter: float = field(init=False)
+    
     def calc_cross_sectional_area(self):
         return pi * (self.diameter / 2) ** 2
 
@@ -47,7 +48,7 @@ class FlexDuctType:
         return self.diameter
 
     def calculate(self):
-        # print("Start calculating FlexDuctType:", self.name)
+        #print("Start calculating FlexDuctType:", self.name)
         self.cross_sectional_area = self.calc_cross_sectional_area()
         self.hydraulic_diameter = self.calc_hydraulic_diameter()
 
@@ -61,9 +62,9 @@ class RigidDuct:
     roughness_correction_factor: Optional[float] = None
     connector1: Optional[str] = None
     connector2: Optional[str] = None
-    velocity: float = field(init=False)
-    pressure_drop_per_meter: float = field(init=False)
-    linear_pressure_drop: float = field(init=False)
+    velocity: Optional[str] = None
+    pressure_drop_per_meter: Optional[str] = None
+    linear_pressure_drop: Optional[str] = None
 
     def calc_velocity(self):
         return self.flowrate / self.duct_type.cross_sectional_area
@@ -84,7 +85,8 @@ class RigidDuct:
         return friction.linear_pressure_drop(R, L, Beta)
 
     def calculate(self) -> None:
-        # print("Start calculating Duct:", self.name)
+        self.duct_type.calculate()
+        #print("Start calculating Duct:", self.name)
         self.velocity = self.calc_velocity()
         self.pressure_drop_per_meter = self.calc_pressure_drop_per_meter()
         self.linear_pressure_drop = self.calc_linear_pressure_drop()
@@ -127,7 +129,7 @@ class FlexDuct:
         return friction.linear_pressure_drop(R, L, 1) * self.stretch_correction_factor
 
     def calculate(self) -> None:
-        # print("Start calculating Duct:", self.name)
+        #print("Start calculating Duct:", self.name)
         self.velocity = self.calc_velocity()
         self.stretch_correction_factor = self.calc_stretch_correction_factor()
         self.pressure_drop_per_meter = self.calc_pressure_drop_per_meter()
