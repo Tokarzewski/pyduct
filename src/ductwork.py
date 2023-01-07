@@ -1,4 +1,4 @@
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from typing import Literal
 import networkx as nx
 
@@ -27,23 +27,34 @@ class Ductwork:
     Graph = nx.DiGraph()
 
     def add_object(self, id, object):
-        # XYZ remove flowrate definition from this function
+        # new instance of class
+        object = replace(object)
+        
         self.objects.update({id: object})
         count = count_connectors(object)
         if count == 1:
-            self.Graph.add_node(id, flowrate=object.flowrate)
-            self.Graph.add_node(f'{id}.1', flowrate=object.flowrate)
             self.Graph.add_edge(id, f'{id}.1')
         else:
-            self.Graph.add_node(id, flowrate=None)
-            self.Graph.add_node(f'{id}.1', flowrate=None)
             self.Graph.add_edge(id, f'{id}.1')
             connector_pairs = [(f'{id}.{x+1}', id) for x in range(1, count)]
             for id_x, id in connector_pairs:
-                self.Graph.add_node(id_x, flowrate=None)
                 self.Graph.add_edge(id_x, id)
+    
+    def set_flowrate_attribute_to_all_nodes(self):
+        nx.set_node_attributes(self.Graph, None, 'flowrate')
+    
+    def pass_terminal_flowrate_from_object_to_graph(self):
+        for id, object in self.objects.items():
+            count = count_connectors(object)
+            if count == 1:
+                flowrate = object.connector1.flowrate
+                self.Graph.nodes[id]["flowrate"] = flowrate
+                self.Graph.nodes[f'{id}.1']["flowrate"] = flowrate
 
     def pass_flowrate(self):
+
+        self.set_flowrate_attribute_to_all_nodes()
+        self.pass_terminal_flowrate_from_object_to_graph()
 
         G = self.Graph
         air_terminals = set()
@@ -58,7 +69,6 @@ class Ductwork:
                 fittings34.add(x)
 
         def pass_flowrate_from(fittings):
-            # pass flowrate
             dict1 = {}
             W = G.copy()
             W.remove_nodes_from(fittings34)
@@ -97,10 +107,25 @@ class Ductwork:
             remaining_fittings = remaining_fittings - calculated_fittings
             fitting_count -= 1
 
-        # pass flowrate from duct nodes to duct objects
+        # pass flowrate from nodes to objects
         for id, object in self.objects.items():
             if type(object).__name__ in ['RigidDuct', 'FlexDuct']:
                 object.flowrate = self.Graph.nodes[id]['flowrate']
+            if type(object).__name__ == 'TwoWayFitting':
+                object.connector1.flowrate = self.Graph.nodes[id+'.1']['flowrate']
+                object.connector2.flowrate = self.Graph.nodes[id+'.2']['flowrate']
+            if type(object).__name__ == "ThreeWayFitting":
+                object.connector1.flowrate = self.Graph.nodes[id+'.1']['flowrate']
+                object.connector2.flowrate = self.Graph.nodes[id+'.2']['flowrate']
+                object.connector3.flowrate = self.Graph.nodes[id+'.3']['flowrate']
+            if type(object).__name__ == "FourWayFitting":
+                object.connector1.flowrate = self.Graph.nodes[id+'.1']['flowrate']
+                object.connector2.flowrate = self.Graph.nodes[id+'.2']['flowrate']
+                object.connector3.flowrate = self.Graph.nodes[id+'.3']['flowrate']
+                object.connector4.flowrate = self.Graph.nodes[id+'.4']['flowrate']
+
+    def sizing_dimmensions(self):
+        3
 
     def calculate(self):
         # calculate linear pressure drops
@@ -109,8 +134,13 @@ class Ductwork:
                 object.calculate()
 
         # calculate local pressure drops
-        """     
-        for object in self.objects.values()
-            if type(object).__name__ in ['OneWayFitting', 'TwoWayFitting', 'ThreeWayFitting', 'FourWayFitting']:
+            
+        for object in self.objects.values():
+            if type(object).__name__ in [#'OneWayFitting', 
+                                         'TwoWayFitting', 
+                                         'ThreeWayFitting', 
+                                         #'FourWayFitting'
+                                        ]:
                 object.calculate()
-        """
+        
+    #def pass_
