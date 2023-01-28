@@ -1,8 +1,8 @@
 # ductwork
 
-python library for ductwork calculations.
+work in progress python library for ductwork calculations.
 
-## functionality
+## target functionality
 duct and duct fittings library  
 ductwork sizing  
 pressure drop calculations  
@@ -15,14 +15,15 @@ connector class, point class
 export tabular reports in csv or html format  
 schema in json/xml  
 3D graph plot  
-acoustic calculations  
+acoustic calculations
+...  
 
 ## dependencies
 
 [colebrook](https://github.com/IMEConsultants/colebrook)  
+[matplotlib](https://github.com/matplotlib/matplotlib)  
 [NetworkX](https://github.com/networkx/networkx)  
 [SciPy](https://github.com/scipy/scipy)  
-[Matplotlib](https://github.com/matplotlib/matplotlib)  
 
 ## bibliography
 
