@@ -1,0 +1,18 @@
+[build-system]
+# Minimum requirements for the build system to execute.
+requires = ["setuptools", "wheel"]  # PEP 508 specifications.
+build-backend = "setuptools.build_meta:__legacy__"
+
+[project]
+name = "ductwork"
+version = "0.0.1"
+description = "Library for ductwork calculations"
+dependencies = [
+    # TODO: update to "pin-compatible" once possible, see
+    # https://github.com/FFY00/meson-python/issues/29
+    "colebrook",
+    "matplotlib",
+    "networkx",
+    "scipy",
+    "setuptools",
+]

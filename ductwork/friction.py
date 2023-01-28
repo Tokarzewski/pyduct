@@ -1,3 +1,5 @@
+from colebrook import eptFriction 
+
 def reynolds(v, d_h, vi=15e-6):
     """Equation for calculating Reynolds number, where
     v - speed,
@@ -11,8 +13,7 @@ def friction_coefficient(Re, k, d_h):
     Re - Reynolds number [-],
     k - absolute roughness [m],
     d_h - hydraulic diameter [m]"""
-    import colebrook
-    return colebrook.eptFriction(Re, k / d_h)
+    return eptFriction(Re, k / d_h)
 
 
 def pressure_drop_per_meter(f, d_h, v, rho=1.2):
