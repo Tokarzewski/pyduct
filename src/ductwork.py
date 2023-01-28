@@ -134,7 +134,6 @@ class Ductwork:
                 object.calculate()
 
         # calculate local pressure drops
-            
         for object in self.objects.values():
             if type(object).__name__ in [#'OneWayFitting', 
                                          'TwoWayFitting', 
@@ -143,4 +142,4 @@ class Ductwork:
                                         ]:
                 object.calculate()
         
-    #def pass_
+    #def pass_pressure_drops_from_objects_to_graph()

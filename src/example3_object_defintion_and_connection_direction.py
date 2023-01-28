@@ -1,5 +1,5 @@
 from fittings import Connector, OneWayFitting, TwoWayFitting, ThreeWayFitting
-from fitting_types import type1, type1_function
+from fitting_types import type1
 from ducts import RigidDuct, RigidDuctType
 from ductwork import Ductwork
 import networkx as nx
@@ -17,7 +17,7 @@ ducttype1 = RigidDuctType(name="ductype1", shape="rectangular",
                           absolute_roughness=0.00009, height=1, width=1)
 duct1 = RigidDuct(name="duct1", duct_type=ducttype1, length=10)
 
-elbow_type = type1(name = 'elbow', bend_radius = 1, diameter = 1, angle= 90)
+elbow_type = type1(name='elbow', bend_radius=1, diameter=1, angle=90)
 elbow = TwoWayFitting("Elbow", elbow_type)
 
 branch = ThreeWayFitting("Branch")
