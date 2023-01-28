@@ -1,4 +1,4 @@
-from ductwork.ducts import *
+from components.ducts import *
 
 # define objects
 ducttype1 = RigidDuctType("ducttype1", "rectangular", 0.00009, None, 1, 1)

@@ -1,6 +1,6 @@
-from ductwork.components.fittings import Connector, OneWayFitting, TwoWayFitting, ThreeWayFitting
-from ductwork.components.fitting_types import type1
-from ductwork.components.ducts import RigidDuct, RigidDuctType
+from components.fittings import Connector, OneWayFitting, TwoWayFitting, ThreeWayFitting
+from components.fitting_types import type1
+from components.ducts import RigidDuct, RigidDuctType
 from ductwork import Ductwork
 import networkx as nx
 import matplotlib.pyplot as plt
