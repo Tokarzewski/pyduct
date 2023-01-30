@@ -6,7 +6,7 @@ from pprint import pprint
 # print("edges:", G.edges)
 # print(nx.shortest_path(G, '1.2', '2.1'))
 
-sup1.calculate()
+sup1.calculate_pressure_drops()
 
 if __name__ == "__main__":
     pprint(sup1.objects)

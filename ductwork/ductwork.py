@@ -3,13 +3,9 @@ from typing import Literal
 import networkx as nx
 
 ## Ductwork in NetowrkX
-# All objects are in nodes
-# Objects have connectors and they are nodes too
+# All objects have connectors 
+# All objects and connectors are nodes in NetworkX
 # Edges are the connections between the connectors
-
-
-def count_connectors(object):
-    return object.number_of_connectors
 
 
 @dataclass
@@ -24,7 +20,7 @@ class Ductwork:
         object = replace(object)
 
         self.objects.update({id: object})
-        count = count_connectors(object)
+        count = object.number_of_connectors
         if count == 1:
             self.Graph.add_edge(id, f"{id}.1")
         else:
@@ -38,11 +34,9 @@ class Ductwork:
 
     def pass_terminal_flowrate_from_object_to_graph(self):
         for id, object in self.objects.items():
-            count = count_connectors(object)
+            count = object.number_of_connectors
             if count == 1:
                 flowrate = object.connectors.flowrate
-                print(object)
-                print("flowrate:", flowrate)
                 self.Graph.nodes[id]["flowrate"] = flowrate
                 self.Graph.nodes[f"{id}.1"]["flowrate"] = flowrate
 
@@ -105,10 +99,7 @@ class Ductwork:
         # pass flowrate from nodes to objects
         for id, object in self.objects.items():
             if object.number_of_connectors > 1:
-                #print(object.number_of_connectors)
-                #print(object.connectors)
                 for connector in object.connectors:
-                    print(self.Graph.nodes[id + "." + connector.id]["flowrate"])
                     connector.flowrate = self.Graph.nodes[id + "." + connector.id]["flowrate"]
             else:
                 connector = object.connectors
