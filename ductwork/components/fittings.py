@@ -1,33 +1,27 @@
 from dataclasses import dataclass, field
-from typing import Optional
+from typing import Optional, List
 import friction
-
-
-@dataclass
-class Connector:
-    flowrate: Optional[float] = 0
-    pressure_drop: Optional[float] = None
-    area: Optional[float] = None
-    dzeta: Optional[float] = None
-
+from components.connectors import Connector
 
 @dataclass
 class OneWayFitting:
     name: str
     # type
-    connector1: Connector
+    connectors: Connector
+    number_of_connectors: int = 1
 
+    def __post_init__(self) -> None:
+        self.connectors.id = "1"
 
 @dataclass
 class TwoWayFitting:
     name: str
     type: str
-    connector1: Connector = field(init=False)
-    connector2: Connector = field(init=False)
+    connectors: Optional[List[Connector]] = None
+    number_of_connectors: int = 2
 
     def __post_init__(self) -> None:
-        self.connector1 = Connector(0)
-        self.connector2 = Connector(0)
+        self.connectors = [Connector("1"), Connector("2")]
 
     def calculate(self) -> None:
         # arguments width, length, diameter, area, flowrate, velocity
@@ -43,14 +37,11 @@ class TwoWayFitting:
 class ThreeWayFitting:
     name: str
     # type
-    connector1: Connector = field(init=False)
-    connector2: Connector = field(init=False)
-    connector3: Connector = field(init=False)
+    connectors: Optional[List[Connector]] = None
+    number_of_connectors: int = 3
 
     def __post_init__(self) -> None:
-        self.connector1 = Connector(0)
-        self.connector2 = Connector(0)
-        self.connector3 = Connector(0)
+        self.connectors = [Connector("1"), Connector("2"), Connector("3")]
 
     def calculate(self) -> None:
         # arguments width, length, diameter, area, flowrate, velocity
@@ -73,13 +64,8 @@ class ThreeWayFitting:
 class FourWayFitting:
     name: str
     # type
-    connector1: Connector = field(init=False)
-    connector2: Connector = field(init=False)
-    connector3: Connector = field(init=False)
-    connector4: Connector = field(init=False)
+    connectors: Optional[List[Connector]]
+    number_of_connectors: int = 4
 
     def __post_init__(self) -> None:
-        self.connector1 = Connector(0)
-        self.connector2 = Connector(0)
-        self.connector3 = Connector(0)
-        self.connector4 = Connector(0)
+        self.connectors = [Connector("1"), Connector("2"), Connector("3"), Connector("4")]
