@@ -36,7 +36,7 @@ class TwoWayFitting:
 @dataclass
 class ThreeWayFitting:
     name: str
-    type: str
+    #type: str
     connectors: Optional[List[Connector]] = None
     number_of_connectors: int = 3
 
@@ -64,7 +64,7 @@ class ThreeWayFitting:
 @dataclass
 class FourWayFitting:
     name: str
-    # type
+    #type: str
     connectors: Optional[List[Connector]]
     number_of_connectors: int = 4
 
