@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from math import pi
-from typing import Literal, Optional
+from typing import List, Literal, Optional
+from components.connectors import Connector
 import friction
 
 
@@ -60,12 +61,15 @@ class RigidDuct:
     length: float
     flowrate: Optional[float] = None
     roughness_correction_factor: Optional[float] = None
-    connector1: Optional[str] = None
-    connector2: Optional[str] = None
+    connectors: Optional[List[Connector]] = None
     velocity: Optional[str] = None
     pressure_drop_per_meter: Optional[str] = None
     linear_pressure_drop: Optional[str] = None
+    number_of_connectors: int = 2
 
+    def __post_init__(self) -> None:
+        self.connectors = [Connector("1"), Connector("2")]
+        
     def calc_velocity(self):
         return self.flowrate / self.duct_type.cross_sectional_area
 
@@ -99,13 +103,15 @@ class FlexDuct:
     length: float
     flowrate: float
     stretch_percentage: float
-    connector1: Optional[str] = None
-    connector2: Optional[str] = None
+    connectors: Optional[List[Connector]] = None
     velocity: float = field(init=False)
     stretch_correction_factor: Optional[float] = None
     pressure_drop_per_meter: float = field(init=False)
     linear_pressure_drop: float = field(init=False)
+    number_of_connectors: int = 2
 
+    def __post_init__(self) -> None:
+        self.connectors = [Connector("1"), Connector("2")]
 
     def calc_velocity(self):
         return self.flowrate / self.duct_type.cross_sectional_area
