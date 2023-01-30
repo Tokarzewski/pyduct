@@ -25,18 +25,18 @@ class TwoWayFitting:
 
     def calculate(self) -> None:
         # arguments width, length, diameter, area, flowrate, velocity
-        if self.connector[2].flowrate > 0:
-            self.connector[2].area = 1
-            v2 = self.connector[2].flowrate / self.connector[2].area
-            self.connector[2].dzeta = self.type.dzeta()
-            self.connector[2].pressure_drop = friction.local_pressure_drop(
-                self.connector[2].dzeta, v2)
+        c2 = self.connector[2]
+        if c2.flowrate > 0:
+            c2.area = 1
+            v2 = c2.flowrate / c2.area
+            c2.dzeta = self.type.dzeta()
+            c2.pressure_drop = friction.local_pressure_drop(c2.dzeta, v2)
 
 
 @dataclass
 class ThreeWayFitting:
     name: str
-    # type
+    type: str
     connectors: Optional[List[Connector]] = None
     number_of_connectors: int = 3
 
@@ -45,19 +45,20 @@ class ThreeWayFitting:
 
     def calculate(self) -> None:
         # arguments width, length, diameter, area, flowrate, velocity
-        if self.connectors[2].flowrate > 0:
-            self.connector[2].area = 1
-            v2 = self.connector[2].flowrate / self.connector[2].area
-            self.connector[2].dzeta = 0.5
-            self.connector[2].pressure_drop = friction.local_pressure_drop(
-                self.dzeta, v2)
+        c2 = self.connector[2]
+        c3 = self.connector[3]
 
-        if self.connector[3].flowrate > 0:
-            self.connector[3].area = 1
-            v3 = self.connector[3].flowrate / self.connector[3].area
-            self.connector[3].dzeta = 0.3
-            self.connector[3].pressure_drop = friction.local_pressure_drop(
-                self.connector[3].dzeta, v3)
+        if self.connectors[2].flowrate > 0:
+            c2.area = 1
+            v2 = c2.flowrate / c2.area
+            c2.dzeta = 0.5
+            c2.pressure_drop = friction.local_pressure_drop(c2.dzeta, v2)
+
+        if c3.flowrate > 0:
+            c3.area = 1
+            v3 = c3.flowrate / c3.area
+            c3.dzeta = 0.3
+            c3.pressure_drop = friction.local_pressure_drop(c3.dzeta, v3)
 
 
 @dataclass
