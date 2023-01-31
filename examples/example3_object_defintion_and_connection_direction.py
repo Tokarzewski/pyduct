@@ -11,7 +11,7 @@ sup1 = Ductwork("sup1", "Supply")
 G = sup1.Graph
 
 # object definition
-air_terminal = OneWayFitting("Air Terminal", Connector(flowrate=5))
+air_terminal = OneWayFitting("Air Terminal", Connector(id="1", flowrate=5))
 cap = OneWayFitting("Cap", Connector(flowrate=0))
 
 ducttype1 = RigidDuctType(name="ductype1", shape="rectangular",

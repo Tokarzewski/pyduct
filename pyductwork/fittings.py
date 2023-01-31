@@ -17,11 +17,8 @@ class OneWayFitting:
 class TwoWayFitting:
     name: str
     type: str
-    connectors: Optional[List[Connector]] = None
+    connectors = [Connector(id="1"), Connector(id="2")]
     number_of_connectors: int = 2
-
-    def __post_init__(self) -> None:
-        self.connectors = [Connector("1"), Connector("2")]
 
     def calculate(self) -> None:
         # arguments width, length, diameter, area, flowrate, velocity
@@ -37,11 +34,10 @@ class TwoWayFitting:
 class ThreeWayFitting:
     name: str
     #type: str
-    connectors: Optional[List[Connector]] = None
+    connectors = [Connector(id="1"), 
+                  Connector(id="2"), 
+                  Connector(id="3")]
     number_of_connectors: int = 3
-
-    def __post_init__(self) -> None:
-        self.connectors = [Connector("1"), Connector("2"), Connector("3")]
 
     def calculate(self) -> None:
         # arguments width, length, diameter, area, flowrate, velocity
@@ -65,8 +61,8 @@ class ThreeWayFitting:
 class FourWayFitting:
     name: str
     #type: str
-    connectors: Optional[List[Connector]]
+    connectors = [Connector(id="1"), 
+                  Connector(id="2"), 
+                  Connector(id="3"), 
+                  Connector(id="4")]
     number_of_connectors: int = 4
-
-    def __post_init__(self) -> None:
-        self.connectors = [Connector("1"), Connector("2"), Connector("3"), Connector("4")]
