@@ -12,5 +12,5 @@ dependencies = [
     "matplotlib",
     "networkx",
     "scipy",
-    "setuptools",
+    "setuptools>=65.5.1",
 ]
