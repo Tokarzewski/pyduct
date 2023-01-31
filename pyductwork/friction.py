@@ -1,4 +1,5 @@
-from colebrook import eptFriction 
+from colebrook import eptFriction
+
 
 def reynolds(v, d_h, vi=15e-6):
     """Equation for calculating Reynolds number, where
@@ -25,7 +26,7 @@ def pressure_drop_per_meter(f, d_h, v, rho=1.2):
     return f / d_h * (rho * v**2) / 2
 
 
-def linear_pressure_drop(R, L, Beta = 1):
+def linear_pressure_drop(R, L, Beta=1):
     """Linear pressure drop. [Pa]
     R - pressure drop per meter,
     L - duct legth,
@@ -47,6 +48,7 @@ def flex_stretch_correction_factor(diameter, stretch_percentage):
     # Developed based on chart from ASHRAE Fundamentals
     # R**2 = 0.995
     from math import exp
+
     return 0.557 * (100 - stretch_percentage) * exp(-4.93 * diameter) + 1
 
 

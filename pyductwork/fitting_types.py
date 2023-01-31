@@ -1,6 +1,7 @@
 from scipy.interpolate import CubicSpline, interp2d, interpn
 from dataclasses import dataclass
 
+
 @dataclass
 class type1:
     name: str
@@ -20,7 +21,8 @@ class type1:
             [0.04, 0.05, 0.07, 0.09, 0.11, 0.12, 0.14, 0.14, 0.15, 0.17],
         ]
         cs = interp2d(x_angle, y_RD, z_dzeta, kind="cubic")
-        return float(cs(self.angle, self.bend_radius/self.diameter))
+        return float(cs(self.angle, self.bend_radius / self.diameter))
+
 
 if __name__ == "__main__":
-    print(type1('name', 1, 1, 130).dzeta())
+    print(type1("name", 1, 1, 130).dzeta())

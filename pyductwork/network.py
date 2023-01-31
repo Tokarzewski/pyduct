@@ -3,7 +3,7 @@ from typing import Literal
 import networkx as nx
 
 ## Ductwork in NetowrkX
-# All objects have connectors 
+# All objects have connectors
 # All objects and connectors are nodes in NetworkX
 # Edges are the connections between the connectors
 
@@ -100,10 +100,12 @@ class Ductwork:
         for id, object in self.objects.items():
             if object.number_of_connectors > 1:
                 for connector in object.connectors:
-                    connector.flowrate = self.Graph.nodes[id + "." + connector.id]["flowrate"]
+                    node_id = id + "." + connector.id
+                    connector.flowrate = self.Graph.nodes[node_id]["flowrate"]
             else:
                 connector = object.connectors
-                connector.flowrate = self.Graph.nodes[id + "." + connector.id]["flowrate"]
+                node_id = id + "." + connector.id
+                connector.flowrate = self.Graph.nodes[node_id]["flowrate"]
 
     def calculate_dimmensions(self):
         3
