@@ -1,6 +1,6 @@
 ## pyductwork
 
-work in progress python library for ductwork calculations.
+Work in progress python library for ductwork calculations.
 
 ### What is the software application or feature?
 
@@ -11,7 +11,7 @@ acoustic calculations
 
 ### Who's it intender for?
 
-Building services engineers that know python
+It is for building services engineers that know python.
 
 ### What problem does the software solve?
 
