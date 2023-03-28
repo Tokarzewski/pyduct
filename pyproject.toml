@@ -1,16 +1,22 @@
-[build-system]
-# Minimum requirements for the build system to execute.
-requires = ["setuptools", "wheel"]  # PEP 508 specifications.
-build-backend = "setuptools.build_meta:__legacy__"
+[tool.pdm]
 
 [project]
 name = "pyductwork"
 version = "0.0.1"
-description = "Library for ductwork calculations"
+description = "library for ductwork calculations"
+authors = [
+    {name = "Tokarzewski", email = "bartlomiej.tokarzewski@gmail.com"},
+]
 dependencies = [
-    "colebrook",
-    "matplotlib",
-    "networkx",
-    "scipy",
+    "colebrook>=0.0.5",
+    "matplotlib==3.6.3",
+    "networkx==3.0",
+    "scipy>=1.9.3",
     "setuptools>=65.5.1",
 ]
+requires-python = ">=3.11"
+license = {text = "MIT"}
+
+[build-system]
+requires = ["pdm-pep517>=1.0.0"]
+build-backend = "pdm.pep517.api"

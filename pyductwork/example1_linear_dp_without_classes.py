@@ -1,4 +1,4 @@
-from pyductwork.friction import *
+from friction import *
 
 k = 0.09 / 1000  # m
 d_h = 0.4  # m

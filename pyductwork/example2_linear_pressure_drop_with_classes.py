@@ -1,4 +1,4 @@
-from pyductwork.ducts import *
+from ducts import *
 
 # define objects
 duct_type1 = RigidDuctType("ducttype1", "rectangular", 0.00009, None, 1, 1)

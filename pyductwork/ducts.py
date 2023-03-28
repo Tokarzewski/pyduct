@@ -1,8 +1,8 @@
 from dataclasses import dataclass, field
 from math import pi
 from typing import List, Literal, Optional
-from .connectors import Connector
-from . import friction
+from connectors import Connector
+import friction
 
 
 @dataclass

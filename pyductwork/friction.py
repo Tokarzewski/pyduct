@@ -1,4 +1,5 @@
 from colebrook import eptFriction
+#from colebrook import eptFriction
 
 
 def reynolds(v, d_h, vi=15e-6):
@@ -56,3 +57,6 @@ def flex_pressure_drop_per_meter(diameter, V):
     # this is manufacturer and flex designtype specific
     # a flex library is needed
     return 1
+
+if __name__ == "__main__":
+    print(friction_coefficient(4000, 0.00001, 0.05))
