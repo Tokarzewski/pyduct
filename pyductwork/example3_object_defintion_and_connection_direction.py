@@ -24,24 +24,18 @@ branch = ThreeWayFitting("Branch")
 
 # add objects to ductwork
 sup1.add_object("1", air_terminal)
-sup1.add_object("2", duct1)
-sup1.add_object("3", branch)
 sup1.add_object("4", duct1)
 sup1.add_object("5", branch)
 sup1.add_object("6", branch)
 sup1.add_object("8", elbow)
-sup1.add_object("9", air_terminal)
 sup1.add_object("10", air_terminal)
 sup1.add_object("11", cap)
 
 # define connections
 # XYZ limitation - they must start from 1
 connections = [
-    ("1.1", "2.2"),
-    ("2.1", "3.3"),
-    ("3.1", "4.2"),
-    ("8.1", "3.2"),
-    ("9.1", "8.2"),
+    ("1.1", "8.2"),
+    ("8.1", "4.2"),
     ("4.1", "5.2"),
     ("10.1", "5.3"),
     ("5.1", "6.2"),
