@@ -48,7 +48,7 @@ class ThreeWayFitting:
         c2 = self.connectors[1]
         c3 = self.connectors[2]
 
-        if self.connectors[2].flowrate > 0:
+        if c2.flowrate > 0:
             c2.area = 1
             v2 = c2.flowrate / c2.area
             c2.dzeta = 0.5

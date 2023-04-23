@@ -1,12 +1,12 @@
 import networkx as nx
 import matplotlib.pyplot as plt
-from example3_object_defintion_and_connection_direction import sup1
+from example3_object_defintion_and_connection_direction import sup1, G
 
-sup1.pass_flowrate()
+sup1.pass_flowrate_through_graph()
+sup1.pass_attribute_from_graph_nodes_to_objects("flowrate")
 
 if __name__ == "__main__":
-    G = sup1.Graph
     flowrate_labels = nx.get_node_attributes(G, name="flowrate")
     nx.draw(G, labels=flowrate_labels)
-    #print(G.nodes(data=True))
+    # print(G.nodes(data=True))
     plt.show()
