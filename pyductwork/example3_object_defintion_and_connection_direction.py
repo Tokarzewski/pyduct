@@ -1,8 +1,8 @@
-from pyductwork.connectors import Connector
-from pyductwork.ducts import RigidDuct, RigidDuctType
-from pyductwork.fitting_types import type1
-from pyductwork.fittings import OneWayFitting, ThreeWayFitting, TwoWayFitting
-from pyductwork.network import Ductwork
+from connectors import Connector
+from ducts import RigidDuct, RigidDuctType
+from fitting_types import elbow_round
+from fittings import OneWayFitting, ThreeWayFitting, TwoWayFitting
+from network import Ductwork
 import networkx as nx
 import matplotlib.pyplot as plt
 
@@ -11,20 +11,18 @@ sup1 = Ductwork("sup1", "Supply")
 G = sup1.Graph
 
 # define objects
-air_terminal = OneWayFitting("Air Terminal", Connector(id="1", flowrate=5))
-cap = OneWayFitting("Cap", Connector(flowrate=0))
+air_terminal = OneWayFitting(name="Air Terminal", connectors=Connector(flowrate=5))
+cap = OneWayFitting("Cap", connectors=Connector(flowrate=0))
 
-duct_type1 = RigidDuctType(
-    name="ductype1", shape="rectangular", absolute_roughness=0.00009, height=1, width=1
-)
+duct_type1 = RigidDuctType(name="ductype1", shape="rectangular", absolute_roughness=0.00009, height=1, width=1)
 duct1 = RigidDuct(name="duct1", duct_type=duct_type1, length=10)
 
-elbow_type = type1(name="elbow", bend_radius=1, diameter=1, angle=90)
-elbow = TwoWayFitting("Elbow", elbow_type)
+elbow_type = elbow_round(name="elbow", bend_radius=1, diameter=1, angle=90)
+elbow = TwoWayFitting(name="Elbow", type=elbow_type)
 
 branch = ThreeWayFitting("Branch")
 
-# add objects to ductowrk
+# add objects to ductwork
 sup1.add_object("1", air_terminal)
 sup1.add_object("2", duct1)
 sup1.add_object("3", branch)

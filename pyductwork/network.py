@@ -1,26 +1,32 @@
 from dataclasses import dataclass, field, replace
 from typing import Literal
 import networkx as nx
+from connectors import Connector
 
 ## Ductwork in NetowrkX
 # All objects have connectors
 # All objects and connectors are nodes in NetworkX
 # Edges are the connections between the connectors
 
-
+def count_connectors(connectors):
+    if type(connectors) == Connector:
+        return 1
+    else:
+        return len(connectors)
+        
 @dataclass
 class Ductwork:
     name: str
     type: Literal["Supply", "Exhaust"]
     objects: dict = field(default_factory=dict)
     Graph = nx.DiGraph()
-
+        
     def add_object(self, id, object):
         # new instance of class
         object = replace(object)
 
         self.objects.update({id: object})
-        count = object.number_of_connectors
+        count = count_connectors(object.connectors)
         if count == 1:
             self.Graph.add_edge(id, f"{id}.1")
         else:
@@ -34,7 +40,7 @@ class Ductwork:
 
     def pass_terminal_flowrate_from_object_to_graph(self):
         for id, object in self.objects.items():
-            count = object.number_of_connectors
+            count = count_connectors(object.connectors)
             if count == 1:
                 flowrate = object.connectors.flowrate
                 self.Graph.nodes[id]["flowrate"] = flowrate
@@ -49,9 +55,9 @@ class Ductwork:
         air_terminals = set()
         fittings34 = set()
 
-        for id, object in self.objects.items():
+        for object_id, object in self.objects.items():
             if type(object).__name__ == "OneWayFitting":
-                air_terminals.add(id)
+                air_terminals.add(object_id)
 
         for x, y in G.degree():
             if y in (3, 4):
@@ -97,14 +103,14 @@ class Ductwork:
             fitting_count -= 1
 
         # pass flowrate from nodes to objects
-        for id, object in self.objects.items():
-            if object.number_of_connectors > 1:
+        for object_id, object in self.objects.items():
+            if count_connectors(object.connectors) > 1:
                 for connector in object.connectors:
-                    node_id = id + "." + connector.id
+                    node_id = object_id + "." + connector.id
                     connector.flowrate = self.Graph.nodes[node_id]["flowrate"]
             else:
                 connector = object.connectors
-                node_id = id + "." + connector.id
+                node_id = object_id + "." + connector.id
                 connector.flowrate = self.Graph.nodes[node_id]["flowrate"]
 
     def calculate_dimmensions(self):
@@ -114,11 +120,11 @@ class Ductwork:
         # calculate linear pressure drops
         for object in self.objects.values():
             if type(object).__name__ in ["RigidDuct", "FlexDuct"]:
+                #print(object)
                 object.calculate()
 
         # calculate local pressure drops
-        for object in self.objects.values():
-            if type(object).__name__ in [  #'OneWayFitting',
+            if type(object).__name__ in [#'OneWayFitting',
                 "TwoWayFitting",
                 "ThreeWayFitting",
                 #'FourWayFitting'

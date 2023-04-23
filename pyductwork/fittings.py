@@ -1,28 +1,30 @@
-from dataclasses import dataclass
-from typing import Optional, List
-from .connectors import Connector
-from . import friction
+from dataclasses import dataclass, field
+from typing import List
+from connectors import Connector
+import friction
 
 @dataclass
 class OneWayFitting:
     name: str
     # type
     connectors: Connector
-    number_of_connectors: int = 1
 
     def __post_init__(self) -> None:
+        #self.connectors = Connector(id="1")
         self.connectors.id = "1"
 
 @dataclass
 class TwoWayFitting:
     name: str
+    connectors: List[Connector] = field(init=False)
     type: str
-    connectors = [Connector(id="1"), Connector(id="2")]
-    number_of_connectors: int = 2
 
+    def __post_init__(self):
+        self.connectors = [Connector(id="1"), Connector(id="2")]
+    
     def calculate(self) -> None:
         # arguments width, length, diameter, area, flowrate, velocity
-        c2 = self.connector[2]
+        c2 = self.connectors[0]
         if c2.flowrate > 0:
             c2.area = 1
             v2 = c2.flowrate / c2.area
@@ -33,16 +35,18 @@ class TwoWayFitting:
 @dataclass
 class ThreeWayFitting:
     name: str
+    connectors: List[Connector] = field(init=False)
     #type: str
-    connectors = [Connector(id="1"), 
-                  Connector(id="2"), 
-                  Connector(id="3")]
-    number_of_connectors: int = 3
+
+    def __post_init__(self):
+        self.connectors = [Connector(id="1"), 
+                           Connector(id="2"), 
+                           Connector(id="3")]
 
     def calculate(self) -> None:
         # arguments width, length, diameter, area, flowrate, velocity
-        c2 = self.connector[2]
-        c3 = self.connector[3]
+        c2 = self.connectors[1]
+        c3 = self.connectors[2]
 
         if self.connectors[2].flowrate > 0:
             c2.area = 1
@@ -60,9 +64,8 @@ class ThreeWayFitting:
 @dataclass
 class FourWayFitting:
     name: str
-    #type: str
     connectors = [Connector(id="1"), 
                   Connector(id="2"), 
                   Connector(id="3"), 
                   Connector(id="4")]
-    number_of_connectors: int = 4
+    #type: str

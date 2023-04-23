@@ -63,9 +63,9 @@ class RigidDuct:
     velocity: Optional[str] = None
     pressure_drop_per_meter: Optional[str] = None
     linear_pressure_drop: Optional[str] = None
-    number_of_connectors: int = 2
 
     def calc_velocity(self):
+        self.flowrate = self.connectors[0].flowrate
         return self.flowrate / self.duct_type.cross_sectional_area
 
     def calc_pressure_drop_per_meter(self):
@@ -102,7 +102,6 @@ class FlexDuct:
     stretch_correction_factor: Optional[float] = None
     pressure_drop_per_meter: float = field(init=False)
     linear_pressure_drop: float = field(init=False)
-    number_of_connectors: int = 2
 
     def calc_velocity(self):
         return self.flowrate / self.duct_type.cross_sectional_area

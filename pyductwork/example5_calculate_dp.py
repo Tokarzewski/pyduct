@@ -9,4 +9,5 @@ from pprint import pprint
 sup1.calculate_pressure_drops()
 
 if __name__ == "__main__":
-    pprint(sup1.objects)
+    with open("diagnostics.log", "w") as log_file:
+        pprint(sup1.objects, log_file)
