@@ -1,5 +1,4 @@
 from colebrook import eptFriction
-#from colebrook import eptFriction
 
 
 def reynolds(v, d_h, vi=15e-6):
@@ -36,10 +35,10 @@ def linear_pressure_drop(R, L, Beta=1):
 
 
 def local_pressure_drop(dzeta, v, rho=1.2):
-    """Local pressure drop [Pa].
-    dzeta - drag coefficient
-    rho - density
-    v - velocity
+    """Local pressure drop [Pa]:
+    dzeta - drag coefficient,
+    rho - density,
+    v - velocity.
     """
     return dzeta * rho * v**2 / 2
 

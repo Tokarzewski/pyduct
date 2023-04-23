@@ -125,7 +125,7 @@ class Ductwork:
                 object.calculate()
 
             # calculate local pressure drops
-            if type(object).__name__ in [  #'OneWayFitting',
+            if type(object).__name__ in ['OneWayFitting',
                 "TwoWayFitting",
                 "ThreeWayFitting",
                 #'FourWayFitting'
@@ -140,16 +140,20 @@ class Ductwork:
             count = count_connectors(object.connectors)
             if count == 1:
                 pressure_drop = object.connectors.pressure_drop
-                self.Graph.nodes[id]["pressure_drop"] = pressure_drop
+                self.Graph.nodes[id]["pressure_drop"] = 0
                 self.Graph.nodes[f"{id}.1"]["pressure_drop"] = pressure_drop
             if count == 2 and type(object).__name__ in ["RigidDuct", "FlexDuct"]:
                 pressure_drop = object.linear_pressure_drop
                 self.Graph.nodes[id]["pressure_drop"] = pressure_drop
+                self.Graph.nodes[f"{id}.1"]["pressure_drop"] = 0
+                self.Graph.nodes[f"{id}.2"]["pressure_drop"] = 0
             elif count == 2:
                 pressure_drop = object.connectors[0].pressure_drop
+                self.Graph.nodes[id]["pressure_drop"] = 0
                 self.Graph.nodes[f"{id}.1"]["pressure_drop"] = pressure_drop
+                self.Graph.nodes[f"{id}.2"]["pressure_drop"] = 0
             if count == 3:
                 connectors = object.connectors
-                print(list)
                 for x in [0, 1, 2]:
                     self.Graph.nodes[f"{id}.{x+1}"]["pressure_drop"] = connectors[x].pressure_drop
+                self.Graph.nodes[id]["pressure_drop"] = 0

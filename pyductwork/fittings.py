@@ -6,12 +6,20 @@ import friction
 @dataclass
 class OneWayFitting:
     name: str
-    # type
     connectors: Connector
-
+    #type: str
+    
     def __post_init__(self) -> None:
         #self.connectors = Connector(id="1")
         self.connectors.id = "1"
+        
+    def calculate(self) -> None:
+        c1 = self.connectors
+        if c1.flowrate > 0:
+            c1.area = 1
+            v1 = c1.flowrate / c1.area
+            c1.dzeta = 0.5
+            c1.pressure_drop = friction.local_pressure_drop(c1.dzeta, v1)
 
 @dataclass
 class TwoWayFitting:
@@ -23,7 +31,6 @@ class TwoWayFitting:
         self.connectors = [Connector(id="1"), Connector(id="2")]
     
     def calculate(self) -> None:
-        # arguments width, length, diameter, area, flowrate, velocity
         c2 = self.connectors[0]
         if c2.flowrate > 0:
             c2.area = 1
@@ -34,6 +41,7 @@ class TwoWayFitting:
 
 @dataclass
 class ThreeWayFitting:
+    """c1 source, c2 straight, c3 branch""" 
     name: str
     connectors: List[Connector] = field(init=False)
     #type: str
@@ -44,7 +52,6 @@ class ThreeWayFitting:
                            Connector(id="3")]
 
     def calculate(self) -> None:
-        # arguments width, length, diameter, area, flowrate, velocity
         c2 = self.connectors[1]
         c3 = self.connectors[2]
 
@@ -57,7 +64,7 @@ class ThreeWayFitting:
         if c3.flowrate > 0:
             c3.area = 1
             v3 = c3.flowrate / c3.area
-            c3.dzeta = 0.3
+            c3.dzeta = 0.5
             c3.pressure_drop = friction.local_pressure_drop(c3.dzeta, v3)
 
 
