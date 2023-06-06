@@ -1,6 +1,6 @@
-from fittings import TwoWayFitting
-from fitting_types import elbow_round
-from connectors import Connector
+from pyductwork.fittings import TwoWayFitting
+from pyductwork.fitting_types import elbow_round
+from pyductwork.connectors import Connector
 
 # define objects
 elbow_type = elbow_round(name="elbow_round", bend_radius=1, diameter=1, angle=130)

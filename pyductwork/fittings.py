@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from typing import List
-from connectors import Connector
-import friction
+from .connectors import Connector
+from . import friction
 
 @dataclass
 class OneWayFitting:

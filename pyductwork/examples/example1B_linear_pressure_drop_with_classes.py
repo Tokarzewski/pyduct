@@ -1,5 +1,5 @@
-from ducts import RigidDuctType, RigidDuct
-from connectors import Connector
+from pyductwork.ducts import RigidDuctType, RigidDuct
+from pyductwork.connectors import Connector
 
 # define objects
 duct_type1 = RigidDuctType(name="ductype1", shape="rectangular", absolute_roughness=0.00009, height=1.0, width=1.0)

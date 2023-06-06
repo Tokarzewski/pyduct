@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field, replace
 from typing import Literal
 import networkx as nx
-from connectors import Connector
+from .connectors import Connector
 
 ## Ductwork in NetowrkX
 # All objects have connectors

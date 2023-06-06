@@ -1,8 +1,8 @@
-from connectors import Connector
-from ducts import RigidDuct, RigidDuctType
-from fitting_types import elbow_round
-from fittings import OneWayFitting, ThreeWayFitting, TwoWayFitting
-from network import Ductwork
+from pyductwork.connectors import Connector
+from pyductwork.ducts import RigidDuct, RigidDuctType
+from pyductwork.fitting_types import elbow_round
+from pyductwork.fittings import OneWayFitting, ThreeWayFitting, TwoWayFitting
+from pyductwork.network import Ductwork
 import networkx as nx
 import matplotlib.pyplot as plt
 
