@@ -1,8 +1,4 @@
-
-import time
-from math import log
-import numpy
-from scipy.optimize import root
+from math import log, log10, sqrt, exp
 
 
 def reynolds(v, d_h, vi=15e-6):
@@ -12,12 +8,14 @@ def reynolds(v, d_h, vi=15e-6):
     vi - viscosity"""
     return v * d_h / vi
 
+
 def relative_roughness(e, D):
     """Relative Roughness, 
     e - absolute roughness [m],
     D - hydraulic diameter [m].
     """
     return e / D
+
 
 def friction_coefficient(Re, E):
     """Friction coefficient [-].
@@ -41,10 +39,11 @@ def friction_coefficient2(Re, E):
     Re - Reynolds number [-],
     E - Relative roughness.
     """
+    from scipy.optimize import root
     if Re < 2300:
         return 64 / Re
     def f(x):
-        return (-2*numpy.log10((2.51/(Re*numpy.sqrt(x))) + (E/3.71))) - 1.0/numpy.sqrt(x)
+        return (-2*log10((2.51/(Re*sqrt(x))) + (E/3.71))) - 1.0/sqrt(x)
     return root(f, 0.04).x
 
 
@@ -78,8 +77,6 @@ def flex_stretch_correction_factor(diameter, stretch_percentage):
     # Flex is fully stretched, when stretch_percentage = 100
     # Developed based on chart from ASHRAE Fundamentals
     # R**2 = 0.995
-    from math import exp
-
     return 0.557 * (100 - stretch_percentage) * exp(-4.93 * diameter) + 1
 
 
@@ -89,7 +86,9 @@ def flex_pressure_drop_per_meter(diameter, V):
     return 1
 
 if __name__ == "__main__":
-    x = float(friction_coefficient(Re=4000, E=0.0002))
+    Re = 4000
+    E = 0.0002
+    x = float(friction_coefficient(Re, E))
     print(f"{x:f}")
-    x = float(friction_coefficient2(Re=4000, E=0.0002))
+    x = float(friction_coefficient2(Re, E))
     print(f"{x:f}")
