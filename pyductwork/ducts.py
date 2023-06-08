@@ -72,8 +72,9 @@ class RigidDuct:
         d_h = self.duct_type.hydraulic_diameter
         v = self.velocity
         k = self.duct_type.absolute_roughness
+        E = friction.relative_roughness(k, d_h)
         Re = friction.reynolds(v, d_h)
-        f = friction.friction_coefficient(Re, k, d_h)
+        f = friction.friction_coefficient(Re, E)
         return friction.pressure_drop_per_meter(f, d_h, v)
 
     def calc_linear_pressure_drop(self):

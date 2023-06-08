@@ -16,6 +16,5 @@ if __name__ == "__main__":
     # round pressure drop values
     digit_precision = 2
     dp_labels = {key : round(value, digit_precision) for key, value in dp_labels.items() if value is not None}
-
     nx.draw(G, labels=dp_labels)
     plt.show()

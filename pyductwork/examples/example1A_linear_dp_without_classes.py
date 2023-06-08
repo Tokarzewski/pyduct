@@ -7,7 +7,8 @@ L = 10  # m
 dzeta = 0.25  # -
 
 Re = reynolds(v, d_h)
-f = friction_coefficient(Re, k, d_h)
+E = relative_roughness(k, d_h)
+f = friction_coefficient(Re, E)
 R = pressure_drop_per_meter(f, d_h, v)
 linear_dp = linear_pressure_drop(R, L, Beta=1)
 local_dp = local_pressure_drop(dzeta, v, rho=1.2)
