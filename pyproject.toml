@@ -1,7 +1,7 @@
 [tool.pdm]
 
 [project]
-name = "pyductwork"
+name = "pyduct"
 version = "0.0.1"
 description = "library for ductwork calculations"
 authors = [
