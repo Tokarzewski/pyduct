@@ -1,4 +1,8 @@
-from colebrook import eptFriction
+
+import time
+from math import log
+import numpy
+from scipy.optimize import root
 
 
 def reynolds(v, d_h, vi=15e-6):
@@ -8,13 +12,40 @@ def reynolds(v, d_h, vi=15e-6):
     vi - viscosity"""
     return v * d_h / vi
 
+def relative_roughness(e, D):
+    """Relative Roughness, 
+    e - absolute roughness [m],
+    D - hydraulic diameter [m].
+    """
+    return e / D
 
-def friction_coefficient(Re, k, d_h):
+def friction_coefficient(Re, E):
     """Friction coefficient [-].
     Re - Reynolds number [-],
-    k - absolute roughness [m],
-    d_h - hydraulic diameter [m]"""
-    return eptFriction(Re, k / d_h)
+    E - Relative roughness.
+    Model: Swamee, Jain
+    Year: 1976
+    Paper: https://cedb.asce.org/CEDBsearch/record.jsp?dockey=0006693
+    Suitable Range:
+        5000 < Reyonolds < 10^8
+        0.00001 < E < 0.5
+    Copied from https://pypi.org/project/colebrook/
+    """
+    if Re < 2300:
+        return 64 / Re
+    return 1.613 * (log(0.234 * E ** 1.1007 - 60.525 / Re**1.1105 + 56.291 / Re**1.0712))**-2
+
+
+def friction_coefficient2(Re, E):
+    """Friction coefficient [-].
+    Re - Reynolds number [-],
+    E - Relative roughness.
+    """
+    if Re < 2300:
+        return 64 / Re
+    def f(x):
+        return (-2*numpy.log10((2.51/(Re*numpy.sqrt(x))) + (E/3.71))) - 1.0/numpy.sqrt(x)
+    return root(f, 0.04).x
 
 
 def pressure_drop_per_meter(f, d_h, v, rho=1.2):
@@ -58,4 +89,7 @@ def flex_pressure_drop_per_meter(diameter, V):
     return 1
 
 if __name__ == "__main__":
-    print(friction_coefficient(4000, 0.00001, 0.05))
+    x = float(friction_coefficient(Re=4000, E=0.0002))
+    print(f"{x:f}")
+    x = float(friction_coefficient2(Re=4000, E=0.0002))
+    print(f"{x:f}")
