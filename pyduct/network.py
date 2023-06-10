@@ -140,20 +140,20 @@ class Ductwork:
             count = count_connectors(object.connectors)
             if count == 1:
                 pressure_drop = object.connectors.pressure_drop
-                self.Graph.nodes[id]["pressure_drop"] = 0
+                #self.Graph.nodes[id]["pressure_drop"] = 0
                 self.Graph.nodes[f"{id}.1"]["pressure_drop"] = pressure_drop
             if count == 2 and type(object).__name__ in ["RigidDuct", "FlexDuct"]:
                 pressure_drop = object.linear_pressure_drop
-                self.Graph.nodes[id]["pressure_drop"] = pressure_drop
-                self.Graph.nodes[f"{id}.1"]["pressure_drop"] = 0
-                self.Graph.nodes[f"{id}.2"]["pressure_drop"] = 0
+                #self.Graph.nodes[id]["pressure_drop"] = 0
+                #self.Graph.nodes[f"{id}.1"]["pressure_drop"] = 0
+                self.Graph.nodes[f"{id}.2"]["pressure_drop"] = pressure_drop
             elif count == 2:
-                pressure_drop = object.connectors[0].pressure_drop
-                self.Graph.nodes[id]["pressure_drop"] = 0
-                self.Graph.nodes[f"{id}.1"]["pressure_drop"] = pressure_drop
-                self.Graph.nodes[f"{id}.2"]["pressure_drop"] = 0
+                pressure_drop = object.connectors[1].pressure_drop
+                #self.Graph.nodes[id]["pressure_drop"] = 0
+                #self.Graph.nodes[f"{id}.1"]["pressure_drop"] = 0
+                self.Graph.nodes[f"{id}.2"]["pressure_drop"] = pressure_drop
             if count == 3:
                 connectors = object.connectors
-                for x in [0, 1, 2]:
+                for x in [1, 2]:
                     self.Graph.nodes[f"{id}.{x+1}"]["pressure_drop"] = connectors[x].pressure_drop
-                self.Graph.nodes[id]["pressure_drop"] = 0
+                #self.Graph.nodes[id]["pressure_drop"] = 0

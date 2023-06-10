@@ -31,7 +31,7 @@ class TwoWayFitting:
         self.connectors = [Connector(id="1"), Connector(id="2")]
     
     def calculate(self) -> None:
-        c2 = self.connectors[0]
+        c2 = self.connectors[1]
         if c2.flowrate > 0:
             c2.area = 1
             v2 = c2.flowrate / c2.area
