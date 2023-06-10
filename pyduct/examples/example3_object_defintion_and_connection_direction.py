@@ -11,16 +11,16 @@ sup1 = Ductwork("sup1", "Supply")
 G = sup1.Graph
 
 # define objects
-air_terminal = OneWayFitting(name="Air Terminal", connectors=Connector(flowrate=5))
-cap = OneWayFitting("Cap", connectors=Connector(flowrate=0))
+air_terminal = OneWayFitting(name="air terminal", connectors=Connector(flowrate=5))
+cap = OneWayFitting("cap", connectors=Connector(flowrate=0))
 
 duct_type1 = RigidDuctType(name="ductype1", shape="rectangular", absolute_roughness=0.00009, height=1, width=1)
 duct1 = RigidDuct(name="duct1", duct_type=duct_type1, length=10)
 
-elbow_type = elbow_round(name="elbow", bend_radius=1, diameter=1, angle=90)
-elbow = TwoWayFitting(name="Elbow", type=elbow_type)
+elbow_type = elbow_round(bend_radius=1, diameter=1, angle=90)
+elbow = TwoWayFitting(name="elbow round", type=elbow_type)
 
-branch = ThreeWayFitting("Branch")
+branch = ThreeWayFitting("branch")
 
 # add objects to ductwork
 sup1.add_object("1", air_terminal)

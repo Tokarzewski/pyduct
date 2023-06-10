@@ -1,5 +1,6 @@
 # Duct Fitting Library
-Library with fitting classification and related pressure loss coefficients (zeta). Classification mapping between manufacturers. 
+Library with fitting classification and related pressure loss coefficients (zeta). 
+Symbol mapping between manufacturers.
 
 
 ### Standards

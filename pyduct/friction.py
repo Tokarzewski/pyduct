@@ -1,16 +1,34 @@
 from math import log, log10, sqrt, exp
 
 
-def reynolds(v, d_h, vi=15e-6):
+"""from CoolProp.CoolProp import PropsSI
+
+std_temp = 273.15+20 # K
+std_pressure = 101325 # Pa
+rho = PropsSI("D", "T", std_temp, "P", std_pressure, "Air")
+mi = PropsSI("V", "T", std_temp, "P", std_pressure, "Air")
+print(rho, mi)
+"""
+
+def reynolds(v, d_h, vi=1.516e-5):
     """Equation for calculating Reynolds number, where
-    v - speed,
+    v - flow speed,
     d_h - hydraulic diameter,
-    vi - viscosity"""
+    vi - kinematic viscosity"""
     return v * d_h / vi
 
 
+def reynolds2(rho, v, d_h, mi=1.825e-5):
+    """Equation for calculating Reynolds number, where
+    rho - density of the fluid,
+    v - flow speed,
+    d_h - hydraulic diameter,
+    mi - dynamic viscosity"""
+    return rho * v * d_h / mi
+
+
 def relative_roughness(e, D):
-    """Relative Roughness, 
+    """Relative Roughness,
     e - absolute roughness [m],
     D - hydraulic diameter [m].
     """
@@ -31,19 +49,26 @@ def friction_coefficient(Re, E):
     """
     if Re < 2300:
         return 64 / Re
-    return 1.613 * (log(0.234 * E ** 1.1007 - 60.525 / Re**1.1105 + 56.291 / Re**1.0712))**-2
+    return (
+        1.613
+        * (log(0.234 * E**1.1007 - 60.525 / Re**1.1105 + 56.291 / Re**1.0712))
+        ** -2
+    )
 
 
 def friction_coefficient2(Re, E):
-    """Friction coefficient [-].
+    """Friction coefficient [-]. The original colebrook equation.
     Re - Reynolds number [-],
     E - Relative roughness.
     """
     from scipy.optimize import root
+
     if Re < 2300:
         return 64 / Re
+
     def f(x):
-        return (-2*log10((2.51/(Re*sqrt(x))) + (E/3.71))) - 1.0/sqrt(x)
+        return (-2 * log10((2.51 / (Re * sqrt(x))) + (E / 3.71))) - 1.0 / sqrt(x)
+
     return root(f, 0.04).x
 
 
@@ -85,10 +110,11 @@ def flex_pressure_drop_per_meter(diameter, V):
     # a flex library is needed
     return 1
 
+
 if __name__ == "__main__":
     Re = 4000
     E = 0.0002
     x = float(friction_coefficient(Re, E))
-    print(f"{x:f}")
+    print(f"approximate and quick: {x:f}")
     x = float(friction_coefficient2(Re, E))
-    print(f"{x:f}")
+    print(f"source of truth and long: {x:f}")
