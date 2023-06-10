@@ -1,4 +1,4 @@
-## pyductwork
+## pyduct
 
 Work in progress python library for ductwork calculations.
 
