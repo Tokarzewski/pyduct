@@ -6,6 +6,6 @@ from typing import Optional
 class Connector:
     id: str = None
     flowrate: Optional[float] = None
-    pressure_drop: Optional[float] = None
     area: Optional[float] = None
     dzeta: Optional[float] = None
+    pressure_drop: Optional[float] = None
