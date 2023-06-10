@@ -35,7 +35,7 @@ class Ductwork:
             self.Graph.add_edges_from([[f"{id}.{x+1}", id] for x in range(1, count)])
 
 
-    def pass_terminal_flowrate_from_object_to_graph(self):
+    def pass_terminal_flowrate_from_objects_to_graph(self):
         for id, object in self.objects.items():
             count = count_connectors(object.connectors)
             if count == 1:
@@ -44,15 +44,15 @@ class Ductwork:
                 self.Graph.nodes[f"{id}.1"]["flowrate"] = flowrate
 
 
-    def pass_attribute_from_graph_nodes_to_objects(self, attribute):
-        for object_id, object in self.objects.items():
+    def pass_attribute_from_graph_to_objects(self, attribute):
+        for id, object in self.objects.items():
             if count_connectors(object.connectors) > 1:
                 for connector in object.connectors:
-                    node_id = object_id + "." + connector.id
+                    node_id = id + "." + connector.id
                     setattr(connector, attribute, self.Graph.nodes[node_id][attribute])
             else:
                 connector = object.connectors
-                node_id = object_id + "." + connector.id
+                node_id = id + "." + connector.id
                 setattr(connector, attribute, self.Graph.nodes[node_id][attribute])
 
 
@@ -64,9 +64,9 @@ class Ductwork:
         terminals = {id for id, edges in G.degree() if edges == 1}
         fittings34 = {id for id, edges in G.degree() if edges > 2}
 
-        self.pass_terminal_flowrate_from_object_to_graph()
+        self.pass_terminal_flowrate_from_objects_to_graph()
 
-        def pass_flowrate_from(fittings):
+        def pass_flowrate_in_chains(fittings):
             dictionary = {}
             W = G.copy()
             W.remove_nodes_from(fittings34)
@@ -77,7 +77,7 @@ class Ductwork:
                         dictionary.update({key: flowrate for key in set})
             nx.set_node_attributes(G, dictionary, "flowrate")
 
-        def pass_flowrate_in_fittings(fittings):
+        def calc_flowrate_in_graph_fittings(fittings):
             set1 = set()
             dictionary = dict()
             for fitting in fittings:
@@ -90,12 +90,12 @@ class Ductwork:
             nx.set_node_attributes(G, dictionary, "flowrate")
             return set1
 
-        pass_flowrate_from(terminals)
+        pass_flowrate_in_chains(terminals)
         remaining_fittings = fittings34
 
         while len(remaining_fittings) > 0:
-            calculated_fittings = pass_flowrate_in_fittings(remaining_fittings)
-            pass_flowrate_from(remaining_fittings)
+            calculated_fittings = calc_flowrate_in_graph_fittings(remaining_fittings)
+            pass_flowrate_in_chains(remaining_fittings)
             remaining_fittings = remaining_fittings - calculated_fittings
 
     def placeholder_calculate_dimmensions(self):
