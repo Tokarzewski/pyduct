@@ -22,12 +22,6 @@ Open-source and free duct design tool that can be used in streamlined ductwork d
 
 Engine takes structured ductwork network as an input, calculates it and produces results.
 
-### dependencies
-
-[colebrook](https://github.com/IMEConsultants/colebrook)  
-[matplotlib](https://github.com/matplotlib/matplotlib)  
-[NetworkX](https://github.com/networkx/networkx)  
-[SciPy](https://github.com/scipy/scipy)  
 
 ### bibliography
 
