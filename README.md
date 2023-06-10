@@ -11,7 +11,7 @@ acoustic calculations
 
 ### Who's it intender for?
 
-It is for building services engineers that know python.
+It is for building services engineers.
 
 ### What problem does the software solve?
 
@@ -20,7 +20,7 @@ Open-source and free duct design tool that can be used in streamlined ductwork d
 
 ### How is it going to work?
 
-Engine takes structured ductwork network as an input, calculates it and produces results.
+pyduct will take structured ductwork input file, calculate it and produce results.
 
 
 ### bibliography
