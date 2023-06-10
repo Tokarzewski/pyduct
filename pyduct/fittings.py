@@ -3,6 +3,7 @@ from typing import List
 from .connectors import Connector
 from . import friction
 
+
 @dataclass
 class OneWayFitting:
     name: str
@@ -20,6 +21,7 @@ class OneWayFitting:
             v1 = c1.flowrate / c1.area
             c1.dzeta = 0.5
             c1.pressure_drop = friction.local_pressure_drop(c1.dzeta, v1)
+
 
 @dataclass
 class TwoWayFitting:
@@ -66,13 +68,3 @@ class ThreeWayFitting:
             v3 = c3.flowrate / c3.area
             c3.dzeta = 0.5
             c3.pressure_drop = friction.local_pressure_drop(c3.dzeta, v3)
-
-
-@dataclass
-class FourWayFitting:
-    name: str
-    connectors = [Connector(id="1"), 
-                  Connector(id="2"), 
-                  Connector(id="3"), 
-                  Connector(id="4")]
-    #type: str
