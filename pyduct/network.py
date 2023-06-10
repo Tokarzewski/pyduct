@@ -23,6 +23,7 @@ class Ductwork:
     objects: dict = field(default_factory=dict)
     Graph = nx.DiGraph()
 
+
     def add_object(self, id, object):
         # new instance of class
         object = replace(object)
@@ -31,9 +32,8 @@ class Ductwork:
         self.objects.update({id: object})
         self.Graph.add_edge(id, f"{id}.1")
         if count > 1:
-            connector_pairs = [(id, f"{id}.{x+1}") for x in range(1, count)]
-            for id, id_x in connector_pairs:
-                self.Graph.add_edge(id_x, id)
+            self.Graph.add_edges_from([[f"{id}.{x+1}", id] for x in range(1, count)])
+
 
     def pass_terminal_flowrate_from_object_to_graph(self):
         for id, object in self.objects.items():
@@ -42,6 +42,7 @@ class Ductwork:
                 flowrate = object.connectors.flowrate
                 self.Graph.nodes[id]["flowrate"] = flowrate
                 self.Graph.nodes[f"{id}.1"]["flowrate"] = flowrate
+
 
     def pass_attribute_from_graph_nodes_to_objects(self, attribute):
         for object_id, object in self.objects.items():
@@ -54,15 +55,16 @@ class Ductwork:
                 node_id = object_id + "." + connector.id
                 setattr(connector, attribute, self.Graph.nodes[node_id][attribute])
 
+
     def pass_flowrate_through_graph(self):
         # set empty flowrate attribute to all nodes
         nx.set_node_attributes(self.Graph, None, "flowrate")
 
-        self.pass_terminal_flowrate_from_object_to_graph()
-
         G = self.Graph
         terminals = {id for id, edges in G.degree() if edges == 1}
         fittings34 = {id for id, edges in G.degree() if edges > 2}
+
+        self.pass_terminal_flowrate_from_object_to_graph()
 
         def pass_flowrate_from(fittings):
             dictionary = {}
@@ -96,7 +98,7 @@ class Ductwork:
             pass_flowrate_from(remaining_fittings)
             remaining_fittings = remaining_fittings - calculated_fittings
 
-    def calculate_dimmensions(self):
+    def placeholder_calculate_dimmensions(self):
         3
 
     def calculate_pressure_drops(self):
