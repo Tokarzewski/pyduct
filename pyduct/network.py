@@ -6,7 +6,7 @@ from .connectors import Connector
 ## Ductwork in NetowrkX
 # All objects have connectors
 # All objects and connectors are nodes in NetworkX
-# Edges are the connections between the connectors
+# Edges are the connections between the objects and connectors
 
 
 def count_connectors(connectors):
@@ -26,15 +26,13 @@ class Ductwork:
     def add_object(self, id, object):
         # new instance of class
         object = replace(object)
+        count = count_connectors(object.connectors)
 
         self.objects.update({id: object})
-        count = count_connectors(object.connectors)
-        if count == 1:
-            self.Graph.add_edge(id, f"{id}.1")
-        else:
-            self.Graph.add_edge(id, f"{id}.1")
-            connector_pairs = [(f"{id}.{x+1}", id) for x in range(1, count)]
-            for id_x, id in connector_pairs:
+        self.Graph.add_edge(id, f"{id}.1")
+        if count > 1:
+            connector_pairs = [(id, f"{id}.{x+1}") for x in range(1, count)]
+            for id, id_x in connector_pairs:
                 self.Graph.add_edge(id_x, id)
 
     def pass_terminal_flowrate_from_object_to_graph(self):
@@ -57,34 +55,25 @@ class Ductwork:
                 setattr(connector, attribute, self.Graph.nodes[node_id][attribute])
 
     def pass_flowrate_through_graph(self):
-
-        # set empty flowrate attribute to all nodes 
+        # set empty flowrate attribute to all nodes
         nx.set_node_attributes(self.Graph, None, "flowrate")
 
         self.pass_terminal_flowrate_from_object_to_graph()
 
         G = self.Graph
-        air_terminals = set()
-        fittings34 = set()
-
-        for object_id, object in self.objects.items():
-            if type(object).__name__ == "OneWayFitting":
-                air_terminals.add(object_id)
-
-        for x, y in G.degree():
-            if y in (3, 4):
-                fittings34.add(x)
+        terminals = {id for id, edges in G.degree() if edges == 1}
+        fittings34 = {id for id, edges in G.degree() if edges > 2}
 
         def pass_flowrate_from(fittings):
-            dict1 = {}
+            dictionary = {}
             W = G.copy()
             W.remove_nodes_from(fittings34)
             for set in nx.weakly_connected_components(W):
                 for fitting in fittings:
                     if fitting + ".1" in set:
                         flowrate = G.nodes[fitting + ".1"]["flowrate"]
-                        dict1.update({key: flowrate for key in set})
-            nx.set_node_attributes(G, dict1, "flowrate")
+                        dictionary.update({key: flowrate for key in set})
+            nx.set_node_attributes(G, dictionary, "flowrate")
 
         def pass_flowrate_in_fittings(fittings):
             set1 = set()
@@ -93,67 +82,44 @@ class Ductwork:
                 c2 = G.nodes[fitting + ".2"]["flowrate"]
                 c3 = G.nodes[fitting + ".3"]["flowrate"]
                 if None not in (c2, c3):
-                    if type(self.objects[fitting]).__name__ == "ThreeWayFitting":
-                        flowrate = c2 + c3
-                    elif type(self.objects[fitting]).__name__ == "FourWayFitting":
-                        c4 = G.nodes[fitting + ".4"]["flowrate"]
-                        flowrate = c2 + c3 + c4
+                    flowrate = c2 + c3
                     set1.add(fitting)
-                    dictionary.update({fitting + ".1": flowrate})
-                    dictionary.update({fitting: flowrate})
+                    dictionary.update({fitting: flowrate, fitting + ".1": flowrate})
             nx.set_node_attributes(G, dictionary, "flowrate")
             return set1
 
-        pass_flowrate_from(air_terminals)
+        pass_flowrate_from(terminals)
         remaining_fittings = fittings34
 
-        fitting_count = len(fittings34)
-        while fitting_count > 0:
+        while len(remaining_fittings) > 0:
             calculated_fittings = pass_flowrate_in_fittings(remaining_fittings)
             pass_flowrate_from(remaining_fittings)
             remaining_fittings = remaining_fittings - calculated_fittings
-            fitting_count -= 1
 
     def calculate_dimmensions(self):
         3
 
     def calculate_pressure_drops(self):
-        # calculate linear pressure drops
+        # calculate both linear and point pressure drops
         for object in self.objects.values():
-            if type(object).__name__ in ["RigidDuct", "FlexDuct"]:
-                # print(object)
-                object.calculate()
-
-            # calculate local pressure drops
-            if type(object).__name__ in ['OneWayFitting',
-                "TwoWayFitting",
-                "ThreeWayFitting",
-                #'FourWayFitting'
-            ]:
-                object.calculate()
+            object.calculate()
 
     def pass_pressure_drops_from_objects_to_graph(self):
-        # set empty pressure drop attribute to all nodes 
+        # set pressure drop attribute to specific connector nodes
+        # TODO create a single dictionary first and then update graph
         nx.set_node_attributes(self.Graph, None, "pressure_drop")
-
+        connector_options = [1,2,3]
+        dictionary = dict()
         for id, object in self.objects.items():
             count = count_connectors(object.connectors)
             if count == 1:
-                pressure_drop = object.connectors.pressure_drop
-                #self.Graph.nodes[id]["pressure_drop"] = 0
-                self.Graph.nodes[f"{id}.1"]["pressure_drop"] = pressure_drop
-            if count == 2 and type(object).__name__ in ["RigidDuct", "FlexDuct"]:
-                pressure_drop = object.linear_pressure_drop
-                #self.Graph.nodes[id]["pressure_drop"] = 0
-                #self.Graph.nodes[f"{id}.1"]["pressure_drop"] = 0
-                self.Graph.nodes[f"{id}.2"]["pressure_drop"] = pressure_drop
-            elif count == 2:
-                pressure_drop = object.connectors[1].pressure_drop
-                #self.Graph.nodes[id]["pressure_drop"] = 0
-                #self.Graph.nodes[f"{id}.1"]["pressure_drop"] = 0
-                self.Graph.nodes[f"{id}.2"]["pressure_drop"] = pressure_drop
-            if count == 3:
+                self.Graph.nodes[f"{id}.1"]["pressure_drop"] = object.connectors.pressure_drop
+            elif type(object).__name__ in ["RigidDuct", "FlexDuct"]:
+                self.Graph.nodes[f"{id}.2"]["pressure_drop"] = object.linear_pressure_drop
+            else:
                 connectors = object.connectors
-                for x in [1, 2]:
-                    self.Graph.nodes[f"{id}.{x+1}"]["pressure_drop"] = connectors[x].pressure_drop
-                #self.Graph.nodes[id]["pressure_drop"] = 0
+                for x in connector_options[1:count]:
+                    key = f"{id}.{x}"
+                    value = connectors[x-1].pressure_drop
+                    dictionary.update({key: value})
+        nx.set_node_attributes(self.Graph, dictionary, "pressure_drop")

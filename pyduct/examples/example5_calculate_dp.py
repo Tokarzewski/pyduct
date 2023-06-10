@@ -6,15 +6,15 @@ from pprint import pprint
 
 sup1.calculate_pressure_drops()
 sup1.pass_pressure_drops_from_objects_to_graph()
+dp_labels = nx.get_node_attributes(G, name="pressure_drop")
+
+# round pressure drop values
+dp_labels = {key : round(value, 2) for key, value in dp_labels.items() if value is not None}
 
 if __name__ == "__main__":
     with open("diagnostics.log", "w") as log_file:
         pprint(sup1.objects, log_file)
     
-    dp_labels = nx.get_node_attributes(G, name="pressure_drop")
-    
-    # round pressure drop values
-    digit_precision = 2
-    dp_labels = {key : round(value, digit_precision) for key, value in dp_labels.items() if value is not None}
-    nx.draw(G, labels=dp_labels)
-    plt.show()
+    print(len(dp_labels))
+    #nx.draw(G, labels=dp_labels)
+    #plt.show()
