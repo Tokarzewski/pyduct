@@ -2,12 +2,15 @@
 
 Work in progress python library for ductwork calculations.
 
-### What is the software application or feature?
+### What this can do?
 
-duct and duct fittings library  
-ductwork sizing  
-pressure drop calculations  
-acoustic calculations  
+1. ductwork sizing  
+2. pressure drop calculations  
+
+## What are the future features?
+
+3. duct and duct fittings library  
+4. acoustic calculations  
 
 ### Who's it intender for?
 
@@ -17,11 +20,15 @@ It is for building services engineers.
 
 Open-source and free duct design tool that can be used in streamlined ductwork design processes.
 
-
 ### How is it going to work?
 
 pyduct will take structured ductwork input file, calculate it and produce results.
 
+### Installation
+
+git clone https://github.com/Tokarzewski/pyduct.git
+navigate to pyduct folder
+pip install .
 
 ### bibliography
 

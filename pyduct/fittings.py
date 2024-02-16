@@ -37,7 +37,7 @@ class TwoWayFitting:
         if c2.flowrate > 0:
             c2.area = 1
             v2 = c2.flowrate / c2.area
-            c2.dzeta = self.type.dzeta()
+            c2.dzeta = self.type.dzeta
             c2.pressure_drop = friction.local_pressure_drop(c2.dzeta, v2)
 
 

@@ -1,5 +1,5 @@
 from scipy.interpolate import CubicSpline, interpn, RectBivariateSpline
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass
@@ -7,6 +7,7 @@ class elbow_round:
     bend_radius: float
     diameter: float
     angle: float
+    dzeta: float = field(init=False)
 
     def dzeta(self):
         # source: Wentylacja i Klimatyzacja - Materiały pomocniczne do projektowania,
@@ -26,6 +27,9 @@ class elbow_round:
         cs = RectBivariateSpline(x_RD, y_angle, z_dzeta)
         return float(cs(self.bend_radius / self.diameter, self.angle))
 
+    def __post_init__(self):
+        self.dzeta = self.dzeta(self)
+
 
 if __name__ == "__main__":
-    print(elbow_round(bend_radius=2.0, diameter=1.0, angle=30).dzeta())
+    print(elbow_round(bend_radius=2.0, diameter=1.0, angle=30))

@@ -23,17 +23,16 @@ class Ductwork:
     objects: dict = field(default_factory=dict)
     Graph = nx.DiGraph()
 
-
-    def add_object(self, id, object):
+    def add_object_with_connectors(self, id, object):
         # new instance of class
         object = replace(object)
         count = count_connectors(object.connectors)
 
         self.objects.update({id: object})
+        self.Graph.add_node(id, name=object.name)
         self.Graph.add_edge(id, f"{id}.1")
         if count > 1:
             self.Graph.add_edges_from([[f"{id}.{x+1}", id] for x in range(1, count)])
-
 
     def pass_terminal_flowrate_from_objects_to_graph(self):
         for id, object in self.objects.items():
@@ -42,7 +41,6 @@ class Ductwork:
                 flowrate = object.connectors.flowrate
                 self.Graph.nodes[id]["flowrate"] = flowrate
                 self.Graph.nodes[f"{id}.1"]["flowrate"] = flowrate
-
 
     def pass_attribute_from_graph_to_objects(self, attribute):
         for id, object in self.objects.items():
@@ -54,7 +52,6 @@ class Ductwork:
                 connector = object.connectors
                 node_id = id + "." + connector.id
                 setattr(connector, attribute, self.Graph.nodes[node_id][attribute])
-
 
     def pass_flowrate_through_graph(self):
         # set empty flowrate attribute to all nodes
@@ -99,6 +96,8 @@ class Ductwork:
             remaining_fittings = remaining_fittings - calculated_fittings
 
     def placeholder_calculate_dimmensions(self):
+        # 1. velocity method
+        # 2. pressure drop per unit length method
         3
 
     def calculate_pressure_drops(self):
@@ -110,7 +109,7 @@ class Ductwork:
         # set pressure drop attribute to specific connector nodes
         # TODO create a single dictionary first and then update graph
         nx.set_node_attributes(self.Graph, None, "pressure_drop")
-        connector_options = [1,2,3]
+        connector_options = [1, 2, 3]
         dictionary = dict()
         for id, object in self.objects.items():
             count = count_connectors(object.connectors)
@@ -122,6 +121,6 @@ class Ductwork:
                 connectors = object.connectors
                 for x in connector_options[1:count]:
                     key = f"{id}.{x}"
-                    value = connectors[x-1].pressure_drop
+                    value = connectors[x - 1].pressure_drop
                     dictionary.update({key: value})
         nx.set_node_attributes(self.Graph, dictionary, "pressure_drop")

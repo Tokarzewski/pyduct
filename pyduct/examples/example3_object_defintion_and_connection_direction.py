@@ -23,13 +23,13 @@ elbow = TwoWayFitting(name="elbow round", type=elbow_type)
 branch = ThreeWayFitting("branch")
 
 # add objects to ductwork
-sup1.add_object("1", air_terminal)
-sup1.add_object("4", duct1)
-sup1.add_object("5", branch)
-sup1.add_object("6", branch)
-sup1.add_object("8", elbow)
-sup1.add_object("10", air_terminal)
-sup1.add_object("11", cap)
+sup1.add_object_with_connectors("1", air_terminal)
+sup1.add_object_with_connectors("4", duct1)
+sup1.add_object_with_connectors("5", branch)
+sup1.add_object_with_connectors("6", branch)
+sup1.add_object_with_connectors("8", elbow)
+sup1.add_object_with_connectors("10", air_terminal)
+sup1.add_object_with_connectors("11", cap)
 
 # define connections
 # XYZ limitation - they must start from 1
@@ -44,5 +44,15 @@ connections = [
 G.add_edges_from(connections)
 
 if __name__ == "__main__":
-    nx.draw_networkx(G, with_labels=True)
+
+    plt.figure(1)
+    plt.title("IDs")
+    nx.draw_networkx(G, pos=nx.spring_layout(G, seed=0, center=(0, 0)))
+
+    plt.figure(2)
+    name_labels = nx.get_node_attributes(G, name="name")
+    print(name_labels)
+    plt.title("Name")
+    nx.draw_networkx(G, labels=name_labels, pos=nx.spring_layout(G, seed=0, center=(0, 0)))
+    
     plt.show()

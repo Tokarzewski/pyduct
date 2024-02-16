@@ -1,9 +1,8 @@
 import time
-import networkx as nx
 
 startTime = time.time()
 
-from example5_calculate_dp import dp_labels
+from pyduct.examples.example7_calculate_dp import dp_labels
 print(dp_labels)
 x = time.time() - startTime
 
