@@ -11,9 +11,9 @@ sup1 = Ductwork("sup1", "Supply")
 G = sup1.graph
 
 # define objects
-air_terminal1 = OneWayFitting(name="air terminal_1", connectors=[Connector(flowrate=5)])
-air_terminal2 = OneWayFitting(name="air terminal_2", connectors=[Connector(flowrate=7)])
-cap = OneWayFitting("cap", connectors=[Connector(flowrate=0)])
+air_terminal1 = OneWayFitting(name="air terminal_1", flowrate=5)
+air_terminal2 = OneWayFitting(name="air terminal_2", flowrate=7)
+cap = OneWayFitting("cap", flowrate=0)
 
 duct_type1 = RigidDuctType(
     name="ductype1", shape="rectangular", absolute_roughness=0.00009, height=1, width=1
@@ -31,7 +31,7 @@ sup1.add_object("4", duct1)
 sup1.add_object("5", branch)
 sup1.add_object("6", branch)
 sup1.add_object("8", elbow)
-sup1.add_object("10", air_terminal1)
+sup1.add_object("10", air_terminal2)
 sup1.add_object("11", cap)
 
 # convention - all connections must start from source connector - C.1
@@ -60,5 +60,5 @@ if __name__ == "__main__":
 
     plt.show()"""
 
-    #print(sup1.objects.keys())
-    #print(sup1.connectors)
+    print(sup1.objects.keys())
+    print(sup1.connectors.items())

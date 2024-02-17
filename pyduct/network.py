@@ -13,39 +13,33 @@ class Ductwork:
     name: str
     type: Literal["Supply", "Exhaust"]
     objects: dict = field(default_factory=dict)
-    #connectors: dict = field(default_factory=dict)
+    connectors: dict = field(default_factory=dict)
 
     def __post_init__(self):
         self.graph = nx.DiGraph()
-            
+
     def add_object(self, id, obj):
         obj = replace(obj)
         self.objects[id] = obj
 
-        """for c_id, connector in enumerate(obj.connectors, start=1):
+        for c_id, connector in enumerate(obj.connectors, start=1):
             connector.id = f"{id}.{c_id}"
             self.connectors[f"{id}.{c_id}"] = connector
-            self.add_connectors(id, obj)
-        """
-        
+
         # adding connectors to Graph
-        self.graph.add_node(id, name=obj.name) # move this to passing attributes from objects to graphs
+        self.graph.add_node(id, name=obj.name)  # move this to passing attributes from objects to graphs
         self.graph.add_edge(id, f"{id}.1")
 
         connectors_count = len(obj.connectors)
         if connectors_count > 1:
-            
             edges = [(f"{id}.{x+1}", id) for x in range(1, connectors_count)]
             self.graph.add_edges_from(edges)
         else:
             self.graph.nodes[f"{id}.1"]["flowrate"] = obj.connectors[0].flowrate
-                
 
     def pass_attribute_from_graph_to_objects(self, attribute):
-        for id, object in self.objects.items():
-            for connector in object.connectors:
-                node_id = f"{id}.{connector.id}"
-                setattr(connector, attribute, self.graph.nodes[node_id][attribute])
+        for id, connector in self.connectors.items():
+            setattr(connector, attribute, self.graph.nodes[id][attribute])
 
     def nodes_without_attribute(self, attribute):
         return [node for node in self.graph.nodes()
@@ -103,12 +97,13 @@ class Ductwork:
         # calculate both linear and point pressure drops
         for obj in self.objects.values():
             obj.calculate()
+        nx.set_node_attributes(self.graph, 0, "pressure_drop")
         self.pass_pressure_drops_from_objects_to_graph()
 
     def pass_pressure_drops_from_objects_to_graph(self):
         # set pressure drop attribute in connector nodes
         # TODO create a single dictionary first and then update graph
-        nx.set_node_attributes(self.graph, 0, "pressure_drop")
+        
         dictionary = dict()
 
         for id, obj in self.objects.items():
