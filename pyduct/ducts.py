@@ -59,7 +59,7 @@ class RigidDuct:
     length: float
     flowrate: Optional[float] = None
     roughness_correction_factor: Optional[float] = None
-    connectors = [Connector(id="1"), Connector(id="2")]
+    connectors = [Connector(), Connector()]
     velocity: Optional[str] = None
     pressure_drop_per_meter: Optional[str] = None
     linear_pressure_drop: Optional[str] = None
@@ -89,6 +89,8 @@ class RigidDuct:
         self.velocity = self.calc_velocity()
         self.pressure_drop_per_meter = self.calc_pressure_drop_per_meter()
         self.linear_pressure_drop = self.calc_linear_pressure_drop()
+        self.connectors[0].pressure_drop = self.linear_pressure_drop
+        self.connectors[1].pressure_drop = 0
 
 
 @dataclass
@@ -98,7 +100,7 @@ class FlexDuct:
     length: float
     flowrate: float
     stretch_percentage: float
-    connectors = [Connector("1"), Connector("2")]
+    connectors = [Connector(), Connector()]
     velocity: float = field(init=False)
     stretch_correction_factor: Optional[float] = None
     pressure_drop_per_meter: float = field(init=False)
@@ -130,3 +132,5 @@ class FlexDuct:
         self.stretch_correction_factor = self.calc_stretch_correction_factor()
         self.pressure_drop_per_meter = self.calc_pressure_drop_per_meter()
         self.linear_pressure_drop = self.calc_linear_pressure_drop()
+        self.connectors[0].pressure_drop = self.linear_pressure_drop
+        self.connectors[1].pressure_drop = 0

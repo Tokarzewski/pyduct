@@ -7,7 +7,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 # define ductwork
-sup1 = Ductwork("sup1", "Supply")
+sup1 = Ductwork("sup1", "supply")
 G = sup1.graph
 
 # define objects
@@ -15,9 +15,7 @@ air_terminal1 = OneWayFitting(name="air terminal_1", flowrate=5)
 air_terminal2 = OneWayFitting(name="air terminal_2", flowrate=7)
 cap = OneWayFitting("cap", flowrate=0)
 
-duct_type1 = RigidDuctType(
-    name="ductype1", shape="rectangular", absolute_roughness=0.00009, height=1, width=1
-)
+duct_type1 = RigidDuctType(name="ductype1", shape="rectangular", absolute_roughness=0.00009, height=1, width=1)
 duct1 = RigidDuct(name="duct1", duct_type=duct_type1, length=10)
 
 elbow_type = elbow_round(bend_radius=1, diameter=1, angle=90)
@@ -45,20 +43,18 @@ connections = [
 ]
 G.add_edges_from(connections)
 
+
+
 if __name__ == "__main__":
-    """plt.figure(1)
+    plt.figure(1)
     plt.title("IDs")
     nx.draw_networkx(G, pos=nx.spring_layout(G, seed=0, center=(0, 0)))
 
     plt.figure(2)
-    name_labels = nx.get_node_attributes(G, name="name")
-    #print(name_labels)
+    #name_labels = nx.get_node_attributes(G, name="name")
+    name_labels = {id: obj.name for (id, obj) in sup1.objects.items()}
     plt.title("Name")
-    nx.draw_networkx(
-        G, labels=name_labels, pos=nx.spring_layout(G, seed=0, center=(0, 0))
-    )
 
-    plt.show()"""
-
-    print(sup1.objects.keys())
-    print(sup1.connectors.items())
+    #self.graph.add_node(id, name=obj.name)
+    nx.draw_networkx(G, labels=name_labels, pos=nx.spring_layout(G, seed=0, center=(0, 0)))
+    plt.show()
