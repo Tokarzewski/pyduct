@@ -8,8 +8,8 @@ from . import friction
 @dataclass
 class RigidDuctType:
     name: str
-    shape: Literal["round", "rectangular"]
-    absolute_roughness: float
+    shape: Literal["round", "rectangular"] = "round"
+    absolute_roughness: float = 0.0001
     diameter: Optional[float] = None
     height: Optional[float] = None
     width: Optional[float] = None

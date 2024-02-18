@@ -1,7 +1,6 @@
-from pyduct.connectors import Connector
 from pyduct.ducts import RigidDuct, RigidDuctType
 from pyduct.fitting_types import elbow_round
-from pyduct.fittings import OneWayFitting, ThreeWayFitting, TwoWayFitting
+from pyduct.fittings import OneWayFitting, TwoWayFitting, ThreeWayFitting 
 from pyduct.network import Ductwork
 import networkx as nx
 import matplotlib.pyplot as plt
@@ -15,7 +14,7 @@ air_terminal1 = OneWayFitting(name="air terminal_1", flowrate=5)
 air_terminal2 = OneWayFitting(name="air terminal_2", flowrate=7)
 cap = OneWayFitting("cap", flowrate=0)
 
-duct_type1 = RigidDuctType(name="ductype1", shape="rectangular", absolute_roughness=0.00009, height=1, width=1)
+duct_type1 = RigidDuctType(name="ductype1", diameter=1)
 duct1 = RigidDuct(name="duct1", duct_type=duct_type1, length=10)
 
 elbow_type = elbow_round(bend_radius=1, diameter=1, angle=90)
