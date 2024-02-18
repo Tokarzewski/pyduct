@@ -40,7 +40,7 @@ class Ductwork:
 
     def pass_attribute_from_connectors_to_graph(self, attribute):
         for id, connector in self.connectors.items():
-            if getattr(connector, attribute) != None:
+            if getattr(connector, attribute) is not None:
                 self.graph.nodes[id][attribute] = getattr(connector, attribute)
 
     def pass_flowrate_through_graph(self):
@@ -69,3 +69,7 @@ class Ductwork:
             obj.calculate()
         nx.set_node_attributes(self.graph, 0, "pressure_drop")
         self.pass_attribute_from_connectors_to_graph("pressure_drop")
+    
+    def critical_path(self):
+        "Get list of nodes on the critical path"
+        return nx.dag_longest_path(self.graph, weight="pressure_drop")

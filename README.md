@@ -28,7 +28,11 @@ pyduct will take structured ductwork input file, calculate it and produce result
 
 git clone https://github.com/Tokarzewski/pyduct.git  
 navigate to pyduct folder  
-pip install .
+uv pip install .
+
+### Development
+
+uv pip install -e .
 
 ### bibliography
 
