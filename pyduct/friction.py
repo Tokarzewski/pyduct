@@ -10,6 +10,7 @@ mi = PropsSI("V", "T", std_temp, "P", std_pressure, "Air")
 print(rho, mi)
 """
 
+
 def reynolds(v, d_h, vi=1.516e-5):
     """Equation for calculating Reynolds number, where
     v - flow speed,
@@ -51,8 +52,7 @@ def friction_coefficient(Re, E):
         return 64 / Re
     return (
         1.613
-        * (log(0.234 * E**1.1007 - 60.525 / Re**1.1105 + 56.291 / Re**1.0712))
-        ** -2
+        * (log(0.234 * E**1.1007 - 60.525 / Re**1.1105 + 56.291 / Re**1.0712)) ** -2
     )
 
 

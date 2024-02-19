@@ -13,9 +13,10 @@ if __name__ == "__main__":
 
     plt.figure(4)
     plt.title("Pressure drop [Pa]")
-    
-    
-    #dp_labels = {k: v if v is not None else 0 for k, v in dp_labels.items()}
+
+    # dp_labels = {k: v if v is not None else 0 for k, v in dp_labels.items()}
     dp_labels = {key: round(value, 2) for key, value in dp_labels.items()}
-    nx.draw_networkx(G, labels=dp_labels, pos=nx.spring_layout(G, seed=0, center=(0, 0)))
+    nx.draw_networkx(
+        G, labels=dp_labels, pos=nx.spring_layout(G, seed=0, center=(0, 0))
+    )
     plt.show()

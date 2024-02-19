@@ -2,8 +2,8 @@ import time
 
 startTime = time.time()
 
-from pyduct.examples.example7_calculate_dp import dp_labels
-print(dp_labels)
+import pyduct.examples.example8_find_crititcal_path
+
 x = time.time() - startTime
 
-print ('The script took {0} second.'.format(round(x,2)))
+print("The script took {0} second.".format(round(x, 2)))

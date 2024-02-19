@@ -10,6 +10,6 @@ elbow.connectors = [Connector(id="1", flowrate=5.0), Connector(id="2", flowrate=
 # calculate object
 elbow.calculate()
 
-for argument in ['name', 'connectors', 'type']:
+for argument in ["name", "connectors", "type"]:
     value = str(elbow.__getattribute__(argument))
     print(f"{argument}: {value}")

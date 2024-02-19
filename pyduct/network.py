@@ -30,7 +30,7 @@ class Ductwork:
         if connectors_count > 1:
             edges = [(f"{id}.{x+1}", id) for x in range(1, connectors_count)]
             self.graph.add_edges_from(edges)
-        else: 
+        else:
             self.graph.nodes[id]["flowrate"] = obj.connectors[0].flowrate
 
     def pass_attribute_from_graph_to_connectors(self, attribute):
@@ -53,8 +53,8 @@ class Ductwork:
         # Propagate flowrate to successors
         for node in nx.topological_sort(G):
             for successor in G.successors(node):
-                G.nodes[successor]['flowrate'] += G.nodes[node]['flowrate']
-        
+                G.nodes[successor]["flowrate"] += G.nodes[node]["flowrate"]
+
         # Pass flowrate attribute from graph to connectors
         self.pass_attribute_from_graph_to_connectors("flowrate")
 
@@ -69,7 +69,14 @@ class Ductwork:
             obj.calculate()
         nx.set_node_attributes(self.graph, 0, "pressure_drop")
         self.pass_attribute_from_connectors_to_graph("pressure_drop")
-    
-    def critical_path(self):
-        "Get list of nodes on the critical path"
+
+    def critical_path_nodes(self):
+        "list of nodes on the critical path"
         return nx.dag_longest_path(self.graph, weight="pressure_drop")
+
+    def critical_path_pressure_drop(self):
+        pressure_drop_values = [
+            self.graph.nodes[node]["pressure_drop"]
+            for node in self.critical_path_nodes()
+        ]
+        return sum(pressure_drop_values)
