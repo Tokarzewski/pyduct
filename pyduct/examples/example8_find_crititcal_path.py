@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 
 nodes_on_critical_path = sup1.critical_path_nodes()
-# print(nodes_on_critical_path)
+#print(nodes_on_critical_path)
 critical_path_dp = round(sup1.critical_path_pressure_drop(), 2)
 
 if __name__ == "__main__":

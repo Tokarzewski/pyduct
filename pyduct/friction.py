@@ -91,9 +91,9 @@ def linear_pressure_drop(R, L, Beta=1):
 
 def local_pressure_drop(dzeta, v, rho=1.2):
     """Local pressure drop [Pa]:
-    dzeta - drag coefficient,
-    rho - density,
-    v - velocity.
+    dzeta - pressure loss coefficient [-],
+    v - velocity [m/s],
+    rho - air density [kg/m3].
     """
     return dzeta * rho * v**2 / 2
 

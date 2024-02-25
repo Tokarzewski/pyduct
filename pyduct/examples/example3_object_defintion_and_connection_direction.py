@@ -6,7 +6,7 @@ import networkx as nx
 import matplotlib.pyplot as plt
 
 # define ductwork
-sup1 = Ductwork("sup1", "supply")
+sup1 = Ductwork("ETA1", "supply")
 G = sup1.graph
 
 # define objects
@@ -18,7 +18,7 @@ duct_type1 = RigidDuctType(name="ductype1", diameter=1)
 duct1 = RigidDuct(name="duct1", duct_type=duct_type1, length=10)
 
 elbow_type = elbow_round(bend_radius=1, diameter=1, angle=90)
-elbow = TwoWayFitting(name="elbow round", type=elbow_type)
+elbow = TwoWayFitting(name="elbow round", fitting_type=elbow_type)
 
 # branch_type1= XYZ
 branch = ThreeWayFitting("branch")
