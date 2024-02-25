@@ -15,7 +15,7 @@ local_dp = local_pressure_drop(dzeta, v, rho=1.2)
 flex_stretch_coef = flex_stretch_correction_factor(0.150, 70)
 
 print(f"Re: {Re:.0f}")
-print(f"f: {f}")
+print(f"f: {f:.6f}")
 print(f"R: {R:.4f} Pa/m")
 print(f"linear_dp: {linear_dp:.2f} Pa")
 print(f"local_dp: {local_dp:.2f} Pa")
