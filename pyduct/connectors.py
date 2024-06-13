@@ -20,6 +20,6 @@ class Connector:
         """
         if self.flowrate > 0:
             self.area = area
-            velocity = self.flowrate / self.area
             self.dzeta = dzeta
+            velocity = self.flowrate / self.area
             self.pressure_drop = friction.local_pressure_drop(self.dzeta, velocity)
