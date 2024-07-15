@@ -4,8 +4,9 @@ import matplotlib.pyplot as plt
 
 
 nodes_on_critical_path = sup1.critical_path_nodes()
-#print(nodes_on_critical_path)
+# print(nodes_on_critical_path)
 critical_path_dp = round(sup1.critical_path_pressure_drop(), 2)
+print(critical_path_dp)
 
 if __name__ == "__main__":
     color_map = []
@@ -23,6 +24,6 @@ if __name__ == "__main__":
         G,
         node_color=color_map,
         labels=dp_labels,
-        pos=nx.spring_layout(G, seed=0, center=(0, 0)),
+        pos=nx.spring_layout(G, seed=0),
     )
     plt.show()

@@ -5,7 +5,7 @@ import networkx as nx
 # All objects have connectors
 # All objects and connectors are nodes in NetworkX
 # Edges are the connections between the objects and connectors
-# All calculations are in nodes and never in edges
+# All calculations and pressure values are in nodes and never in edges
 
 
 @dataclass
@@ -16,7 +16,7 @@ class Ductwork:
     connectors: dict = field(default_factory=dict)
     graph = nx.DiGraph()
 
-    def add_object(self, id, obj):
+    def add_object(self, obj, id):
         obj = replace(obj)
         self.objects[id] = obj
 

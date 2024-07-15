@@ -44,7 +44,7 @@ class ThreeWayFitting:
     #fitting_type: str
 
     def __post_init__(self):
-        self.connectors = [Connector(id="1"), Connector(id="2"), Connector(id="3")]
+        self.connectors = [Connector(), Connector(), Connector()]
 
     def calculate(self) -> None:
         # c1 = self.connectors[0]
