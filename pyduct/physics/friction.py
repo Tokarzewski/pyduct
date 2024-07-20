@@ -1,7 +1,9 @@
 from math import log, log10, sqrt, exp
 
 
-"""from CoolProp.CoolProp import PropsSI
+"""
+fluid properties
+from CoolProp.CoolProp import PropsSI
 
 std_temp = 273.15+20 # K
 std_pressure = 101325 # Pa

@@ -2,8 +2,7 @@ from dataclasses import dataclass, field
 from math import pi
 from typing import List, Literal, Optional
 from .connectors import Connector
-from . import friction
-
+from .physics.friction import *
 
 @dataclass
 class RigidDuctType:
@@ -72,17 +71,17 @@ class RigidDuct:
         d_h = self.duct_type.hydraulic_diameter
         v = self.velocity
         k = self.duct_type.absolute_roughness
-        E = friction.relative_roughness(k, d_h)
-        Re = friction.reynolds(v, d_h)
-        f = friction.friction_coefficient(Re, E)
-        return friction.pressure_drop_per_meter(f, d_h, v)
+        E = relative_roughness(k, d_h)
+        Re = reynolds(v, d_h)
+        f = friction_coefficient(Re, E)
+        return pressure_drop_per_meter(f, d_h, v)
 
     def calc_linear_pressure_drop(self):
         R = self.pressure_drop_per_meter
         L = self.length
         # Beta = self.roughness_correction_factor
         Beta = 1
-        return friction.linear_pressure_drop(R, L, Beta)
+        return linear_pressure_drop(R, L, Beta)
 
     def calculate(self) -> None:
         self.duct_type.calculate()
@@ -115,17 +114,17 @@ class FlexDuct:
             return 1
         else:
             diameter = self.duct_type.hydraulic_diameter
-            return friction.flex_stretch_correction_factor(diameter, stretch_percentage)
+            return flex_stretch_correction_factor(diameter, stretch_percentage)
 
     def calc_pressure_drop_per_meter(self):
         diameter = self.duct_type.diameter
         V = self.flowrate
-        return friction.flex_pressure_drop_per_meter(diameter, V)
+        return flex_pressure_drop_per_meter(diameter, V)
 
     def calc_linear_pressure_drop(self):
         R = self.pressure_drop_per_meter
         L = self.length
-        return friction.linear_pressure_drop(R, L, 1) * self.stretch_correction_factor
+        return linear_pressure_drop(R, L, 1) * self.stretch_correction_factor
 
     def calculate(self) -> None:
         self.velocity = self.calc_velocity()

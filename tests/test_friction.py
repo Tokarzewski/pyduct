@@ -1,5 +1,5 @@
 def test_friction_coefficient():
-    from pyduct.friction import friction_coefficient, friction_coefficient2
+    from pyduct.physics.friction import friction_coefficient, friction_coefficient2
 
     Re = 4000
     E = 0.5
