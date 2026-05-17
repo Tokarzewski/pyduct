@@ -2,22 +2,22 @@
 
 Run with:
 
-    uv run mojo run mojoduct/tests/test_core.mojo
+    uv run mojo run wenta/tests/test_core.mojo
 """
 
 from std.math import pi, isclose
 from std.testing import TestSuite, assert_true, assert_equal, assert_raises
 
-from mojoduct.core.geometry import Round, Rectangular, equivalent_round_diameter
-from mojoduct.core.fluid import Fluid, standard_air, air_at_altitude
-from mojoduct.physics.friction import (
+from wenta.core.geometry import Round, Rectangular, equivalent_round_diameter
+from wenta.core.fluid import Fluid, standard_air, air_at_altitude
+from wenta.physics.friction import (
     reynolds,
     relative_roughness,
     friction_factor,
     friction_factor_colebrook,
 )
-from mojoduct.physics.losses import straight_pressure_drop, local_pressure_drop
-from mojoduct.units import (
+from wenta.physics.losses import straight_pressure_drop, local_pressure_drop
+from wenta.units import (
     cfm_to_m3s,
     m3s_to_cfm,
     inwc_to_pa,

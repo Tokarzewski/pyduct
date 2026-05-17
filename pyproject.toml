@@ -1,5 +1,5 @@
 [project]
-name = "mojoduct"
+name = "wenta"
 version = "0.1.0"
 description = "Mojo + Python library for ductwork sizing and pressure-drop calculations."
 authors = [
@@ -71,6 +71,6 @@ ignore_missing_imports = true
 files = ["python/pyduct"]
 
 # ---------------------------------------------------------------------------
-# Mojo port (work in progress) lives under `mojoduct/`. The Python package
+# Mojo port (work in progress) lives under `wenta/`. The Python package
 # remains usable as `import pyduct` until the Mojo side reaches parity.
 # ---------------------------------------------------------------------------

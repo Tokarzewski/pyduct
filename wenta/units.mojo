@@ -1,4 +1,4 @@
-"""Unit converters between SI (Mojoduct native) and US customary (Mojo port)."""
+"""Unit converters between SI (wenta native) and US customary (Mojo port)."""
 
 
 comptime CFM_TO_M3S: Float64 = 0.0004719474432    # ft^3/min → m^3/s

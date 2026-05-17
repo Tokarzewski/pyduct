@@ -1,10 +1,10 @@
-"""Python extension exposing `mojoduct.components.fittings_library`."""
+"""Python extension exposing `wenta.components.fittings_library`."""
 
 from std.os import abort
 from std.python import Python, PythonObject
 from std.python.bindings import PythonModuleBuilder
 
-from mojoduct.components.fittings_library import (
+from wenta.components.fittings_library import (
     damper_butterfly as _damper_butterfly,
     diffuser_ceiling as _diffuser_ceiling,
     expander_round as _expander_round,

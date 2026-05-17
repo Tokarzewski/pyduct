@@ -1,13 +1,13 @@
 """Loss coefficient library for common HVAC fittings.
 
-Mojo-backed shim — every correlation runs in ``mojoduct.ext.fittings_ext``.
+Mojo-backed shim — every correlation runs in ``wenta.ext.fittings_ext``.
 Coefficients are from ASHRAE Fundamentals and ductwork design guides
 (Hendiger, Idelchik). The Python import path stays the same.
 """
 
 from __future__ import annotations
 
-from mojoduct.ext.fittings_ext import (
+from wenta.ext.fittings_ext import (
     damper_butterfly as _damper_butterfly,
     diffuser_ceiling as _diffuser_ceiling,
     expander_round as _expander_round,

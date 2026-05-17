@@ -10,7 +10,7 @@ from std.os import abort
 from std.python import Python, PythonObject
 from std.python.bindings import PythonModuleBuilder
 
-from mojoduct.network.solver import (
+from wenta.network.solver import (
     critical_path_sum as _critical_path_sum,
     propagate_flows as _propagate_flows,
 )

@@ -15,7 +15,7 @@ Public API:
 # Bootstrap the sibling Mojo package on sys.path so the Mojo-backed
 # solver kernel (critical_path_sum) is importable, then install the
 # mojo.importer hook so .mojo sources auto-compile on first import.
-# Must run before any module that imports `mojoduct.ext.*`.
+# Must run before any module that imports `wenta.ext.*`.
 import sys as _sys
 from pathlib import Path as _Path
 

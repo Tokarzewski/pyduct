@@ -1,4 +1,4 @@
-# mojoduct
+# wenta
 
 Ductwork design library — sizing, pressure-drop, fitting losses, network
 solving — being ported from Python to Mojo. The repo currently hosts both
@@ -7,16 +7,16 @@ Mojo port covers the entire pure-math + sizing + fittings surface and is
 diff-tested against it.
 
 ```
-mojoduct/                 ← native-Mojo port (28 parity-tested kernels)
+wenta/                 ← native-Mojo port (28 parity-tested kernels)
 python/pyduct/            ← reference Python implementation (the oracle)
 python/tests/             ← Python pytest suite       (184 tests)
-mojoduct/tests/           ← Mojo TestSuite suite      (20 unit + 28 parity)
-mojoduct/benchmarks/      ← Mojo↔Python speedup numbers
+wenta/tests/           ← Mojo TestSuite suite      (20 unit + 28 parity)
+wenta/benchmarks/      ← Mojo↔Python speedup numbers
 ```
 
 ## Coverage status
 
-| Module                        | Mojo (`mojoduct/`)        | Python (`python/pyduct/`) |
+| Module                        | Mojo (`wenta/`)        | Python (`python/pyduct/`) |
 |-------------------------------|---------------------------|---------------------------|
 | Cross-section geometry        | ✅                         | ✅                         |
 | Fluid + altitude correction   | ✅                         | ✅                         |
@@ -62,11 +62,11 @@ Under the hood, `net.solve()` calls a Mojo critical-path DP kernel via
 ## Quick start (Mojo — direct, full speedup)
 
 ```mojo
-from mojoduct.core.geometry import Round
-from mojoduct.core.fluid import standard_air
-from mojoduct.physics.friction import friction_factor, reynolds, relative_roughness
-from mojoduct.physics.losses import straight_pressure_drop
-from mojoduct.sizing import velocity_method_round, aspect_ratio_method
+from wenta.core.geometry import Round
+from wenta.core.fluid import standard_air
+from wenta.physics.friction import friction_factor, reynolds, relative_roughness
+from wenta.physics.losses import straight_pressure_drop
+from wenta.sizing import velocity_method_round, aspect_ratio_method
 
 def main() raises:
     var section, v = velocity_method_round(0.1, target_velocity=4.0)
@@ -108,7 +108,7 @@ The check runs as `just mojo-parity` and currently covers 28 functions.
 ## Layout
 
 ```
-mojoduct/                       # Mojo port
+wenta/                       # Mojo port
 ├── core/
 │   ├── geometry.mojo           # Round / Rectangular / equivalent_round_diameter
 │   └── fluid.mojo              # Fluid / standard_air / air_at_altitude

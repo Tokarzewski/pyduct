@@ -1,10 +1,10 @@
-"""Python extension exposing `mojoduct.units` to Python."""
+"""Python extension exposing `wenta.units` to Python."""
 
 from std.os import abort
 from std.python import PythonObject
 from std.python.bindings import PythonModuleBuilder
 
-from mojoduct.units import (
+from wenta.units import (
     cfm_to_m3s as _cfm_to_m3s,
     m3s_to_cfm as _m3s_to_cfm,
     inwc_to_pa as _inwc_to_pa,

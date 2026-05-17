@@ -116,12 +116,12 @@ def critical_path(network: Network) -> list[str]:
 def critical_path_pressure_drop(network: Network) -> float:
     """Return the total pressure drop along the critical path [Pa].
 
-    The DP runs in native Mojo via ``mojoduct.ext.solver_ext``. The Python
+    The DP runs in native Mojo via ``wenta.ext.solver_ext``. The Python
     side projects the network's NetworkX graph into three flat lists once
     (topo / preds / dp) and crosses the Mojo boundary exactly once per
     solve, so the boundary cost is amortised over the whole walk.
     """
-    from mojoduct.ext.solver_ext import critical_path_sum
+    from wenta.ext.solver_ext import critical_path_sum
 
     _, int_topo, int_preds = network.int_topo_view()
     nodes = network.graph._node

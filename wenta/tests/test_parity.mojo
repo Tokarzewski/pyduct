@@ -8,25 +8,25 @@ representative inputs.
 Run with the project's uv venv active so the `pyduct` Python package is
 importable:
 
-    uv run mojo run mojoduct/tests/test_parity.mojo
+    uv run mojo run wenta/tests/test_parity.mojo
 """
 
 from std.math import abs
 from std.python import Python, PythonObject
 from std.testing import TestSuite, assert_true
 
-from mojoduct.core.geometry import Round, Rectangular, equivalent_round_diameter
-from mojoduct.core.fluid import air_at_altitude
-from mojoduct.physics.friction import (
+from wenta.core.geometry import Round, Rectangular, equivalent_round_diameter
+from wenta.core.fluid import air_at_altitude
+from wenta.physics.friction import (
     reynolds,
     relative_roughness,
     friction_factor,
     friction_factor_colebrook,
 )
-from mojoduct.physics.flex import stretch_correction_factor
-from mojoduct.physics.losses import straight_pressure_drop, local_pressure_drop
-from mojoduct.data.standard_sizes import nearest_round_size
-from mojoduct.sizing import (
+from wenta.physics.flex import stretch_correction_factor
+from wenta.physics.losses import straight_pressure_drop, local_pressure_drop
+from wenta.data.standard_sizes import nearest_round_size
+from wenta.sizing import (
     velocity_method_round,
     equal_friction_method_round,
     pressure_drop_budget_round,
@@ -36,7 +36,7 @@ from mojoduct.sizing import (
     noise_limit_method_round,
     aspect_ratio_method,
 )
-from mojoduct.components.fittings_library import (
+from wenta.components.fittings_library import (
     rectangular_elbow,
     mitered_elbow,
     reducer_round,
@@ -47,7 +47,7 @@ from mojoduct.components.fittings_library import (
     diffuser_ceiling,
     grille_return,
 )
-from mojoduct.units import cfm_to_m3s, inwc_to_pa, ft_to_m, air_changes_per_hour
+from wenta.units import cfm_to_m3s, inwc_to_pa, ft_to_m, air_changes_per_hour
 
 
 # --- helpers ---------------------------------------------------------------

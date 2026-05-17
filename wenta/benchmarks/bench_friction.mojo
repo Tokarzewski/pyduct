@@ -7,14 +7,14 @@ that matters (the per-component inner loop).
 
 Run via `just mojo-bench` (or directly):
 
-    uv run mojo run mojoduct/benchmarks/bench_friction.mojo
+    uv run mojo run wenta/benchmarks/bench_friction.mojo
 """
 
 from std.python import Python
 from std.time import perf_counter_ns
 
-from mojoduct.physics.friction import friction_factor
-from mojoduct.sizing import velocity_method_round, equal_friction_method_round
+from wenta.physics.friction import friction_factor
+from wenta.sizing import velocity_method_round, equal_friction_method_round
 
 
 comptime N_CALLS = 1_000_000

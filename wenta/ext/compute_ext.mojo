@@ -4,7 +4,7 @@ from std.os import abort
 from std.python import Python, PythonObject
 from std.python.bindings import PythonModuleBuilder
 
-from mojoduct.components.compute import (
+from wenta.components.compute import (
     duct_pressure_drop as _duct,
     fitting_pressure_drop as _fitting,
     flex_duct_pressure_drop as _flex,

@@ -1,12 +1,12 @@
 """Unit converters between SI (pyduct's native units) and US customary.
 
-Mojo-backed shim — the math runs in ``mojoduct.ext.units_ext``. The
+Mojo-backed shim — the math runs in ``wenta.ext.units_ext``. The
 Python import path stays the same.
 """
 
 from __future__ import annotations
 
-from mojoduct.ext.units_ext import (
+from wenta.ext.units_ext import (
     air_changes_per_hour as _air_changes_per_hour,
     c_to_f as _c_to_f,
     cfm_to_m3s as _cfm_to_m3s,

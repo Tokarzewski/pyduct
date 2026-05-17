@@ -1,21 +1,21 @@
 """Comprehensive Mojo↔Python speedup benchmark.
 
-Times every hot mojoduct kernel against its Python equivalent on a
+Times every hot wenta kernel against its Python equivalent on a
 representative workload. Prints a single summary table.
 
 Run with:
 
     just mojo-suite
     # or
-    uv run mojo run mojoduct/benchmarks/bench_suite.mojo
+    uv run mojo run wenta/benchmarks/bench_suite.mojo
 """
 
 from std.python import Python, PythonObject
 from std.time import perf_counter_ns
 
-from mojoduct.physics.friction import friction_factor
-from mojoduct.physics.losses import local_pressure_drop, straight_pressure_drop
-from mojoduct.sizing import (
+from wenta.physics.friction import friction_factor
+from wenta.physics.losses import local_pressure_drop, straight_pressure_drop
+from wenta.sizing import (
     velocity_method_round,
     velocity_method_rectangular,
     equal_friction_method_round,
@@ -23,7 +23,7 @@ from mojoduct.sizing import (
     aspect_ratio_method,
     noise_limit_method_round,
 )
-from mojoduct.components.fittings_library import (
+from wenta.components.fittings_library import (
     rectangular_elbow,
     junction_tee_branch,
 )
@@ -111,7 +111,7 @@ def _bench_local_pressure_drop() raises:
 
 
 def main() raises:
-    print("Mojoduct vs Pyduct — kernel benchmark")
+    print("Wenta vs Pyduct — kernel benchmark")
     print("======================================================================")
     _bench_friction_factor()
     _bench_local_pressure_drop()
