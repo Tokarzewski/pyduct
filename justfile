@@ -20,6 +20,10 @@ mojo-test:
 mojo-parity:
     uv run mojo run mojoduct/tests/test_parity.mojo
 
+# Mojo↔Python micro-benchmark (friction_factor, 1M calls).
+mojo-bench:
+    uv run mojo run mojoduct/benchmarks/bench_friction.mojo
+
 # Everything — both sides, both kinds of Mojo tests
 test-all: check mojo-test mojo-parity
     @echo "All tests passed."

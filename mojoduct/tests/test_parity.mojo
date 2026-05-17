@@ -23,7 +23,9 @@ from mojoduct.physics.friction import (
     friction_factor,
     friction_factor_colebrook,
 )
+from mojoduct.physics.flex import stretch_correction_factor
 from mojoduct.physics.losses import straight_pressure_drop, local_pressure_drop
+from mojoduct.data.standard_sizes import nearest_round_size
 from mojoduct.units import cfm_to_m3s, inwc_to_pa, ft_to_m, air_changes_per_hour
 
 
@@ -222,6 +224,35 @@ def test_parity_units() raises:
         var py_ach = Float64(py=py_u.air_changes_per_hour(flow, vol))
         var mj_ach = air_changes_per_hour(flow, vol)
         assert_true(_close_rel(mj_ach, py_ach))
+
+
+def test_parity_stretch_correction_factor() raises:
+    var py_flex = Python.import_module("pyduct.physics.flex")
+    var cases = [
+        (0.1, 100.0), (0.15, 80.0), (0.2, 50.0), (0.315, 70.0), (0.4, 100.0),
+    ]
+    for c in cases:
+        var d = c[0]
+        var s = c[1]
+        var py_v = Float64(py=py_flex.stretch_correction_factor(d, s))
+        var mj_v = stretch_correction_factor(d, s)
+        # exp() — same libm-rounding slack as the friction test.
+        assert_true(_close_rel(mj_v, py_v, rtol=1e-9))
+
+
+def test_parity_nearest_round_size() raises:
+    var py_data = Python.import_module("pyduct.data.standard_sizes")
+    var queries = [50.0, 100.0, 247.5, 247.6, 500.0, 700.0, 1300.0]
+    # round_up = True
+    for q in queries:
+        var py_v = Int(py=py_data.nearest_round_size(q, round_up=True))
+        var mj_v = nearest_round_size(q, round_up=True)
+        assert_true(mj_v == py_v)
+    # round_up = False
+    for q in queries:
+        var py_v = Int(py=py_data.nearest_round_size(q, round_up=False))
+        var mj_v = nearest_round_size(q, round_up=False)
+        assert_true(mj_v == py_v)
 
 
 def main() raises:
