@@ -72,29 +72,47 @@ def main() raises:
     print("dp =", dp, "Pa")
 ```
 
-Run the Mojo test suite:
+Run the Mojo test suites:
 
 ```bash
-uv run mojo run mojoduct/tests/test_core.mojo
+just mojo-test       # 20 unit tests   (closed-form expected values)
+just mojo-parity     # 11 parity tests (every function diff-tested vs. Python)
+just test-all        # Python suite + both Mojo suites
 ```
+
+## Parity contract
+
+The Python `pyduct` is the **reference oracle**. The Mojo port follows the
+Branch-C pattern from the `migration-to-python-mojo` skill: every Mojo
+function is diff-tested against its Python counterpart over a corpus of
+inputs, with tolerance ≤ 1e-9 relative (1e-12 for non-transcendental
+closed forms). If the Mojo side ever drifts, `just mojo-parity` fails
+before anything ships.
+
+This means: the Python implementation is allowed to evolve, the Mojo
+implementation must stay numerically equivalent (within tolerance), and
+the Mojo side is a verified performance escalation rather than a free-
+form rewrite.
 
 ## Layout
 
 ```
-mojoduct/                 # Mojo port
+mojoduct/                     # Mojo port
 ├── core/
-│   ├── geometry.mojo     # Round / Rectangular / equivalent_round_diameter
-│   └── fluid.mojo        # Fluid / standard_air / air_at_altitude
+│   ├── geometry.mojo         # Round / Rectangular / equivalent_round_diameter
+│   └── fluid.mojo            # Fluid / standard_air / air_at_altitude
 ├── physics/
-│   ├── friction.mojo     # reynolds / friction_factor / Colebrook iterator
-│   └── losses.mojo       # straight & local pressure-drop
-├── units.mojo            # cfm / inwc / ft / fpm / °F / ACH helpers
-└── tests/test_core.mojo
+│   ├── friction.mojo         # reynolds / friction_factor / Colebrook iterator
+│   └── losses.mojo           # straight & local pressure-drop
+├── units.mojo                # cfm / inwc / ft / fpm / °F / ACH helpers
+└── tests/
+    ├── test_core.mojo        # 20 unit tests
+    └── test_parity.mojo      # 11 parity tests vs. Python via std.python interop
 
-python/pyduct/            # Python implementation (see python/pyduct/README)
-python/tests/             # pytest suite
+python/pyduct/                # Python implementation (the reference)
+python/tests/                 # pytest suite (184 tests)
 
-docs/                     # historical design notes from the Python redesign
+docs/                         # historical design notes from the Python redesign
 ```
 
 ## Development

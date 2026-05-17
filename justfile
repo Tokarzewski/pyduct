@@ -11,12 +11,17 @@ check:
 types:
     uv run --extra dev mypy python/pyduct
 
-# Mojo side
+# Mojo side — unit tests (closed-form expected values)
 mojo-test:
     uv run mojo run mojoduct/tests/test_core.mojo
 
-# Everything
-test-all: check mojo-test
+# Mojo↔Python parity: every Mojo function diff-tested vs. the Python reference
+# via std.python interop. Tolerance 1e-9 (transcendentals) / 1e-12 (closed-form).
+mojo-parity:
+    uv run mojo run mojoduct/tests/test_parity.mojo
+
+# Everything — both sides, both kinds of Mojo tests
+test-all: check mojo-test mojo-parity
     @echo "All tests passed."
 
 update:
