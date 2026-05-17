@@ -141,31 +141,30 @@ def _cross_section_to_dict(cs: Round | Rectangular) -> dict[str, Any]:
     return {"shape": "rectangular", "diameter": None, "width": cs.width, "height": cs.height}
 
 
+# Each entry lists (a) whether the component carries a cross_section, and
+# (b) the plain attributes that need to round-trip through YAML/JSON.
+_COMPONENT_FIELDS: dict[str, tuple[bool, tuple[str, ...]]] = {
+    "RigidDuct":      (True,  ("length", "absolute_roughness")),
+    "FlexDuct":       (False, ("diameter", "length", "pressure_drop_per_meter", "stretch_percentage")),
+    "TwoPortFitting": (True,  ("zeta",)),
+    "Tee":            (True,  ("zeta_straight", "zeta_branch")),
+    "Source":         (False, ()),
+    "Terminal":       (False, ("flowrate", "zeta")),
+}
+
+
 def _component_to_dict(comp: Any) -> dict[str, Any]:
     """Helper to serialize a component."""
     comp_type = type(comp).__name__
     result: dict[str, Any] = {"type": comp_type, "name": comp.name}
-
-    if comp_type == "RigidDuct":
+    spec = _COMPONENT_FIELDS.get(comp_type)
+    if spec is None:
+        return result
+    has_cs, attrs = spec
+    if has_cs:
         result["cross_section"] = _cross_section_to_dict(comp.cross_section)
-        result["length"] = comp.length
-        result["absolute_roughness"] = comp.absolute_roughness
-    elif comp_type == "FlexDuct":
-        result["diameter"] = comp.diameter
-        result["length"] = comp.length
-        result["pressure_drop_per_meter"] = comp.pressure_drop_per_meter
-        result["stretch_percentage"] = comp.stretch_percentage
-    elif comp_type == "TwoPortFitting":
-        result["cross_section"] = _cross_section_to_dict(comp.cross_section)
-        result["zeta"] = comp.zeta
-    elif comp_type == "Tee":
-        result["cross_section"] = _cross_section_to_dict(comp.cross_section)
-        result["zeta_straight"] = comp.zeta_straight
-        result["zeta_branch"] = comp.zeta_branch
-    elif comp_type == "Terminal":
-        result["flowrate"] = comp.flowrate
-        result["zeta"] = comp.zeta
-
+    for a in attrs:
+        result[a] = getattr(comp, a)
     return result
 
 

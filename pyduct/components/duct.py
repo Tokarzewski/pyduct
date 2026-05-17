@@ -34,6 +34,11 @@ class RigidDuct(Component):
     def __post_init__(self) -> None:
         if self.length <= 0:
             raise ValueError(f"length must be positive, got {self.length}")
+        # Cache geometry/roughness invariants so compute() avoids the chain
+        # of property accesses and one relative_roughness() call per solve.
+        self._area = self.cross_section.area
+        self._d_h = self.cross_section.hydraulic_diameter
+        self._eps = relative_roughness(self.absolute_roughness, self._d_h)
         self.ports = [
             Port(name="inlet", direction="in"),
             Port(name="outlet", direction="out"),
@@ -46,17 +51,15 @@ class RigidDuct(Component):
                 f"RigidDuct {self.name!r}: inlet flowrate not set"
             )
 
-        d_h = self.cross_section.hydraulic_diameter
-        v = inlet.flowrate / self.cross_section.area
-        re = reynolds(v, d_h, fluid.kinematic_viscosity)
-        eps = relative_roughness(self.absolute_roughness, d_h)
-        f = friction_factor(re, eps)
+        v = inlet.flowrate / self._area
+        re = reynolds(v, self._d_h, fluid.kinematic_viscosity)
+        f = friction_factor(re, self._eps)
 
         inlet.velocity = v
         outlet.velocity = v
         outlet.flowrate = inlet.flowrate
         inlet.pressure_drop = straight_pressure_drop(
-            f, self.length, d_h, v, fluid.density
+            f, self.length, self._d_h, v, fluid.density
         )
         outlet.pressure_drop = 0.0
 

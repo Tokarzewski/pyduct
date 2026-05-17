@@ -22,7 +22,7 @@ from __future__ import annotations
 from ..components.base import Port
 from ..components.fitting import Terminal
 from ..core.fluid import STANDARD_AIR, Fluid
-from .network import Network, port_node_id
+from .network import Network
 
 
 def propagate_flowrates(network: Network) -> None:
@@ -41,10 +41,10 @@ def propagate_flowrates(network: Network) -> None:
         attrs["flowrate"] = 0.0
 
     # Seed terminal demands onto their in-port nodes.
-    for cid, comp in network.components.items():
+    for comp in network.components.values():
         if isinstance(comp, Terminal):
             (port,) = comp.ports
-            nodes[port_node_id(cid, port.name)]["flowrate"] = comp.flowrate
+            nodes[port.node_id]["flowrate"] = comp.flowrate
 
     # Reverse topological order: downstream nodes first.
     #
@@ -85,9 +85,9 @@ def propagate_flowrates(network: Network) -> None:
 
     # Copy graph flowrates back onto the Port objects so component.compute()
     # can use them directly.
-    for cid, comp in network.components.items():
+    for comp in network.components.values():
         for p in comp.ports:
-            p.flowrate = nodes[port_node_id(cid, p.name)]["flowrate"]
+            p.flowrate = nodes[p.node_id]["flowrate"]
 
 
 def compute_pressure_drops(
@@ -95,10 +95,10 @@ def compute_pressure_drops(
 ) -> None:
     """Call ``compute()`` on every component and copy results to graph nodes."""
     nodes = network.graph._node
-    for cid, comp in network.components.items():
+    for comp in network.components.values():
         comp.compute(fluid)
         for p in comp.ports:
-            nodes[port_node_id(cid, p.name)]["pressure_drop"] = p.pressure_drop
+            nodes[p.node_id]["pressure_drop"] = p.pressure_drop
     # Component nodes carry no pressure drop themselves.
     for cid in network.components:
         nodes[cid].setdefault("pressure_drop", 0.0)
@@ -118,13 +118,17 @@ def critical_path(network: Network) -> list[str]:
     prev: dict[str, str | None] = {}
     for n in network.topo_order():
         preds = preds_map[n]
-        if preds:
+        if not preds:
+            best_p, best_d = None, 0.0
+        elif len(preds) == 1:
+            # Hot case: ports and most internal edges have exactly one
+            # predecessor — skip the max() call.
+            best_p = preds[0]
+            best_d = dist[best_p]
+        else:
             best_p = max(preds, key=dist.__getitem__)
             best_d = dist[best_p]
-            prev[n] = best_p
-        else:
-            best_d = 0.0
-            prev[n] = None
+        prev[n] = best_p
         dist[n] = best_d + nodes[n].get("pressure_drop", 0.0)
     if not dist:
         return []

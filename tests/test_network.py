@@ -124,3 +124,12 @@ class TestSolve:
         assert net._topo_cache is None
         # Solving still works.
         assert net.solve() == pytest.approx(first)
+
+    def test_network_summary_reports_basic_stats(self) -> None:
+        net = _two_branch_net()
+        net.solve()
+        s = net.summary()
+        assert s["components"] == len(net.components)
+        assert s["terminals"] >= 1
+        assert s["total_flowrate_m3s"] > 0
+        assert s["critical_path_dp_pa"] > 0

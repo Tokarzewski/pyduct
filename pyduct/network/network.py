@@ -64,6 +64,7 @@ class Network:
 
         for p in component.ports:
             pid = port_node_id(component_id, p.name)
+            p.node_id = pid
             self.graph.add_node(
                 pid,
                 kind="port",
@@ -125,6 +126,26 @@ class Network:
         from .solver import solve
 
         return solve(self, fluid if fluid is not None else STANDARD_AIR)
+
+    def summary(self) -> dict[str, float | int]:
+        """One-shot stats for the network.
+
+        Returns counts and the total terminal demand. ``critical_path_dp`` is
+        only meaningful after :meth:`solve`; otherwise it is reported as 0.
+        """
+        from ..components.fitting import Terminal
+        from .solver import critical_path_pressure_drop
+
+        n_terminals = sum(isinstance(c, Terminal) for c in self.components.values())
+        total_flow = sum(
+            c.flowrate for c in self.components.values() if isinstance(c, Terminal)
+        )
+        return {
+            "components": len(self.components),
+            "terminals": n_terminals,
+            "total_flowrate_m3s": total_flow,
+            "critical_path_dp_pa": critical_path_pressure_drop(self),
+        }
 
     # ---- serialization (thin wrappers around pyduct.io) --------------------
 

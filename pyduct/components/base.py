@@ -32,6 +32,9 @@ class Port:
     flowrate: float | None = None  # [m^3/s]
     velocity: float | None = None  # [m/s]
     pressure_drop: float = 0.0        # [Pa]
+    node_id: str = ""              # set by Network.add() once the owning
+                                   # component_id is known; saves the
+                                   # f-string in solver hot loops.
 
 
 class Component(ABC):
