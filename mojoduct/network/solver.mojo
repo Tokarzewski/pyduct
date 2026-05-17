@@ -12,6 +12,33 @@ critical-path pressure drop. O(V + E).
 """
 
 
+def propagate_flows(
+    topo: List[Int], preds: List[List[Int]], var flows: List[Float64]
+) raises -> List[Float64]:
+    """Reverse-topo flow walk on flat arrays.
+
+    ``flows`` is pre-seeded with terminal demands at the terminal in-port
+    indices and zeros everywhere else. The walk visits nodes in *reverse*
+    topological order; each node's accumulated flow is pushed onto every
+    predecessor. Returns the same list (mutated).
+
+    NOTE: The Python solver does **not** currently call this — per-element
+    PythonObject conversion of an N-float list across the boundary makes
+    the round-trip more expensive than the original pure-Python walk for
+    the network sizes we've benchmarked (≤ 500 nodes). Kept as the
+    reference kernel for a future combined-pass solver that crosses the
+    boundary exactly once for both flow propagation and critical-path DP.
+    """
+    for i in range(len(topo) - 1, -1, -1):
+        var node = topo[i]
+        var f = flows[node]
+        if f != 0.0:
+            var k = len(preds[node])
+            for j in range(k):
+                flows[preds[node][j]] += f
+    return flows^
+
+
 def critical_path_sum(
     topo: List[Int], preds: List[List[Int]], dp: List[Float64]
 ) raises -> Float64:
