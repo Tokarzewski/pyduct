@@ -109,3 +109,18 @@ class TestSolve:
         path = critical_path(net)
         assert "tee:branch" in path
         assert "tee:straight" not in path
+
+    def test_network_solve_method_matches_free_function(self) -> None:
+        net1 = _two_branch_net()
+        net2 = _two_branch_net()
+        assert net1.solve() == pytest.approx(solve(net2))
+
+    def test_topo_order_invalidated_on_change(self) -> None:
+        net = _simple_linear_net()
+        first = net.solve()
+        # Mutate the network and re-solve; topo cache must be rebuilt
+        # so the new component shows up in the critical path.
+        net.add("extra", Source("extra"))  # disconnected, but enough to invalidate
+        assert net._topo_cache is None
+        # Solving still works.
+        assert net.solve() == pytest.approx(first)

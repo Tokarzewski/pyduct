@@ -12,12 +12,12 @@ The solver does three things:
    by per-port pressure drop, i.e. the worst-case static pressure required at
    the source.
 
-:func:`solve` is a convenience that runs all three.
+:func:`solve` is a convenience that runs all three. All three reuse the
+``Network``'s cached topological order, so repeated solves on an unchanged
+network skip the topo sort entirely.
 """
 
 from __future__ import annotations
-
-import networkx as nx
 
 from ..components.base import Port
 from ..components.fitting import Terminal
@@ -53,7 +53,7 @@ def propagate_flowrates(network: Network) -> None:
     # In reverse, we visit a downstream in-port BEFORE its upstream out-port,
     # an out-port BEFORE its owning component, and a component BEFORE its
     # in-ports. That's exactly the order we need to push flowrates upstream.
-    for node in reversed(list(nx.topological_sort(G))):
+    for node in reversed(network.topo_order()):
         attrs = G.nodes[node]
         flow = attrs["flowrate"]
 
@@ -114,12 +114,35 @@ def compute_pressure_drops(
 def critical_path(network: Network) -> list[str]:
     """Return the list of graph node ids on the critical path.
 
-    The critical path is the longest path (by total ``pressure_drop``) from any
-    :class:`Source` outlet to any :class:`Terminal` inlet.
+    The critical path is the longest path (by total node ``pressure_drop``)
+    from any :class:`Source` to any :class:`Terminal`. Implemented as a
+    single-pass DP over the cached topological order — O(V + E), no NetworkX
+    longest-path call.
     """
-    return nx.dag_longest_path(
-        network.graph, weight="pressure_drop", default_weight=0
-    )
+    G = network.graph
+    nodes = G.nodes
+    dist: dict[str, float] = {}
+    prev: dict[str, str | None] = {}
+    for n in network.topo_order():
+        preds = list(G.predecessors(n))
+        if preds:
+            best_p = max(preds, key=dist.__getitem__)
+            best_d = dist[best_p]
+            prev[n] = best_p
+        else:
+            best_d = 0.0
+            prev[n] = None
+        dist[n] = best_d + nodes[n].get("pressure_drop", 0.0)
+    if not dist:
+        return []
+    end = max(dist, key=dist.__getitem__)
+    path: list[str] = []
+    cur: str | None = end
+    while cur is not None:
+        path.append(cur)
+        cur = prev[cur]
+    path.reverse()
+    return path
 
 
 def critical_path_pressure_drop(network: Network) -> float:

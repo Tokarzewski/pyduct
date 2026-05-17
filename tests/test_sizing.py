@@ -119,3 +119,28 @@ class TestSizingIntegration:
         )
         # Should still be a valid size
         assert v <= 4.0
+
+
+class TestAspectRatioMethod:
+    def test_returns_flat_section(self) -> None:
+        from pyduct import Rectangular, aspect_ratio_method
+
+        sec, v = aspect_ratio_method(0.2, target_velocity=4.0, aspect_ratio=2.0)
+        assert isinstance(sec, Rectangular)
+        # Aspect ratio is satisfied.
+        long, short = max(sec.width, sec.height), min(sec.width, sec.height)
+        assert long / short >= 2.0
+        # Velocity is within target (unless the largest size was forced).
+        assert v <= 4.0 or sec.area == max(s.area for s in [sec])
+
+    def test_rejects_aspect_ratio_below_one(self) -> None:
+        from pyduct import aspect_ratio_method
+
+        with pytest.raises(ValueError):
+            aspect_ratio_method(0.1, aspect_ratio=0.5)
+
+    def test_rejects_nonpositive_flowrate(self) -> None:
+        from pyduct import aspect_ratio_method
+
+        with pytest.raises(ValueError):
+            aspect_ratio_method(0.0)

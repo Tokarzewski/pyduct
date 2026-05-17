@@ -86,6 +86,7 @@ from .schemas import (
     TwoPortFittingSchema,
 )
 from .sizing import (
+    aspect_ratio_method,
     equal_friction_method,
     pressure_drop_budget,
     velocity_method,
@@ -132,6 +133,7 @@ __all__ = [
     "velocity_method",
     "equal_friction_method",
     "pressure_drop_budget",
+    "aspect_ratio_method",
     # network / solver
     "Network",
     "propagate_flowrates",

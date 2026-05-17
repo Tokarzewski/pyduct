@@ -1,8 +1,8 @@
-"""Duct sizing methods: velocity, equal-friction, and pressure-drop budget.
+"""Duct sizing methods: velocity, equal-friction, pressure-drop budget,
+and rectangular sizing at a target aspect ratio.
 
-Each method picks the smallest EN-standard duct size that meets the design
-criterion. All three share a single iterator helper, ``_smallest_meeting``,
-so adding new sizing strategies is a one-function exercise.
+The first three share a single iterator helper, ``_smallest_meeting``, so
+adding new sizing strategies is a one-function exercise.
 """
 
 from __future__ import annotations
@@ -11,7 +11,7 @@ from collections.abc import Callable, Iterable
 from typing import Literal
 
 from .core.fluid import STANDARD_AIR, Fluid
-from .core.geometry import CrossSection
+from .core.geometry import CrossSection, Rectangular
 from .data.standard_sizes import (
     STANDARD_RECTANGULAR_SECTIONS,
     STANDARD_ROUND_SECTIONS,
@@ -125,3 +125,40 @@ def pressure_drop_budget(
         absolute_roughness=absolute_roughness,
         fluid=fluid,
     )
+
+
+def aspect_ratio_method(
+    flowrate: float,
+    target_velocity: float = 4.0,
+    aspect_ratio: float = 2.0,
+) -> tuple[Rectangular, float]:
+    """Size a rectangular duct for a target velocity at a given aspect ratio.
+
+    Useful in low-rise spaces where round or square ducts won't fit. The
+    smallest EN-standard rectangular size whose width:height ratio is at
+    least ``aspect_ratio`` *and* whose velocity is ≤ ``target_velocity`` is
+    returned.
+
+    Returns ``(cross_section, actual_velocity)``.
+    """
+    if flowrate <= 0:
+        raise ValueError(f"flowrate must be positive, got {flowrate}")
+    if target_velocity <= 0:
+        raise ValueError(f"target_velocity must be positive, got {target_velocity}")
+    if aspect_ratio < 1:
+        raise ValueError(f"aspect_ratio must be ≥ 1, got {aspect_ratio}")
+
+    # Iterate widest-first so we prefer flatter sections at a given area.
+    candidates = sorted(
+        (s for s in STANDARD_RECTANGULAR_SECTIONS
+         if max(s.width, s.height) / min(s.width, s.height) >= aspect_ratio),
+        key=lambda s: s.area,
+    )
+    if not candidates:
+        raise ValueError(f"no standard rectangular size meets aspect_ratio={aspect_ratio}")
+    for s in candidates:
+        v = flowrate / s.area
+        if v <= target_velocity:
+            return s, v
+    last = candidates[-1]
+    return last, flowrate / last.area

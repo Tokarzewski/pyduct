@@ -19,10 +19,14 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 import networkx as nx
 
 from ..components.base import Component, Port
+
+if TYPE_CHECKING:
+    from ..core.fluid import Fluid
 
 
 def port_node_id(component_id: str, port_name: str) -> str:
@@ -35,13 +39,14 @@ class Network:
     """A directed graph of ductwork components.
 
     Build a network by calling :meth:`add` for each component and then
-    :meth:`connect` for each physical airflow connection. Solve it with
-    :func:`pyduct.network.solver.solve` (or the individual solver functions).
+    :meth:`connect` for each physical airflow connection. Call :meth:`solve`
+    (or the pure functions in :mod:`pyduct.network.solver`) to compute.
     """
 
     name: str = ""
     components: dict[str, Component] = field(default_factory=dict)
     graph: nx.DiGraph = field(default_factory=nx.DiGraph)
+    _topo_cache: list[str] | None = field(default=None, init=False, repr=False)
 
     # ---- building the network ----------------------------------------------
 
@@ -70,6 +75,7 @@ class Network:
             else:
                 # air leaves the component through this port: component -> port
                 self.graph.add_edge(component_id, pid)
+        self._topo_cache = None
         return component
 
     def connect(self, source: str, target: str) -> None:
@@ -89,6 +95,22 @@ class Network:
             port_node_id(src_cid, src_port.name),
             port_node_id(dst_cid, dst_port.name),
         )
+        self._topo_cache = None
+
+    # ---- analysis ----------------------------------------------------------
+
+    def topo_order(self) -> list[str]:
+        """Topological order of graph nodes, cached until the graph changes."""
+        if self._topo_cache is None:
+            self._topo_cache = list(nx.topological_sort(self.graph))
+        return self._topo_cache
+
+    def solve(self, fluid: Fluid | None = None) -> float:
+        """Run the full solver and return critical-path pressure drop [Pa]."""
+        from ..core.fluid import STANDARD_AIR
+        from .solver import solve
+
+        return solve(self, fluid if fluid is not None else STANDARD_AIR)
 
     # ---- iteration ---------------------------------------------------------
 

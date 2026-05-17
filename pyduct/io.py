@@ -129,51 +129,39 @@ def save_network_to_dict(net: Network) -> dict[str, Any]:
 
 def _make_cross_section(cs_dict: dict[str, Any]) -> Round | Rectangular:
     """Helper to construct a CrossSection from a dict."""
-    shape = cs_dict["shape"]
-    if shape == "round":
+    if cs_dict["shape"] == "round":
         return Round(diameter=cs_dict["diameter"])
-    else:  # rectangular
-        return Rectangular(width=cs_dict["width"], height=cs_dict["height"])
+    return Rectangular(width=cs_dict["width"], height=cs_dict["height"])
+
+
+def _cross_section_to_dict(cs: Round | Rectangular) -> dict[str, Any]:
+    """Helper to serialize a CrossSection."""
+    if isinstance(cs, Round):
+        return {"shape": "round", "diameter": cs.diameter, "width": None, "height": None}
+    return {"shape": "rectangular", "diameter": None, "width": cs.width, "height": cs.height}
 
 
 def _component_to_dict(comp: Any) -> dict[str, Any]:
     """Helper to serialize a component."""
     comp_type = type(comp).__name__
+    result: dict[str, Any] = {"type": comp_type, "name": comp.name}
 
-    result = {
-        "type": comp_type,
-        "name": comp.name,
-    }
-
-    if comp_type in ("RigidDuct", "FlexDuct"):
-        if comp_type == "RigidDuct":
-            result["cross_section"] = {
-                "shape": "round" if isinstance(comp.cross_section, Round) else "rectangular",
-                "diameter": comp.cross_section.diameter if isinstance(comp.cross_section, Round) else None,
-                "width": comp.cross_section.width if isinstance(comp.cross_section, Rectangular) else None,
-                "height": comp.cross_section.height if isinstance(comp.cross_section, Rectangular) else None,
-            }
-            result["length"] = comp.length
-            result["absolute_roughness"] = comp.absolute_roughness
-        else:  # FlexDuct
-            result["diameter"] = comp.diameter
-            result["length"] = comp.length
-            result["pressure_drop_per_meter"] = comp.pressure_drop_per_meter
-            result["stretch_percentage"] = comp.stretch_percentage
-
-    elif comp_type in ("TwoPortFitting", "Tee"):
-        result["cross_section"] = {
-            "shape": "round" if isinstance(comp.cross_section, Round) else "rectangular",
-            "diameter": comp.cross_section.diameter if isinstance(comp.cross_section, Round) else None,
-            "width": comp.cross_section.width if isinstance(comp.cross_section, Rectangular) else None,
-            "height": comp.cross_section.height if isinstance(comp.cross_section, Rectangular) else None,
-        }
-        if comp_type == "TwoPortFitting":
-            result["zeta"] = comp.zeta
-        else:  # Tee
-            result["zeta_straight"] = comp.zeta_straight
-            result["zeta_branch"] = comp.zeta_branch
-
+    if comp_type == "RigidDuct":
+        result["cross_section"] = _cross_section_to_dict(comp.cross_section)
+        result["length"] = comp.length
+        result["absolute_roughness"] = comp.absolute_roughness
+    elif comp_type == "FlexDuct":
+        result["diameter"] = comp.diameter
+        result["length"] = comp.length
+        result["pressure_drop_per_meter"] = comp.pressure_drop_per_meter
+        result["stretch_percentage"] = comp.stretch_percentage
+    elif comp_type == "TwoPortFitting":
+        result["cross_section"] = _cross_section_to_dict(comp.cross_section)
+        result["zeta"] = comp.zeta
+    elif comp_type == "Tee":
+        result["cross_section"] = _cross_section_to_dict(comp.cross_section)
+        result["zeta_straight"] = comp.zeta_straight
+        result["zeta_branch"] = comp.zeta_branch
     elif comp_type == "Terminal":
         result["flowrate"] = comp.flowrate
         result["zeta"] = comp.zeta
