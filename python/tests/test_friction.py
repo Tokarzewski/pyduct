@@ -3,7 +3,6 @@
 from math import isclose
 
 import pytest
-
 from pyduct.physics.friction import (
     friction_factor,
     friction_factor_colebrook,

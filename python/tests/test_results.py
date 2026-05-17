@@ -1,7 +1,6 @@
 """Tests for results extraction and formatting."""
 
 import pytest
-
 from pyduct import (
     Network,
     RigidDuct,

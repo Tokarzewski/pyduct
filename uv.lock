@@ -57,6 +57,18 @@ wheels = [
 ]
 
 [[package]]
+name = "click"
+version = "8.4.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "colorama", marker = "sys_platform == 'win32'" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/23/e4/796662cd90cf80e3a363c99db2b88e0e394b988a575f60a17e16440cd011/click-8.4.0.tar.gz", hash = "sha256:638f1338fe1235c8f4e008e4a8a254fb5c5fbdcbb40ece3c9142ebb78e792973", size = 350843, upload-time = "2026-05-17T00:47:58.425Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ee/ae/8e92f8058baf87f6c7d86ee7e457668690195cc77efedb8d3797a06e3940/click-8.4.0-py3-none-any.whl", hash = "sha256:40c50b7c6c6adac2823d411041ec84f3f103f1b280d5e9ce0d7f998995832f81", size = 116147, upload-time = "2026-05-17T00:47:56.842Z" },
+]
+
+[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -593,6 +605,111 @@ wheels = [
 ]
 
 [[package]]
+name = "mblack"
+version = "26.4.0.dev2026051706"
+source = { registry = "https://whl.modular.com/nightly/simple/" }
+dependencies = [
+    { name = "click" },
+    { name = "mypy-extensions" },
+    { name = "pathspec" },
+    { name = "platformdirs" },
+    { name = "tomli", marker = "python_full_version < '3.11'" },
+]
+wheels = [
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mblack/mblack-26.4.0.dev2026051706-py3-none-any.whl", hash = "sha256:96a52b56089d6199ee04d1310e44aacfddddeb921e2c7666fbf53ae820894b7c" },
+]
+
+[[package]]
+name = "mojo"
+version = "1.0.0b2.dev2026051706"
+source = { registry = "https://whl.modular.com/nightly/simple/" }
+dependencies = [
+    { name = "mblack" },
+    { name = "mojo-compiler" },
+    { name = "mojo-lldb-libs" },
+]
+wheels = [
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo/mojo-1.0.0b2.dev2026051706-py3-none-macosx_13_0_arm64.whl", hash = "sha256:e57bcdef4e96566f999a50d98d5a00be30f64b10fb59900b25899b977f1ebe00" },
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo/mojo-1.0.0b2.dev2026051706-py3-none-manylinux_2_34_aarch64.whl", hash = "sha256:244451ce2add409c7ddba554660323c1a27f4fc582a3f726dd12c723a9014d8e" },
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo/mojo-1.0.0b2.dev2026051706-py3-none-manylinux_2_34_x86_64.whl", hash = "sha256:6bd7ff86c84d136b1c02366f1852f7b162ac20a8987cb5a7d634534f154cf0fe" },
+]
+
+[[package]]
+name = "mojo-compiler"
+version = "1.0.0b2.dev2026051706"
+source = { registry = "https://whl.modular.com/nightly/simple/" }
+dependencies = [
+    { name = "mojo-compiler-mojo-libs" },
+]
+wheels = [
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo-compiler/mojo_compiler-1.0.0b2.dev2026051706-py3-none-macosx_13_0_arm64.whl", hash = "sha256:cb6de44205d52e088f1ffb1e0f768b3bc2c55a4e00767b6f15ad881731a5a7ca" },
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo-compiler/mojo_compiler-1.0.0b2.dev2026051706-py3-none-manylinux_2_34_aarch64.whl", hash = "sha256:15a1bb4072fe043b07caa725b4da7fe8539d18c1febb281892b7843f9cf98265" },
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo-compiler/mojo_compiler-1.0.0b2.dev2026051706-py3-none-manylinux_2_34_x86_64.whl", hash = "sha256:6fca367598c2437b9b9649e24fe5d562e4d73df2c8e65ca71ee8846dd78d5f4e" },
+]
+
+[[package]]
+name = "mojo-compiler-mojo-libs"
+version = "1.0.0b2.dev2026051706"
+source = { registry = "https://whl.modular.com/nightly/simple/" }
+wheels = [
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo-compiler-mojo-libs/mojo_compiler_mojo_libs-1.0.0b2.dev2026051706-py3-none-any.whl", hash = "sha256:224b86f71e9b659b50636beb1c22479e01b38f8af7d32c3165971fdb732bd307" },
+]
+
+[[package]]
+name = "mojo-lldb-libs"
+version = "1.0.0b2.dev2026051706"
+source = { registry = "https://whl.modular.com/nightly/simple/" }
+wheels = [
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo-lldb-libs/mojo_lldb_libs-1.0.0b2.dev2026051706-py3-none-macosx_13_0_arm64.whl", hash = "sha256:5421de99855a89d2d55204b62ecea5628e5e0e740f11b806df532ba92c637ac0" },
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo-lldb-libs/mojo_lldb_libs-1.0.0b2.dev2026051706-py3-none-manylinux_2_34_aarch64.whl", hash = "sha256:42e91c3ce706464ba80b1806fa53e00518e314f49a695e1cbf558ee0b1c80861" },
+    { url = "https://us-central1-python.pkg.dev/distribution-prod-0a7c7b3/nightly/mojo-lldb-libs/mojo_lldb_libs-1.0.0b2.dev2026051706-py3-none-manylinux_2_34_x86_64.whl", hash = "sha256:7e67aa126069b4c9a0d04fbee5a76f55c7a2b618484599ef4cc1506b1a183d61" },
+]
+
+[[package]]
+name = "mojoduct"
+version = "0.1.0"
+source = { editable = "." }
+dependencies = [
+    { name = "mojo" },
+    { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+    { name = "pydantic" },
+    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
+    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
+]
+
+[package.optional-dependencies]
+dev = [
+    { name = "matplotlib" },
+    { name = "mypy" },
+    { name = "pytest" },
+    { name = "pyyaml" },
+    { name = "ruff" },
+]
+plot = [
+    { name = "matplotlib" },
+]
+yaml = [
+    { name = "pyyaml" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "matplotlib", marker = "extra == 'dev'", specifier = ">=3.6.3" },
+    { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.6.3" },
+    { name = "mojo", specifier = ">=1.0.0b2.dev2026051706" },
+    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
+    { name = "networkx", specifier = ">=3.0" },
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
+    { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0" },
+    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
+    { name = "scipy", specifier = ">=1.9.3" },
+]
+provides-extras = ["plot", "yaml", "dev"]
+
+[[package]]
 name = "mypy"
 version = "2.1.0"
 source = { registry = "https://pypi.org/simple" }
@@ -950,6 +1067,15 @@ wheels = [
 ]
 
 [[package]]
+name = "platformdirs"
+version = "4.9.6"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/9f/4a/0883b8e3802965322523f0b200ecf33d31f10991d0401162f4b23c698b42/platformdirs-4.9.6.tar.gz", hash = "sha256:3bfa75b0ad0db84096ae777218481852c0ebc6c727b3168c1b9e0118e458cf0a", size = 29400, upload-time = "2026-04-09T00:04:10.812Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/75/a6/a0a304dc33b49145b21f4808d763822111e67d1c3a32b524a1baf947b6e1/platformdirs-4.9.6-py3-none-any.whl", hash = "sha256:e61adb1d5e5cb3441b4b7710bea7e4c12250ca49439228cc1021c00dcfac0917", size = 21348, upload-time = "2026-04-09T00:04:09.463Z" },
+]
+
+[[package]]
 name = "pluggy"
 version = "1.6.0"
 source = { registry = "https://pypi.org/simple" }
@@ -1088,48 +1214,6 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/4f/c3/66883a5cec183e7fba4d024b4cbbe61851a63750ef606b0afecc46d1f2bf/pydantic_core-2.46.4-pp311-pypy311_pp73-musllinux_1_1_x86_64.whl", hash = "sha256:86e1a4418c6cd97d60c95c71164158eaf7324fae7b0923264016baa993eba6fc", size = 2361286, upload-time = "2026-05-06T13:40:05.667Z" },
     { url = "https://files.pythonhosted.org/packages/4b/2d/69abac8f838090bbecd5df894befb2c2619e7996a98ddb949db9f3b93225/pydantic_core-2.46.4-pp311-pypy311_pp73-win_amd64.whl", hash = "sha256:d51026d73fcfd93610abc7b27789c26b313920fcfb20e27462d74a7f8b06e983", size = 2193071, upload-time = "2026-05-06T13:38:08.682Z" },
 ]
-
-[[package]]
-name = "pyduct"
-version = "0.1.0"
-source = { editable = "." }
-dependencies = [
-    { name = "networkx", version = "3.4.2", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "networkx", version = "3.6.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-    { name = "pydantic" },
-    { name = "scipy", version = "1.15.3", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version < '3.11'" },
-    { name = "scipy", version = "1.17.1", source = { registry = "https://pypi.org/simple" }, marker = "python_full_version >= '3.11'" },
-]
-
-[package.optional-dependencies]
-dev = [
-    { name = "matplotlib" },
-    { name = "mypy" },
-    { name = "pytest" },
-    { name = "pyyaml" },
-    { name = "ruff" },
-]
-plot = [
-    { name = "matplotlib" },
-]
-yaml = [
-    { name = "pyyaml" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "matplotlib", marker = "extra == 'dev'", specifier = ">=3.6.3" },
-    { name = "matplotlib", marker = "extra == 'plot'", specifier = ">=3.6.3" },
-    { name = "mypy", marker = "extra == 'dev'", specifier = ">=1.10" },
-    { name = "networkx", specifier = ">=3.0" },
-    { name = "pydantic", specifier = ">=2.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pyyaml", marker = "extra == 'dev'", specifier = ">=6.0" },
-    { name = "pyyaml", marker = "extra == 'yaml'", specifier = ">=6.0" },
-    { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.5" },
-    { name = "scipy", specifier = ">=1.9.3" },
-]
-provides-extras = ["plot", "yaml", "dev"]
 
 [[package]]
 name = "pygments"

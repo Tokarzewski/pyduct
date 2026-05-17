@@ -2,7 +2,6 @@
 
 
 import pytest
-
 from pyduct import (
     STANDARD_AIR,
     ElbowRound,

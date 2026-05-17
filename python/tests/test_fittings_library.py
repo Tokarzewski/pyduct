@@ -1,7 +1,6 @@
 """Tests for the fittings loss coefficient library."""
 
 import pytest
-
 from pyduct import air_at_altitude
 from pyduct.components.fittings_library import (
     damper_butterfly,

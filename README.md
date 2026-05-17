@@ -1,31 +1,41 @@
-# pyduct
+# mojoduct
 
-Open-source Python library for ductwork design: sizing, pressure-drop calculations,
-fitting losses, and network solving. Intended for building-services engineers.
+Ductwork design library — sizing, pressure-drop, fitting losses, network
+solving — being ported from Python to Mojo. The repo currently hosts both
+implementations side by side.
 
-## Features
-
-- **Duct sizing** — velocity method, equal-friction method, pressure-drop budget.
-- **Fitting library** — round reducers/expanders, tee junctions, dampers, diffusers, grilles.
-- **Network solver** — graph-based, pure-function pipeline with a true pressure-weighted
-  critical path.
-- **Round & rectangular** cross sections with EN 1505/1506 standard sizes.
-- **Pydantic schemas** for validated YAML/JSON network I/O.
-- **Results export** — pretty tables, CSV, dicts.
-- **Visualization** — graph drawing with critical-path highlighting (optional).
-
-## Installation
-
-```bash
-pip install -e .                # core
-pip install -e ".[plot]"        # + matplotlib visualization
-pip install -e ".[yaml]"        # + YAML I/O
-pip install -e ".[dev]"         # testing, mypy, ruff, plot, yaml
+```
+mojoduct/                 ← native-Mojo port (in progress)
+python/pyduct/            ← reference Python implementation (production-ready)
+python/tests/             ← Python test suite (184 tests, mypy & ruff clean)
+mojoduct/tests/           ← Mojo test suite (20 tests today)
 ```
 
-Requires Python 3.10+.
+## Hybrid plan
 
-## Quick start
+The Mojo port lands in layers. Math/physics primitives that need no graph
+or schema libraries are native Mojo today; the higher-level graph solver
+and serialization stay in the Python package and will be called from Mojo
+via Python interop (`std.python`) until a Mojo-native replacement is ready.
+
+| Module                      | Mojo (`mojoduct/`) | Python (`python/pyduct/`) |
+|-----------------------------|--------------------|---------------------------|
+| Cross-section geometry      | ✅                  | ✅                         |
+| Fluid + altitude correction | ✅                  | ✅                         |
+| Friction & losses           | ✅                  | ✅                         |
+| Unit converters             | ✅                  | ✅                         |
+| EN standard sizes           | —                  | ✅                         |
+| Components (RigidDuct, Tee…) | —                  | ✅                         |
+| Network / solver            | — (Python interop) | ✅                         |
+| Pydantic schemas + I/O      | — (Python interop) | ✅                         |
+| Visualization               | — (Python interop) | ✅                         |
+
+## Quick start (Python — currently production)
+
+```bash
+uv sync --extra dev
+uv run --extra dev pytest python/tests
+```
 
 ```python
 from pyduct import (
@@ -34,59 +44,67 @@ from pyduct import (
 )
 
 section, v = velocity_method(0.1, "round", target_velocity=4.0)
-print(f"Sized to {section.diameter:.3f} m, velocity {v:.2f} m/s")
-
 net = Network("example")
 net.add("ahu",  Source("AHU"))
 net.add("duct", RigidDuct("duct", section, length=20))
 net.add("term", Terminal("terminal", flowrate=0.1))
-net.connect("ahu", "duct")
-net.connect("duct", "term")
-
-dp = solve(net)
-print(results_summary(net))
+net.connect("ahu", "duct"); net.connect("duct", "term")
+print(net.solve(), "Pa")
 ```
 
-More examples in `pyduct/examples/`:
+## Quick start (Mojo — native math/physics)
+
+Requires the Mojo toolchain (already vendored via `uv add mojo --prerelease allow`).
+
+```mojo
+from mojoduct.core.geometry import Round
+from mojoduct.core.fluid import standard_air
+from mojoduct.physics.friction import friction_factor, reynolds, relative_roughness
+from mojoduct.physics.losses import straight_pressure_drop
+
+def main() raises:
+    var section = Round(0.2)            # 200 mm round duct
+    var air = standard_air()
+    var v = 0.1 / section.area
+    var re = reynolds(v, section.hydraulic_diameter, air.kinematic_viscosity)
+    var f = friction_factor(re, relative_roughness(0.0001, section.hydraulic_diameter))
+    var dp = straight_pressure_drop(f, 20.0, section.hydraulic_diameter, v, air.density)
+    print("dp =", dp, "Pa")
+```
+
+Run the Mojo test suite:
 
 ```bash
-python -m pyduct.examples.small_supply
-python -m pyduct.examples.complete_design
-python -m pyduct.examples.load_network_from_yaml
+uv run mojo run mojoduct/tests/test_core.mojo
 ```
 
 ## Layout
 
 ```
-pyduct/
-├── core/              Fluid, geometry (Round, Rectangular)
-├── physics/           Friction & loss correlations
-├── components/        Duct, terminal, fittings, elbow library
-├── data/              EN standard sizes
-├── network/           Network model & pure-function solver
-├── sizing.py          Duct sizing methods
-├── schemas.py         Pydantic validation schemas
-├── io.py              YAML/JSON serialization
-├── results.py         Result extraction & export
-├── visualization.py   Optional matplotlib plotting
-└── examples/
+mojoduct/                 # Mojo port
+├── core/
+│   ├── geometry.mojo     # Round / Rectangular / equivalent_round_diameter
+│   └── fluid.mojo        # Fluid / standard_air / air_at_altitude
+├── physics/
+│   ├── friction.mojo     # reynolds / friction_factor / Colebrook iterator
+│   └── losses.mojo       # straight & local pressure-drop
+├── units.mojo            # cfm / inwc / ft / fpm / °F / ACH helpers
+└── tests/test_core.mojo
+
+python/pyduct/            # Python implementation (see python/pyduct/README)
+python/tests/             # pytest suite
+
+docs/                     # historical design notes from the Python redesign
 ```
 
 ## Development
 
 ```bash
-just check          # pytest
-just lint           # ruff
-uv run mypy pyduct  # type-check
+uv run --extra dev pytest python/tests     # Python suite (184 tests)
+uv run --extra dev mypy python/pyduct      # type-check the Python side
+uv run --extra dev ruff check .             # lint
+uv run mojo run mojoduct/tests/test_core.mojo  # Mojo suite (20 tests)
 ```
-
-## Design docs
-
-Background and history of the redesign live in [`docs/`](docs/):
-
-- `docs/redesign-notes.md`
-- `docs/implementation-summary.md`
-- `docs/pydantic-extension.md`
 
 ## Bibliography
 

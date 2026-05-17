@@ -1,7 +1,7 @@
 [project]
-name = "pyduct"
+name = "mojoduct"
 version = "0.1.0"
-description = "Library for ductwork sizing and pressure-drop calculations."
+description = "Mojo + Python library for ductwork sizing and pressure-drop calculations."
 authors = [
     {name = "Tokarzewski", email = "bartlomiej.tokarzewski@gmail.com"},
 ]
@@ -9,6 +9,7 @@ dependencies = [
     "networkx>=3.0",
     "scipy>=1.9.3",
     "pydantic>=2.0",
+    "mojo>=1.0.0b2.dev2026051706",
 ]
 requires-python = ">=3.10"
 license = {text = "MIT"}
@@ -25,17 +26,23 @@ dev = [
 ]
 
 [build-system]
-requires = ["pdm-pep517>=1.0.0"]
-build-backend = "pdm.pep517.api"
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
 
-[tool.pdm]
-distribution = true
+[[tool.uv.index]]
+url = "https://whl.modular.com/nightly/simple/"
+
+# The Python implementation lives under python/ as a reference and is the
+# source of truth until the Mojo port reaches parity. Tests run against it.
+[tool.setuptools]
+package-dir = {"" = "python"}
 
 [tool.setuptools.packages.find]
+where = ["python"]
 include = ["pyduct*"]
 
 [tool.pytest.ini_options]
-testpaths = ["tests"]
+testpaths = ["python/tests"]
 python_files = ["test_*.py"]
 
 [tool.ruff]
@@ -61,4 +68,9 @@ strict = false
 warn_unused_ignores = true
 warn_redundant_casts = true
 ignore_missing_imports = true
-files = ["pyduct"]
+files = ["python/pyduct"]
+
+# ---------------------------------------------------------------------------
+# Mojo port (work in progress) lives under `mojoduct/`. The Python package
+# remains usable as `import pyduct` until the Mojo side reaches parity.
+# ---------------------------------------------------------------------------
