@@ -21,75 +21,79 @@ from .components import (
 )
 from .core import Rectangular, Round
 from .network import Network
-from .schemas import NetworkDesignSchema
+from .schemas import (
+    CrossSectionSchema,
+    FlexDuctSchema,
+    NetworkDesignSchema,
+    RigidDuctSchema,
+    SourceSchema,
+    TeeSchema,
+    TerminalSchema,
+    TwoPortFittingSchema,
+)
+
+
+def _build_cross_section(cs: CrossSectionSchema) -> Round | Rectangular:
+    if cs.shape == "round":
+        assert cs.diameter is not None
+        return Round(diameter=cs.diameter)
+    assert cs.width is not None and cs.height is not None
+    return Rectangular(width=cs.width, height=cs.height)
+
+
+def _build_component(schema: Any) -> Component:
+    """Concrete Component from a per-type Pydantic schema."""
+    if isinstance(schema, RigidDuctSchema):
+        return RigidDuct(
+            name=schema.name,
+            cross_section=_build_cross_section(schema.cross_section),
+            length=schema.length,
+            absolute_roughness=schema.absolute_roughness,
+        )
+    if isinstance(schema, FlexDuctSchema):
+        return FlexDuct(
+            name=schema.name,
+            diameter=schema.diameter,
+            length=schema.length,
+            pressure_drop_per_meter=schema.pressure_drop_per_meter,
+            stretch_percentage=schema.stretch_percentage,
+        )
+    if isinstance(schema, SourceSchema):
+        return Source(name=schema.name)
+    if isinstance(schema, TerminalSchema):
+        return Terminal(name=schema.name, flowrate=schema.flowrate, zeta=schema.zeta)
+    if isinstance(schema, TwoPortFittingSchema):
+        return TwoPortFitting(
+            name=schema.name,
+            cross_section=_build_cross_section(schema.cross_section),
+            zeta=schema.zeta,
+        )
+    if isinstance(schema, TeeSchema):
+        return Tee(
+            name=schema.name,
+            cross_section=_build_cross_section(schema.cross_section),
+            zeta_straight=schema.zeta_straight,
+            zeta_branch=schema.zeta_branch,
+        )
+    raise TypeError(f"Unsupported component schema: {type(schema).__name__}")
 
 
 def load_network_from_dict(data: dict[str, Any]) -> Network:
     """Load a network from a dictionary (from YAML/JSON).
 
-    Parameters
-    ----------
-    data:
-        Dictionary matching NetworkDesignSchema.
-
-    Returns
-    -------
-    network:
-        A constructed (but unsolved) Network.
-
-    Raises
-    ------
-    ValidationError:
-        If the schema is invalid.
+    The input is fully validated by :class:`NetworkDesignSchema`, including
+    per-component field validation via a Pydantic discriminated union, so an
+    invalid component (wrong type, missing field, out-of-range value) raises
+    :class:`pydantic.ValidationError` before any object is constructed.
     """
     schema = NetworkDesignSchema(**data)
-
-    # Create network
     net = Network(schema.name)
-
-    # Add components
-    for cid, comp_dict in schema.components.items():
-        comp_type = comp_dict.pop("type")
-
-        comp: Component
-        if comp_type == "RigidDuct":
-            cs_dict = comp_dict.pop("cross_section")
-            section = _make_cross_section(cs_dict)
-            comp = RigidDuct(
-                cross_section=section,
-                **comp_dict,
-            )
-        elif comp_type == "FlexDuct":
-            comp = FlexDuct(**comp_dict)
-        elif comp_type == "Source":
-            comp = Source(**comp_dict)
-        elif comp_type == "Terminal":
-            comp = Terminal(**comp_dict)
-        elif comp_type == "TwoPortFitting":
-            cs_dict = comp_dict.pop("cross_section")
-            section = _make_cross_section(cs_dict)
-            comp = TwoPortFitting(
-                cross_section=section,
-                **comp_dict,
-            )
-        elif comp_type == "Tee":
-            cs_dict = comp_dict.pop("cross_section")
-            section = _make_cross_section(cs_dict)
-            comp = Tee(cross_section=section, **comp_dict)
-        else:
-            raise ValueError(f"Unknown component type: {comp_type}")
-
-        net.add(cid, comp)
-
-    # Add connections
-    # Note: ignore port-specific notation (component.port) for now;
-    # Network.connect() handles default port disambiguation.
+    for cid, comp_schema in schema.components.items():
+        net.add(cid, _build_component(comp_schema))
     for conn in schema.connections:
-        # Strip port notation if present (e.g. "ahu:outlet" -> "ahu")
         src = conn.source.split(":")[0] if ":" in conn.source else conn.source
         tgt = conn.target.split(":")[0] if ":" in conn.target else conn.target
         net.connect(src, tgt)
-
     return net
 
 
@@ -125,13 +129,6 @@ def save_network_to_dict(net: Network) -> dict[str, Any]:
         "components": components,
         "connections": connections,
     }
-
-
-def _make_cross_section(cs_dict: dict[str, Any]) -> Round | Rectangular:
-    """Helper to construct a CrossSection from a dict."""
-    if cs_dict["shape"] == "round":
-        return Round(diameter=cs_dict["diameter"])
-    return Rectangular(width=cs_dict["width"], height=cs_dict["height"])
 
 
 def _cross_section_to_dict(cs: Round | Rectangular) -> dict[str, Any]:

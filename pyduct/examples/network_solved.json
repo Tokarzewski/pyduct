@@ -15,7 +15,7 @@
         "width": null,
         "height": null
       },
-      "length": 25,
+      "length": 25.0,
       "absolute_roughness": 0.0001
     },
     "main_tee": {
@@ -39,7 +39,7 @@
         "width": null,
         "height": null
       },
-      "length": 20,
+      "length": 20.0,
       "absolute_roughness": 0.0001
     },
     "branch2_duct": {
@@ -51,7 +51,7 @@
         "width": null,
         "height": null
       },
-      "length": 15,
+      "length": 15.0,
       "absolute_roughness": 0.0001
     },
     "zone1_terminal": {

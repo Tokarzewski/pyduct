@@ -196,3 +196,56 @@ class TestSchemaRoundTrip:
         restored = SizingRequestSchema(**data)
         assert restored.flowrate == original.flowrate
         assert restored.method == original.method
+
+
+class TestDiscriminatedUnion:
+    """The components dict on NetworkDesignSchema is a discriminated union.
+
+    These tests prove that per-type validation happens inside Pydantic — bad
+    component fields raise at schema time, not later inside the runtime
+    component constructor.
+    """
+
+    def _base(self) -> dict:
+        return {
+            "name": "n",
+            "components": {
+                "ahu": {"type": "Source", "name": "AHU"},
+                "term": {"type": "Terminal", "name": "T", "flowrate": 0.1},
+            },
+            "connections": [],
+        }
+
+    def test_round_trip_resolves_concrete_schemas(self) -> None:
+        data = self._base()
+        data["components"]["d1"] = {
+            "type": "RigidDuct",
+            "name": "D1",
+            "cross_section": {"shape": "round", "diameter": 0.2},
+            "length": 5.0,
+        }
+        net = NetworkDesignSchema(**data)
+        assert type(net.components["d1"]).__name__ == "RigidDuctSchema"
+        assert type(net.components["ahu"]).__name__ == "SourceSchema"
+
+    def test_missing_required_field_rejected_at_schema_time(self) -> None:
+        data = self._base()
+        # RigidDuct without `length` — must fail in Pydantic, not later.
+        data["components"]["d1"] = {
+            "type": "RigidDuct",
+            "name": "D1",
+            "cross_section": {"shape": "round", "diameter": 0.2},
+        }
+        with pytest.raises(ValidationError):
+            NetworkDesignSchema(**data)
+
+    def test_negative_value_rejected_at_schema_time(self) -> None:
+        data = self._base()
+        data["components"]["d1"] = {
+            "type": "RigidDuct",
+            "name": "D1",
+            "cross_section": {"shape": "round", "diameter": 0.2},
+            "length": -5.0,
+        }
+        with pytest.raises(ValidationError):
+            NetworkDesignSchema(**data)

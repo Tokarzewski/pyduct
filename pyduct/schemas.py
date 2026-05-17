@@ -9,9 +9,9 @@ Enables:
 
 from __future__ import annotations
 
-from typing import Any, Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class FluidSchema(BaseModel):
@@ -53,6 +53,7 @@ class CrossSectionSchema(BaseModel):
 class RigidDuctSchema(BaseModel):
     """Schema for a rigid duct component."""
 
+    type: Literal["RigidDuct"] = "RigidDuct"
     name: str
     cross_section: CrossSectionSchema
     length: float = Field(gt=0, description="Duct length [m]")
@@ -62,6 +63,7 @@ class RigidDuctSchema(BaseModel):
 class FlexDuctSchema(BaseModel):
     """Schema for a flexible duct component."""
 
+    type: Literal["FlexDuct"] = "FlexDuct"
     name: str
     diameter: float = Field(gt=0, description="Diameter [m]")
     length: float = Field(gt=0, description="Length [m]")
@@ -72,12 +74,14 @@ class FlexDuctSchema(BaseModel):
 class SourceSchema(BaseModel):
     """Schema for an AHU/source component."""
 
+    type: Literal["Source"] = "Source"
     name: str
 
 
 class TerminalSchema(BaseModel):
     """Schema for a terminal (diffuser, grille, cap)."""
 
+    type: Literal["Terminal"] = "Terminal"
     name: str
     flowrate: float = Field(ge=0, description="Demanded flow [m³/s]")
     zeta: float = Field(default=0.0, ge=0, description="Loss coefficient")
@@ -86,6 +90,7 @@ class TerminalSchema(BaseModel):
 class TwoPortFittingSchema(BaseModel):
     """Schema for a two-port fitting."""
 
+    type: Literal["TwoPortFitting"] = "TwoPortFitting"
     name: str
     cross_section: CrossSectionSchema
     zeta: float = Field(ge=0, description="Loss coefficient")
@@ -94,14 +99,24 @@ class TwoPortFittingSchema(BaseModel):
 class TeeSchema(BaseModel):
     """Schema for a three-port tee."""
 
+    type: Literal["Tee"] = "Tee"
     name: str
     cross_section: CrossSectionSchema
     zeta_straight: float = Field(default=0.0, ge=0, description="Straight leg zeta")
     zeta_branch: float = Field(default=0.5, ge=0, description="Branch leg zeta")
 
 
-# Union schema for any component
-ComponentSchema = RigidDuctSchema | FlexDuctSchema | SourceSchema | TerminalSchema | TwoPortFittingSchema | TeeSchema
+# Discriminated union over `type` — Pydantic picks the matching schema for
+# every component dict and validates each one's fields in full.
+ComponentSchema = Annotated[
+    RigidDuctSchema
+    | FlexDuctSchema
+    | SourceSchema
+    | TerminalSchema
+    | TwoPortFittingSchema
+    | TeeSchema,
+    Field(discriminator="type"),
+]
 
 
 class ConnectionSchema(BaseModel):
@@ -116,29 +131,13 @@ class NetworkDesignSchema(BaseModel):
 
     name: str = Field(description="Network name")
     fluid: FluidSchema | None = Field(default=None, description="Custom fluid (optional)")
-    components: dict[str, dict[str, Any]] = Field(
-        description="Components: {id: {type, name, ...}}"
+    components: dict[str, ComponentSchema] = Field(
+        description="Components keyed by id; each is fully validated by "
+        "its per-type schema via the `type` discriminator.",
     )
     connections: list[ConnectionSchema] = Field(
         default_factory=list, description="Connections between components"
     )
-
-    @field_validator("components")
-    @classmethod
-    def validate_components(cls, v: dict[str, Any]) -> dict[str, Any]:
-        allowed_types = {
-            "RigidDuct", "FlexDuct", "Source", "Terminal",
-            "TwoPortFitting", "Tee"
-        }
-        for cid, comp in v.items():
-            if "type" not in comp:
-                raise ValueError(f"Component {cid!r} missing 'type' field")
-            if comp["type"] not in allowed_types:
-                raise ValueError(
-                    f"Component {cid!r}: unknown type {comp['type']!r}. "
-                    f"Allowed: {allowed_types}"
-                )
-        return v
 
 
 class SizingRequestSchema(BaseModel):
