@@ -10,8 +10,8 @@ The returned `(Round, Float64)` is a sized-once value: caller can read
 """
 
 from .core.fluid import Fluid, standard_air
-from .core.geometry import Round
-from .data.standard_sizes import _round_sizes_mm
+from .core.geometry import Rectangular, Round
+from .data.standard_sizes import _rect_sizes_mm, _round_sizes_mm
 from .physics.friction import friction_factor, relative_roughness, reynolds
 
 
@@ -106,5 +106,99 @@ def pressure_drop_budget_round(
     if budget_pa <= 0.0:
         raise Error("budget_pa must be positive")
     return equal_friction_method_round(
+        flowrate, budget_pa / length, absolute_roughness, fluid
+    )
+
+
+# --- Rectangular paths ---------------------------------------------------
+
+
+def velocity_method_rectangular(
+    flowrate: Float64,
+    target_velocity: Float64 = 4.0,
+) raises -> Tuple[Rectangular, Float64]:
+    """Smallest EN-standard rectangular duct whose velocity ≤ ``target_velocity``."""
+    if flowrate <= 0.0:
+        raise Error("flowrate must be positive")
+    if target_velocity <= 0.0:
+        raise Error("target_velocity must be positive")
+
+    var sizes = _rect_sizes_mm()
+    var n = len(sizes)
+    var w_last = Float64(sizes[n - 1][0]) * 0.001
+    var h_last = Float64(sizes[n - 1][1]) * 0.001
+    var last_section = Rectangular(w_last, h_last)
+    var last_v = flowrate / last_section.area
+
+    for i in range(n):
+        var w = Float64(sizes[i][0]) * 0.001
+        var h = Float64(sizes[i][1]) * 0.001
+        var section = Rectangular(w, h)
+        var v = flowrate / section.area
+        if v <= target_velocity:
+            return Tuple[Rectangular, Float64](section, v)
+        last_section = section
+        last_v = v
+    return Tuple[Rectangular, Float64](last_section, last_v)
+
+
+def _dp_per_m_rect(
+    section: Rectangular, flowrate: Float64, absolute_roughness: Float64, fluid: Fluid
+) -> Float64:
+    var v = flowrate / section.area
+    var d_h = section.hydraulic_diameter
+    var f = friction_factor(
+        reynolds(v, d_h, fluid.kinematic_viscosity),
+        relative_roughness(absolute_roughness, d_h),
+    )
+    return f / d_h * (fluid.density * v * v) * 0.5
+
+
+def equal_friction_method_rectangular(
+    flowrate: Float64,
+    target_pressure_drop_per_meter: Float64 = 1.0,
+    absolute_roughness: Float64 = 0.0001,
+    fluid: Optional[Fluid] = None,
+) raises -> Tuple[Rectangular, Float64, Float64]:
+    """Smallest EN-standard rectangular duct with linear ΔP ≤ target."""
+    if flowrate <= 0.0:
+        raise Error("flowrate must be positive")
+    if target_pressure_drop_per_meter <= 0.0:
+        raise Error("target_pressure_drop_per_meter must be positive")
+    var f = fluid.value() if fluid else standard_air()
+    var sizes = _rect_sizes_mm()
+    var n = len(sizes)
+    var w_last = Float64(sizes[n - 1][0]) * 0.001
+    var h_last = Float64(sizes[n - 1][1]) * 0.001
+    var last_section = Rectangular(w_last, h_last)
+    var last_r = _dp_per_m_rect(last_section, flowrate, absolute_roughness, f)
+
+    for i in range(n):
+        var w = Float64(sizes[i][0]) * 0.001
+        var h = Float64(sizes[i][1]) * 0.001
+        var section = Rectangular(w, h)
+        var r = _dp_per_m_rect(section, flowrate, absolute_roughness, f)
+        if r <= target_pressure_drop_per_meter:
+            var v = flowrate / section.area
+            return Tuple[Rectangular, Float64, Float64](section, v, r)
+        last_section = section
+        last_r = r
+    var v_last = flowrate / last_section.area
+    return Tuple[Rectangular, Float64, Float64](last_section, v_last, last_r)
+
+
+def pressure_drop_budget_rectangular(
+    flowrate: Float64,
+    length: Float64,
+    budget_pa: Float64,
+    absolute_roughness: Float64 = 0.0001,
+    fluid: Optional[Fluid] = None,
+) raises -> Tuple[Rectangular, Float64, Float64]:
+    """Size a rectangular duct so total ΔP across ``length`` ≤ ``budget_pa``."""
+    if length <= 0.0:
+        raise Error("length must be positive")
+    if budget_pa <= 0.0:
+        raise Error("budget_pa must be positive")
+    return equal_friction_method_rectangular(
         flowrate, budget_pa / length, absolute_roughness, fluid
     )

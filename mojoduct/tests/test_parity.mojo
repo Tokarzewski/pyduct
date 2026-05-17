@@ -30,6 +30,9 @@ from mojoduct.sizing import (
     velocity_method_round,
     equal_friction_method_round,
     pressure_drop_budget_round,
+    velocity_method_rectangular,
+    equal_friction_method_rectangular,
+    pressure_drop_budget_rectangular,
 )
 from mojoduct.components.fittings_library import (
     rectangular_elbow,
@@ -292,6 +295,37 @@ def test_parity_equal_friction_method_round() raises:
         assert_true(_close_rel(mj[1], py_v))
         # r_per_m goes through log/**: libm slack.
         assert_true(_close_rel(mj[2], py_r_per_m, rtol=1e-9))
+
+
+def test_parity_velocity_method_rectangular() raises:
+    var py_sizing = Python.import_module("pyduct.sizing")
+    var cases = [(0.10, 4.0), (0.25, 3.5), (0.50, 4.0), (1.0, 3.0), (2.0, 4.0)]
+    for c in cases:
+        var flow = c[0]
+        var target_v = c[1]
+        var py_r = py_sizing.velocity_method(flow, "rectangular", target_v)
+        var py_section = py_r[0]
+        var py_w = Float64(py=py_section.width)
+        var py_h = Float64(py=py_section.height)
+        var py_v = Float64(py=py_r[1])
+        var mj = velocity_method_rectangular(flow, target_v)
+        assert_true(_close_rel(mj[0].width, py_w))
+        assert_true(_close_rel(mj[0].height, py_h))
+        assert_true(_close_rel(mj[1], py_v))
+
+
+def test_parity_equal_friction_method_rectangular() raises:
+    var py_sizing = Python.import_module("pyduct.sizing")
+    var cases = [(0.10, 1.0), (0.10, 0.5), (0.25, 1.5), (0.50, 1.0)]
+    for c in cases:
+        var flow = c[0]
+        var target = c[1]
+        var py_r = py_sizing.equal_friction_method(flow, target, "rectangular")
+        var mj = equal_friction_method_rectangular(flow, target)
+        assert_true(_close_rel(mj[0].width, Float64(py=py_r[0].width)))
+        assert_true(_close_rel(mj[0].height, Float64(py=py_r[0].height)))
+        assert_true(_close_rel(mj[1], Float64(py=py_r[1])))
+        assert_true(_close_rel(mj[2], Float64(py=py_r[2]), rtol=1e-9))
 
 
 def test_parity_pressure_drop_budget_round() raises:
