@@ -33,6 +33,51 @@ def rectangular_elbow(
     return zeta_90 * aspect_correction * (angle_deg / 90.0)
 
 
+def reducer_round(
+    d_inlet: Float64, d_outlet: Float64, angle_deg: Float64 = 45.0
+) raises -> Float64:
+    """Loss coefficient for a round reducer (ASHRAE/Swamee–Jain style).
+
+        zeta ≈ 0.04 + 0.37 · (1 − A_out / A_in)
+
+    Multiplied by an angle factor that softens 0.8× at 30 ° and rises
+    linearly to 1.0× at 45 °+. Referenced to the **outlet** velocity.
+    """
+    if d_outlet > d_inlet:
+        raise Error("outlet diameter must be <= inlet")
+    if d_outlet <= 0.0:
+        raise Error("outlet diameter must be positive")
+    var area_ratio = (d_outlet / d_inlet) ** 2
+    var zeta = 0.04 + 0.37 * (1.0 - area_ratio)
+    var angle_factor = 0.8 + 0.004 * (45.0 - angle_deg) if angle_deg < 45.0 else 1.0
+    return zeta * angle_factor
+
+
+def expander_round(
+    d_inlet: Float64, d_outlet: Float64, angle_deg: Float64 = 45.0
+) raises -> Float64:
+    """Loss coefficient for a round expander / diffuser.
+
+    Sudden-enlargement Borda–Carnot baseline ``(1 − A_in / A_out)²``
+    multiplied by a piecewise diffuser factor that depends on the
+    half-angle. Referenced to the **inlet** velocity.
+    """
+    if d_inlet > d_outlet:
+        raise Error("inlet diameter must be <= outlet")
+    if d_inlet <= 0.0:
+        raise Error("inlet diameter must be positive")
+    var area_ratio = (d_inlet / d_outlet) ** 2
+    var zeta_sudden = (1.0 - area_ratio) ** 2
+    var diffuser_factor: Float64 = 1.0
+    if angle_deg <= 10.0:
+        diffuser_factor = 0.5
+    elif angle_deg <= 20.0:
+        diffuser_factor = 0.6
+    elif angle_deg <= 45.0:
+        diffuser_factor = 0.8
+    return diffuser_factor * zeta_sudden
+
+
 def mitered_elbow(angle_deg: Float64 = 90.0, vaned: Bool = False) raises -> Float64:
     """Loss coefficient for a sharp-corner mitered elbow.
 

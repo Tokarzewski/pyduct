@@ -31,7 +31,12 @@ from mojoduct.sizing import (
     equal_friction_method_round,
     pressure_drop_budget_round,
 )
-from mojoduct.components.fittings_library import rectangular_elbow, mitered_elbow
+from mojoduct.components.fittings_library import (
+    rectangular_elbow,
+    mitered_elbow,
+    reducer_round,
+    expander_round,
+)
 from mojoduct.units import cfm_to_m3s, inwc_to_pa, ft_to_m, air_changes_per_hour
 
 
@@ -327,6 +332,34 @@ def test_parity_mitered_elbow() raises:
             var py_v = Float64(py=py_fits.mitered_elbow(a, vaned=vaned))
             var mj_v = mitered_elbow(a, vaned=vaned)
             assert_true(_close_rel(mj_v, py_v))
+
+
+def test_parity_reducer_round() raises:
+    var py_fits = Python.import_module("pyduct.components.fittings_library")
+    var cases = [
+        (0.3, 0.25, 45.0), (0.3, 0.20, 45.0), (0.4, 0.30, 30.0), (0.5, 0.20, 60.0),
+    ]
+    for c in cases:
+        var d_in = c[0]
+        var d_out = c[1]
+        var ang = c[2]
+        var py_v = Float64(py=py_fits.reducer_round(d_in, d_out, ang))
+        var mj_v = reducer_round(d_in, d_out, ang)
+        assert_true(_close_rel(mj_v, py_v, rtol=1e-9))
+
+
+def test_parity_expander_round() raises:
+    var py_fits = Python.import_module("pyduct.components.fittings_library")
+    var cases = [
+        (0.20, 0.30, 10.0), (0.20, 0.30, 20.0), (0.20, 0.30, 45.0), (0.15, 0.40, 60.0),
+    ]
+    for c in cases:
+        var d_in = c[0]
+        var d_out = c[1]
+        var ang = c[2]
+        var py_v = Float64(py=py_fits.expander_round(d_in, d_out, ang))
+        var mj_v = expander_round(d_in, d_out, ang)
+        assert_true(_close_rel(mj_v, py_v, rtol=1e-9))
 
 
 def test_parity_nearest_round_size() raises:
