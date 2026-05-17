@@ -36,6 +36,11 @@ from mojoduct.components.fittings_library import (
     mitered_elbow,
     reducer_round,
     expander_round,
+    junction_tee_branch,
+    junction_tee_combine,
+    damper_butterfly,
+    diffuser_ceiling,
+    grille_return,
 )
 from mojoduct.units import cfm_to_m3s, inwc_to_pa, ft_to_m, air_changes_per_hour
 
@@ -360,6 +365,54 @@ def test_parity_expander_round() raises:
         var py_v = Float64(py=py_fits.expander_round(d_in, d_out, ang))
         var mj_v = expander_round(d_in, d_out, ang)
         assert_true(_close_rel(mj_v, py_v, rtol=1e-9))
+
+
+def test_parity_junction_tee_branch() raises:
+    var py_fits = Python.import_module("pyduct.components.fittings_library")
+    var cases = [
+        (0.4, 0.2, 0.10, 0.05), (0.3, 0.3, 0.05, 0.05), (0.5, 0.2, 0.20, 0.03),
+    ]
+    for c in cases:
+        var dm = c[0]; var db = c[1]; var fm = c[2]; var fb = c[3]
+        var py_r = py_fits.junction_tee_branch(dm, db, fm, fb)
+        var py_zm = Float64(py=py_r[0])
+        var py_zb = Float64(py=py_r[1])
+        var mj = junction_tee_branch(dm, db, fm, fb)
+        assert_true(_close_rel(mj[0], py_zm))
+        assert_true(_close_rel(mj[1], py_zb))
+
+
+def test_parity_junction_tee_combine() raises:
+    var py_fits = Python.import_module("pyduct.components.fittings_library")
+    var cases = [
+        (0.4, 0.2, 0.10, 0.05), (0.3, 0.3, 0.05, 0.05), (0.5, 0.2, 0.20, 0.03),
+    ]
+    for c in cases:
+        var dm = c[0]; var db = c[1]; var fm = c[2]; var fb = c[3]
+        var py_r = py_fits.junction_tee_combine(dm, db, fm, fb)
+        var mj = junction_tee_combine(dm, db, fm, fb)
+        assert_true(_close_rel(mj[0], Float64(py=py_r[0])))
+        assert_true(_close_rel(mj[1], Float64(py=py_r[1])))
+
+
+def test_parity_damper_butterfly() raises:
+    var py_fits = Python.import_module("pyduct.components.fittings_library")
+    var positions = [100.0, 95.0, 80.0, 50.0, 20.0, 0.0]
+    for p in positions:
+        var py_v = Float64(py=py_fits.damper_butterfly(p))
+        assert_true(_close_rel(damper_butterfly(p), py_v))
+
+
+def test_parity_diffuser_and_grille() raises:
+    var py_fits = Python.import_module("pyduct.components.fittings_library")
+    var throws = [0.5, 0.8, 1.0, 1.2, 1.5]
+    for t in throws:
+        var py_v = Float64(py=py_fits.diffuser_ceiling(t))
+        assert_true(_close_rel(diffuser_ceiling(t), py_v))
+    var blockages = [0.05, 0.15, 0.25, 0.5, 0.9]
+    for b in blockages:
+        var py_v = Float64(py=py_fits.grille_return(b))
+        assert_true(_close_rel(grille_return(b), py_v))
 
 
 def test_parity_nearest_round_size() raises:

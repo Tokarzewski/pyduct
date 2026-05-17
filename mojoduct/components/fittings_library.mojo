@@ -78,6 +78,75 @@ def expander_round(
     return diffuser_factor * zeta_sudden
 
 
+def junction_tee_branch(
+    d_main: Float64, d_branch: Float64,
+    flowrate_main: Float64, flowrate_branch: Float64,
+) raises -> Tuple[Float64, Float64]:
+    """Loss coefficients ``(zeta_main, zeta_branch)`` for a splitting tee.
+
+    Flow ratio and area ratio drive both legs. Branch loss is typically
+    several times the main-line loss for normal HVAC tees.
+    """
+    if flowrate_main < 0.0 or flowrate_branch < 0.0:
+        raise Error("flowrates must be non-negative")
+    var total = flowrate_main + flowrate_branch
+    if total <= 0.0:
+        raise Error("at least one flowrate must be positive")
+    var split = flowrate_branch / total
+    var area = (d_branch / d_main) ** 2 if d_main > 0.0 else 0.0
+    return Tuple[Float64, Float64](
+        0.08 * split + 0.05 * area,
+        0.3 + 0.5 * (1.0 - area) + 0.4 * split,
+    )
+
+
+def junction_tee_combine(
+    d_main: Float64, d_branch: Float64,
+    flowrate_main: Float64, flowrate_branch: Float64,
+) raises -> Tuple[Float64, Float64]:
+    """Loss coefficients ``(zeta_main, zeta_branch)`` for a combining tee.
+
+    Combining flows lose more than splitting flows — same correlation
+    shape, larger constants. Use for return-air / exhaust plenums.
+    """
+    var total = flowrate_main + flowrate_branch
+    if total <= 0.0:
+        raise Error("at least one flowrate must be positive")
+    var split = flowrate_branch / total
+    var area = (d_branch / d_main) ** 2 if d_main > 0.0 else 0.0
+    return Tuple[Float64, Float64](
+        0.1 + 0.15 * split + 0.08 * area,
+        0.4 + 0.6 * (1.0 - area) + 0.3 * split,
+    )
+
+
+def damper_butterfly(open_percentage: Float64 = 100.0) raises -> Float64:
+    """Butterfly-damper loss coefficient. ~0.1 fully open; rises steeply as
+    the damper closes (zeta ≈ 0.1 + (1 - open)² · 10)."""
+    if open_percentage < 0.0 or open_percentage > 100.0:
+        raise Error("open_percentage must be in [0, 100]")
+    if open_percentage >= 95.0:
+        return 0.1
+    var closed_frac = 1.0 - open_percentage / 100.0
+    return 0.1 + closed_frac * closed_frac * 10.0
+
+
+def diffuser_ceiling(area_throw: Float64 = 1.0) raises -> Float64:
+    """Ceiling-diffuser face-velocity loss coefficient. ~0.4 base; narrower
+    throw → slightly higher loss (zeta = 0.4 / area_throw)."""
+    if area_throw <= 0.0:
+        raise Error("area_throw must be positive")
+    return 0.4 / area_throw
+
+
+def grille_return(blockage_factor: Float64 = 0.15) raises -> Float64:
+    """Return-grille face-velocity loss coefficient. ~0.25 base, scaled by
+    blockage (zeta = 0.25 · (1 + blockage))."""
+    if blockage_factor < 0.0 or blockage_factor > 1.0:
+        raise Error("blockage_factor must be in [0, 1]")
+    return 0.25 * (1.0 + blockage_factor)
+
+
 def mitered_elbow(angle_deg: Float64 = 90.0, vaned: Bool = False) raises -> Float64:
     """Loss coefficient for a sharp-corner mitered elbow.
 
