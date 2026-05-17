@@ -14,7 +14,7 @@ from std.python import Python
 from std.time import perf_counter_ns
 
 from mojoduct.physics.friction import friction_factor
-from mojoduct.sizing import velocity_method_round
+from mojoduct.sizing import velocity_method_round, equal_friction_method_round
 
 
 comptime N_CALLS = 1_000_000
@@ -95,3 +95,35 @@ def main() raises:
     print("  Mojo   :", mojo_size_ms, "ms   diam sum =", mojo_d_sum)
     print("  Python :", py_size_ms,   "ms   diam sum =", py_d_sum)
     print("  speedup:", size_speedup, "x")
+
+    # --- equal_friction_method_round ---------------------------------------
+    var py_ef = py_sizing.equal_friction_method
+
+    for i in range(500):
+        _ = equal_friction_method_round(0.05 + Float64(i) * 1.0e-5, 1.0)
+        _ = py_ef(0.05 + Float64(i) * 1.0e-5, 1.0, "round")
+
+    var t4 = perf_counter_ns()
+    var mojo_ef_sum: Float64 = 0.0
+    for i in range(N_SIZING):
+        var flow = 0.02 + Float64(i % 1000) * 5.0e-4
+        var triple = equal_friction_method_round(flow, 1.0)
+        mojo_ef_sum += triple[0].diameter
+    var mojo_ef_ns = perf_counter_ns() - t4
+
+    var t5 = perf_counter_ns()
+    var py_ef_sum: Float64 = 0.0
+    for i in range(N_SIZING):
+        var flow = 0.02 + Float64(i % 1000) * 5.0e-4
+        var r = py_ef(flow, 1.0, "round")
+        py_ef_sum += Float64(py=r[0].diameter)
+    var py_ef_ns = perf_counter_ns() - t5
+
+    var mojo_ef_ms = Float64(mojo_ef_ns) * 1.0e-6
+    var py_ef_ms = Float64(py_ef_ns) * 1.0e-6
+    var ef_speedup = Float64(py_ef_ns) / Float64(mojo_ef_ns)
+    print("")
+    print("equal_friction_method_round benchmark —", N_SIZING, "calls")
+    print("  Mojo   :", mojo_ef_ms, "ms   diam sum =", mojo_ef_sum)
+    print("  Python :", py_ef_ms,   "ms   diam sum =", py_ef_sum)
+    print("  speedup:", ef_speedup, "x")

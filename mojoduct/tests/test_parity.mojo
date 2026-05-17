@@ -26,7 +26,12 @@ from mojoduct.physics.friction import (
 from mojoduct.physics.flex import stretch_correction_factor
 from mojoduct.physics.losses import straight_pressure_drop, local_pressure_drop
 from mojoduct.data.standard_sizes import nearest_round_size
-from mojoduct.sizing import velocity_method_round
+from mojoduct.sizing import (
+    velocity_method_round,
+    equal_friction_method_round,
+    pressure_drop_budget_round,
+)
+from mojoduct.components.fittings_library import rectangular_elbow, mitered_elbow
 from mojoduct.units import cfm_to_m3s, inwc_to_pa, ft_to_m, air_changes_per_hour
 
 
@@ -258,6 +263,70 @@ def test_parity_velocity_method_round() raises:
         # Identical EN-1506 size and bit-identical velocity.
         assert_true(_close_rel(mj_pair[0].diameter, py_d))
         assert_true(_close_rel(mj_pair[1], py_v))
+
+
+def test_parity_equal_friction_method_round() raises:
+    var py_sizing = Python.import_module("pyduct.sizing")
+    var cases = [
+        (0.05, 1.0), (0.10, 1.0), (0.10, 0.5), (0.25, 1.5), (0.50, 1.0), (1.0, 0.8),
+    ]
+    for c in cases:
+        var flow = c[0]
+        var target = c[1]
+        var py_r = py_sizing.equal_friction_method(flow, target, "round")
+        var py_d = Float64(py=py_r[0].diameter)
+        var py_v = Float64(py=py_r[1])
+        var py_r_per_m = Float64(py=py_r[2])
+        var mj = equal_friction_method_round(flow, target)
+        assert_true(_close_rel(mj[0].diameter, py_d))
+        assert_true(_close_rel(mj[1], py_v))
+        # r_per_m goes through log/**: libm slack.
+        assert_true(_close_rel(mj[2], py_r_per_m, rtol=1e-9))
+
+
+def test_parity_pressure_drop_budget_round() raises:
+    var py_sizing = Python.import_module("pyduct.sizing")
+    var cases = [(0.05, 10.0, 10.0), (0.10, 20.0, 30.0), (0.25, 50.0, 75.0)]
+    for c in cases:
+        var flow = c[0]
+        var length = c[1]
+        var budget = c[2]
+        var py_r = py_sizing.pressure_drop_budget(flow, length, budget, "round")
+        var py_d = Float64(py=py_r[0].diameter)
+        var py_v = Float64(py=py_r[1])
+        var py_r_per_m = Float64(py=py_r[2])
+        var mj = pressure_drop_budget_round(flow, length, budget)
+        assert_true(_close_rel(mj[0].diameter, py_d))
+        assert_true(_close_rel(mj[1], py_v))
+        assert_true(_close_rel(mj[2], py_r_per_m, rtol=1e-9))
+
+
+def test_parity_rectangular_elbow() raises:
+    var py_fits = Python.import_module("pyduct.components.fittings_library")
+    var cases = [
+        (0.4, 0.3, 0.2, 90.0),
+        (0.4, 0.3, 0.6, 90.0),
+        (0.6, 0.2, 0.3, 90.0),
+        (0.4, 0.3, 0.3, 45.0),
+    ]
+    for c in cases:
+        var w = c[0]
+        var h = c[1]
+        var r = c[2]
+        var ang = c[3]
+        var py_v = Float64(py=py_fits.rectangular_elbow(w, h, r, ang))
+        var mj_v = rectangular_elbow(w, h, r, ang)
+        assert_true(_close_rel(mj_v, py_v, rtol=1e-9))
+
+
+def test_parity_mitered_elbow() raises:
+    var py_fits = Python.import_module("pyduct.components.fittings_library")
+    var angles = [45.0, 60.0, 90.0, 120.0]
+    for a in angles:
+        for vaned in [False, True]:
+            var py_v = Float64(py=py_fits.mitered_elbow(a, vaned=vaned))
+            var mj_v = mitered_elbow(a, vaned=vaned)
+            assert_true(_close_rel(mj_v, py_v))
 
 
 def test_parity_nearest_round_size() raises:
