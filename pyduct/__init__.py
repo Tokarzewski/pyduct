@@ -31,6 +31,8 @@ from .components.fittings_library import (
     grille_return,
     junction_tee_branch,
     junction_tee_combine,
+    mitered_elbow,
+    rectangular_elbow,
     reducer_round,
 )
 from .core import (
@@ -39,6 +41,7 @@ from .core import (
     Fluid,
     Rectangular,
     Round,
+    air_at_altitude,
     equivalent_round_diameter,
 )
 from .data import (
@@ -93,6 +96,21 @@ from .sizing import (
     pressure_drop_budget,
     velocity_method,
 )
+from .units import (
+    air_changes_per_hour,
+    c_to_f,
+    cfm_to_m3s,
+    f_to_c,
+    fpm_to_ms,
+    ft_to_m,
+    in_to_m,
+    inwc_to_pa,
+    m3s_to_cfm,
+    m_to_ft,
+    m_to_in,
+    ms_to_fpm,
+    pa_to_inwc,
+)
 
 __version__ = "0.1.0"
 
@@ -104,6 +122,7 @@ __all__ = [
     "Round",
     "Rectangular",
     "equivalent_round_diameter",
+    "air_at_altitude",
     # components
     "Component",
     "Port",
@@ -123,6 +142,8 @@ __all__ = [
     "damper_butterfly",
     "diffuser_ceiling",
     "grille_return",
+    "rectangular_elbow",
+    "mitered_elbow",
     # data
     "STANDARD_RECTANGULAR_DUCT_SIZES",
     "STANDARD_RECTANGULAR_SECTIONS",
@@ -168,4 +189,18 @@ __all__ = [
     "TeeSchema",
     "CrossSectionSchema",
     "FluidSchema",
+    # units
+    "cfm_to_m3s",
+    "m3s_to_cfm",
+    "inwc_to_pa",
+    "pa_to_inwc",
+    "ft_to_m",
+    "m_to_ft",
+    "in_to_m",
+    "m_to_in",
+    "fpm_to_ms",
+    "ms_to_fpm",
+    "f_to_c",
+    "c_to_f",
+    "air_changes_per_hour",
 ]

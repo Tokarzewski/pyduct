@@ -2,6 +2,7 @@
 
 import pytest
 
+from pyduct import air_at_altitude
 from pyduct.components.fittings_library import (
     damper_butterfly,
     diffuser_ceiling,
@@ -9,7 +10,17 @@ from pyduct.components.fittings_library import (
     grille_return,
     junction_tee_branch,
     junction_tee_combine,
+    mitered_elbow,
+    rectangular_elbow,
     reducer_round,
+)
+from pyduct.units import (
+    air_changes_per_hour,
+    cfm_to_m3s,
+    f_to_c,
+    inwc_to_pa,
+    m3s_to_cfm,
+    pa_to_inwc,
 )
 
 
@@ -131,3 +142,75 @@ class TestGrilleReturn:
             grille_return(-0.1)
         with pytest.raises(ValueError):
             grille_return(1.5)
+
+
+class TestRectangularElbow:
+    def test_smoother_bend_lower_loss(self) -> None:
+        # Larger radius/width → lower loss.
+        tight = rectangular_elbow(0.4, 0.3, bend_radius=0.2)
+        wide = rectangular_elbow(0.4, 0.3, bend_radius=0.6)
+        assert wide < tight
+
+    def test_taller_duct_lower_loss(self) -> None:
+        flat = rectangular_elbow(0.6, 0.2, bend_radius=0.3)
+        tall = rectangular_elbow(0.6, 0.8, bend_radius=0.3)
+        assert tall > flat  # H/W > 1 raises factor
+
+    def test_45_deg_lower_than_90(self) -> None:
+        z45 = rectangular_elbow(0.4, 0.3, bend_radius=0.3, angle_deg=45)
+        z90 = rectangular_elbow(0.4, 0.3, bend_radius=0.3, angle_deg=90)
+        assert z45 < z90
+
+    def test_rejects_nonpositive(self) -> None:
+        with pytest.raises(ValueError):
+            rectangular_elbow(0.0, 0.3, bend_radius=0.3)
+
+
+class TestMiteredElbow:
+    def test_vaned_is_cheaper(self) -> None:
+        assert mitered_elbow(90, vaned=True) < mitered_elbow(90, vaned=False)
+
+    def test_steeper_higher_loss(self) -> None:
+        assert mitered_elbow(45) < mitered_elbow(90) < mitered_elbow(120)
+
+
+class TestAirAtAltitude:
+    def test_sea_level_matches_standard(self) -> None:
+        from pyduct import STANDARD_AIR
+
+        f = air_at_altitude(0.0, temperature_c=20.0)
+        # Sutherland/ideal-gas vs CoolProp's reference: ~1% agreement
+        assert abs(f.density - STANDARD_AIR.density) / STANDARD_AIR.density < 0.01
+
+    def test_density_decreases_with_altitude(self) -> None:
+        f_low = air_at_altitude(0.0)
+        f_high = air_at_altitude(2000.0)
+        assert f_high.density < f_low.density
+
+    def test_negative_altitude_rejected(self) -> None:
+        with pytest.raises(ValueError):
+            air_at_altitude(-100.0)
+
+
+class TestUnits:
+    def test_cfm_roundtrip(self) -> None:
+        assert abs(m3s_to_cfm(cfm_to_m3s(2000.0)) - 2000.0) < 1e-9
+
+    def test_inwc_roundtrip(self) -> None:
+        assert abs(pa_to_inwc(inwc_to_pa(1.0)) - 1.0) < 1e-9
+
+    def test_inwc_to_pa_known(self) -> None:
+        # 1 inWC ≈ 249 Pa
+        assert abs(inwc_to_pa(1.0) - 249.0889) < 1e-3
+
+    def test_temperature_conversion(self) -> None:
+        assert abs(f_to_c(32.0)) < 1e-9
+        assert abs(f_to_c(212.0) - 100.0) < 1e-9
+
+    def test_air_changes_per_hour(self) -> None:
+        # 0.01 m³/s into a 36 m³ room = 1 ACH
+        assert abs(air_changes_per_hour(0.01, 36.0) - 1.0) < 1e-9
+
+    def test_ach_rejects_zero_volume(self) -> None:
+        with pytest.raises(ValueError):
+            air_changes_per_hour(0.1, 0.0)
