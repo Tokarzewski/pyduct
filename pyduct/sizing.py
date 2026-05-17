@@ -127,6 +127,45 @@ def pressure_drop_budget(
     )
 
 
+# ASHRAE-style maximum air velocity by space type (m/s).
+# Lower values keep flow noise below the typical NC target for that room.
+NOISE_LIMITS_M_S: dict[str, float] = {
+    "studio":    2.5,   # recording / broadcast
+    "bedroom":   3.0,
+    "office":    4.0,
+    "classroom": 4.5,
+    "retail":    5.0,
+    "industrial": 7.5,
+}
+
+
+def noise_limit_method(
+    flowrate: float,
+    space_type: str = "office",
+    shape: Shape = "round",
+    *,
+    absolute_roughness: float = 0.0001,
+    fluid: Fluid = STANDARD_AIR,
+) -> tuple[CrossSection, float]:
+    """Size a duct so its velocity stays under the noise limit for ``space_type``.
+
+    Limits come from typical NC-curve targets (see :data:`NOISE_LIMITS_M_S`).
+    Falls back to :func:`velocity_method` once the target is resolved.
+    """
+    if space_type not in NOISE_LIMITS_M_S:
+        raise ValueError(
+            f"unknown space_type {space_type!r}; expected one of "
+            f"{sorted(NOISE_LIMITS_M_S)}"
+        )
+    return velocity_method(
+        flowrate,
+        shape,
+        target_velocity=NOISE_LIMITS_M_S[space_type],
+        absolute_roughness=absolute_roughness,
+        fluid=fluid,
+    )
+
+
 def aspect_ratio_method(
     flowrate: float,
     target_velocity: float = 4.0,

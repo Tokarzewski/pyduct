@@ -19,7 +19,6 @@ network skip the topo sort entirely.
 
 from __future__ import annotations
 
-from ..components.base import Port
 from ..components.fitting import Terminal
 from ..core.fluid import STANDARD_AIR, Fluid
 from .network import Network
@@ -30,9 +29,13 @@ def propagate_flowrates(network: Network) -> None:
 
     Terminal demands are propagated upstream so each duct/fitting/source sees
     the total volumetric flow it must carry.
+
+    Graph invariants let us push flow to *every* predecessor without filtering:
+      * in-port preds are always out-ports (upstream connection)
+      * out-port preds are always the owning component
+      * component preds are always the in-ports (≤ 1 for every component
+        supported today — Source has 0, everything else has exactly 1)
     """
-    # Direct dict access into NetworkX's internal node store skips the
-    # NodeView wrapper, which dominates the profile for tight solver loops.
     nodes = network.graph._node
     preds = network.predecessors_map()
 
@@ -46,42 +49,13 @@ def propagate_flowrates(network: Network) -> None:
             (port,) = comp.ports
             nodes[port.node_id]["flowrate"] = comp.flowrate
 
-    # Reverse topological order: downstream nodes first.
-    #
-    # Edge directions:
-    #   in-port    -> component
-    #   component  -> out-port
-    #   out-port   -> downstream in-port (connection)
-    #
-    # In reverse, we visit a downstream in-port BEFORE its upstream out-port,
-    # an out-port BEFORE its owning component, and a component BEFORE its
-    # in-ports. That's exactly the order we need to push flowrates upstream.
+    # Walk downstream-first; each node forwards its accumulated flow to every
+    # predecessor (which is the correct upstream node by construction).
     for node in reversed(network.topo_order()):
-        attrs = nodes[node]
-        flow = attrs["flowrate"]
-
-        if attrs["kind"] == "port":
-            port_obj: Port = attrs["port"]
-            if port_obj.direction == "in":
-                # Push flow back across the connection edge to the upstream
-                # out-port (if any).
-                for pred in preds[node]:
-                    pred_attrs = nodes[pred]
-                    if pred_attrs["kind"] == "port":
-                        pred_attrs["flowrate"] += flow
-            else:  # out-port
-                # Push flow to the owning component.
-                for pred in preds[node]:
-                    pred_attrs = nodes[pred]
-                    if pred_attrs["kind"] == "component":
-                        pred_attrs["flowrate"] += flow
-        else:  # component
-            # Distribute the component's accumulated flow to its in-ports.
-            in_port_nodes = [p for p in preds[node] if nodes[p]["kind"] == "port"]
-            if len(in_port_nodes) == 1:
-                nodes[in_port_nodes[0]]["flowrate"] += flow
-            # 0 in-ports → Source: nothing to do.
-            # >1 in-ports would need a split rule; not supported yet.
+        flow = nodes[node]["flowrate"]
+        if flow:
+            for pred in preds[node]:
+                nodes[pred]["flowrate"] += flow
 
     # Copy graph flowrates back onto the Port objects so component.compute()
     # can use them directly.
@@ -99,9 +73,8 @@ def compute_pressure_drops(
         comp.compute(fluid)
         for p in comp.ports:
             nodes[p.node_id]["pressure_drop"] = p.pressure_drop
-    # Component nodes carry no pressure drop themselves.
-    for cid in network.components:
-        nodes[cid].setdefault("pressure_drop", 0.0)
+    # Component nodes' pressure_drop is initialised to 0.0 in Network.add(),
+    # so no setdefault is needed here.
 
 
 def critical_path(network: Network) -> list[str]:
@@ -129,7 +102,7 @@ def critical_path(network: Network) -> list[str]:
             best_p = max(preds, key=dist.__getitem__)
             best_d = dist[best_p]
         prev[n] = best_p
-        dist[n] = best_d + nodes[n].get("pressure_drop", 0.0)
+        dist[n] = best_d + nodes[n]["pressure_drop"]
     if not dist:
         return []
     end = max(dist, key=dist.__getitem__)
@@ -145,7 +118,7 @@ def critical_path(network: Network) -> list[str]:
 def critical_path_pressure_drop(network: Network) -> float:
     """Return the total pressure drop along the critical path [Pa]."""
     nodes = network.graph._node
-    return sum(nodes[n].get("pressure_drop", 0.0) for n in critical_path(network))
+    return sum(nodes[n]["pressure_drop"] for n in critical_path(network))
 
 
 def solve(network: Network, fluid: Fluid = STANDARD_AIR) -> float:

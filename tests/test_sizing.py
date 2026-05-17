@@ -144,3 +144,18 @@ class TestAspectRatioMethod:
 
         with pytest.raises(ValueError):
             aspect_ratio_method(0.0)
+
+
+class TestNoiseLimitMethod:
+    def test_bedroom_is_quieter_than_office(self) -> None:
+        from pyduct import noise_limit_method
+
+        _, v_bed = noise_limit_method(0.1, "bedroom")
+        _, v_off = noise_limit_method(0.1, "office")
+        assert v_bed <= v_off  # bedroom limit is lower
+
+    def test_unknown_space_rejected(self) -> None:
+        from pyduct import noise_limit_method
+
+        with pytest.raises(ValueError, match="unknown space_type"):
+            noise_limit_method(0.1, "not_a_space")

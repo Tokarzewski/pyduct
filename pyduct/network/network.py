@@ -60,7 +60,10 @@ class Network:
             raise ValueError(f"duplicate component id: {component_id!r}")
 
         self.components[component_id] = component
-        self.graph.add_node(component_id, kind="component", component=component)
+        self.graph.add_node(
+            component_id, kind="component", component=component,
+            flowrate=0.0, pressure_drop=0.0,
+        )
 
         for p in component.ports:
             pid = port_node_id(component_id, p.name)
@@ -70,6 +73,8 @@ class Network:
                 kind="port",
                 component_id=component_id,
                 port=p,
+                flowrate=0.0,
+                pressure_drop=0.0,
             )
             if p.direction == "in":
                 # air enters the component through this port: port -> component
