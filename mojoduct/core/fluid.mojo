@@ -9,7 +9,7 @@ Mirrors `pyduct.core.fluid`:
 """
 
 
-struct Fluid(Copyable, Movable):
+struct Fluid(Copyable, ImplicitlyCopyable, Movable):
     """Working fluid (typically air) with cached kinematic viscosity."""
 
     var density: Float64                # rho [kg/m^3]

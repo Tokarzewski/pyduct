@@ -14,9 +14,11 @@ from std.python import Python
 from std.time import perf_counter_ns
 
 from mojoduct.physics.friction import friction_factor
+from mojoduct.sizing import velocity_method_round
 
 
 comptime N_CALLS = 1_000_000
+comptime N_SIZING = 100_000
 
 
 def _mojo_loop(n: Int) -> Float64:
@@ -59,3 +61,37 @@ def main() raises:
     print("  Mojo   :", mojo_ms, "ms   sum =", mojo_sum)
     print("  Python :", py_ms,   "ms   sum =", py_sum)
     print("  speedup:", speedup, "x")
+
+    # --- velocity_method_round ---------------------------------------------
+    var py_sizing = Python.import_module("pyduct.sizing")
+    var py_vm = py_sizing.velocity_method
+
+    # Warm up both sides.
+    for i in range(1000):
+        _ = velocity_method_round(0.05 + Float64(i) * 1.0e-5, 4.0)
+        _ = py_vm(0.05 + Float64(i) * 1.0e-5, "round", 4.0)
+
+    var t2 = perf_counter_ns()
+    var mojo_d_sum: Float64 = 0.0
+    for i in range(N_SIZING):
+        var flow = 0.02 + Float64(i % 1000) * 5.0e-4
+        var pair = velocity_method_round(flow, 4.0)
+        mojo_d_sum += pair[0].diameter
+    var mojo_size_ns = perf_counter_ns() - t2
+
+    var t3 = perf_counter_ns()
+    var py_d_sum: Float64 = 0.0
+    for i in range(N_SIZING):
+        var flow = 0.02 + Float64(i % 1000) * 5.0e-4
+        var r = py_vm(flow, "round", 4.0)
+        py_d_sum += Float64(py=r[0].diameter)
+    var py_size_ns = perf_counter_ns() - t3
+
+    var mojo_size_ms = Float64(mojo_size_ns) * 1.0e-6
+    var py_size_ms = Float64(py_size_ns) * 1.0e-6
+    var size_speedup = Float64(py_size_ns) / Float64(mojo_size_ns)
+    print("")
+    print("velocity_method_round benchmark —", N_SIZING, "calls")
+    print("  Mojo   :", mojo_size_ms, "ms   diam sum =", mojo_d_sum)
+    print("  Python :", py_size_ms,   "ms   diam sum =", py_d_sum)
+    print("  speedup:", size_speedup, "x")

@@ -13,7 +13,7 @@ hot-path code reads a field rather than recomputing the math on every access.
 from std.math import pi
 
 
-struct Round(Copyable, Movable):
+struct Round(Copyable, ImplicitlyCopyable, Movable):
     """Circular duct cross-section."""
 
     var diameter: Float64
@@ -30,7 +30,7 @@ struct Round(Copyable, Movable):
         self.hydraulic_diameter = diameter
 
 
-struct Rectangular(Copyable, Movable):
+struct Rectangular(Copyable, ImplicitlyCopyable, Movable):
     """Rectangular duct cross-section."""
 
     var width: Float64

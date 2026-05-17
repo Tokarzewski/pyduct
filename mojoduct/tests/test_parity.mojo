@@ -26,6 +26,7 @@ from mojoduct.physics.friction import (
 from mojoduct.physics.flex import stretch_correction_factor
 from mojoduct.physics.losses import straight_pressure_drop, local_pressure_drop
 from mojoduct.data.standard_sizes import nearest_round_size
+from mojoduct.sizing import velocity_method_round
 from mojoduct.units import cfm_to_m3s, inwc_to_pa, ft_to_m, air_changes_per_hour
 
 
@@ -238,6 +239,25 @@ def test_parity_stretch_correction_factor() raises:
         var mj_v = stretch_correction_factor(d, s)
         # exp() — same libm-rounding slack as the friction test.
         assert_true(_close_rel(mj_v, py_v, rtol=1e-9))
+
+
+def test_parity_velocity_method_round() raises:
+    var py_sizing = Python.import_module("pyduct.sizing")
+    var cases = [
+        (0.05, 4.0), (0.10, 5.0), (0.25, 3.5), (0.50, 4.0), (1.0, 3.0), (5.0, 4.0),
+    ]
+    for c in cases:
+        var flow = c[0]
+        var target_v = c[1]
+        var py_result = py_sizing.velocity_method(flow, "round", target_v)
+        var py_section = py_result[0]
+        var py_v = Float64(py=py_result[1])
+        var py_d = Float64(py=py_section.diameter)
+
+        var mj_pair = velocity_method_round(flow, target_v)
+        # Identical EN-1506 size and bit-identical velocity.
+        assert_true(_close_rel(mj_pair[0].diameter, py_d))
+        assert_true(_close_rel(mj_pair[1], py_v))
 
 
 def test_parity_nearest_round_size() raises:
