@@ -33,6 +33,8 @@ from mojoduct.sizing import (
     velocity_method_rectangular,
     equal_friction_method_rectangular,
     pressure_drop_budget_rectangular,
+    noise_limit_method_round,
+    aspect_ratio_method,
 )
 from mojoduct.components.fittings_library import (
     rectangular_elbow,
@@ -447,6 +449,38 @@ def test_parity_diffuser_and_grille() raises:
     for b in blockages:
         var py_v = Float64(py=py_fits.grille_return(b))
         assert_true(_close_rel(grille_return(b), py_v))
+
+
+def test_parity_noise_limit_method_round() raises:
+    var py_sizing = Python.import_module("pyduct.sizing")
+    var spaces = [
+        String("studio"), String("bedroom"), String("office"),
+        String("classroom"), String("retail"), String("industrial"),
+    ]
+    for sp in spaces:
+        var py_r = py_sizing.noise_limit_method(0.10, sp, "round")
+        var py_d = Float64(py=py_r[0].diameter)
+        var py_v = Float64(py=py_r[1])
+        var mj = noise_limit_method_round(0.10, sp)
+        assert_true(_close_rel(mj[0].diameter, py_d))
+        assert_true(_close_rel(mj[1], py_v))
+
+
+def test_parity_aspect_ratio_method() raises:
+    var py_sizing = Python.import_module("pyduct.sizing")
+    var cases = [(0.10, 4.0, 2.0), (0.25, 3.5, 3.0), (0.50, 4.0, 1.5), (1.0, 3.0, 2.5)]
+    for c in cases:
+        var flow = c[0]
+        var target_v = c[1]
+        var ar = c[2]
+        var py_r = py_sizing.aspect_ratio_method(flow, target_v, ar)
+        var py_w = Float64(py=py_r[0].width)
+        var py_h = Float64(py=py_r[0].height)
+        var py_v = Float64(py=py_r[1])
+        var mj = aspect_ratio_method(flow, target_v, ar)
+        assert_true(_close_rel(mj[0].width, py_w))
+        assert_true(_close_rel(mj[0].height, py_h))
+        assert_true(_close_rel(mj[1], py_v))
 
 
 def test_parity_nearest_round_size() raises:

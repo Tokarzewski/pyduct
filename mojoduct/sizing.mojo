@@ -202,3 +202,90 @@ def pressure_drop_budget_rectangular(
     return equal_friction_method_rectangular(
         flowrate, budget_pa / length, absolute_roughness, fluid
     )
+
+
+# --- Noise-limit and aspect-ratio sizing ---------------------------------
+
+
+def noise_limit_velocity(space_type: String) raises -> Float64:
+    """Maximum air velocity [m/s] under typical NC targets for ``space_type``.
+
+    Mirrors :data:`pyduct.sizing.NOISE_LIMITS_M_S` — supports
+    "studio", "bedroom", "office", "classroom", "retail", "industrial".
+    """
+    if space_type == "studio":     return 2.5
+    if space_type == "bedroom":    return 3.0
+    if space_type == "office":     return 4.0
+    if space_type == "classroom":  return 4.5
+    if space_type == "retail":     return 5.0
+    if space_type == "industrial": return 7.5
+    raise Error("unknown space_type; expected studio|bedroom|office|classroom|retail|industrial")
+
+
+def noise_limit_method_round(
+    flowrate: Float64, space_type: String = String("office")
+) raises -> Tuple[Round, Float64]:
+    """Round-duct sizing under the noise-limit velocity for ``space_type``."""
+    return velocity_method_round(flowrate, noise_limit_velocity(space_type))
+
+
+def noise_limit_method_rectangular(
+    flowrate: Float64, space_type: String = String("office")
+) raises -> Tuple[Rectangular, Float64]:
+    """Rectangular-duct sizing under the noise-limit velocity for ``space_type``."""
+    return velocity_method_rectangular(flowrate, noise_limit_velocity(space_type))
+
+
+def aspect_ratio_method(
+    flowrate: Float64,
+    target_velocity: Float64 = 4.0,
+    aspect_ratio: Float64 = 2.0,
+) raises -> Tuple[Rectangular, Float64]:
+    """Size a rectangular duct at a target velocity and minimum aspect ratio.
+
+    Iterates EN-standard sizes whose long/short dimension ratio is at
+    least ``aspect_ratio`` — useful for low-rise ceiling voids — and
+    returns the smallest one whose velocity ≤ ``target_velocity``. Falls
+    back to the largest qualifying size if none meet the velocity target.
+    """
+    if flowrate <= 0.0:
+        raise Error("flowrate must be positive")
+    if target_velocity <= 0.0:
+        raise Error("target_velocity must be positive")
+    if aspect_ratio < 1.0:
+        raise Error("aspect_ratio must be >= 1")
+
+    var sizes = _rect_sizes_mm()
+    # Filter to qualifying (w, h) pairs, sorted by area ascending.
+    # EN 1505 is already roughly sorted by width then height; a stable
+    # area-sort runs in 22*log22 ops — negligible.
+    var qualifying = List[Rectangular]()
+    for i in range(len(sizes)):
+        var w = Float64(sizes[i][0]) * 0.001
+        var h = Float64(sizes[i][1]) * 0.001
+        var long = w if w >= h else h
+        var short = h if w >= h else w
+        if long / short >= aspect_ratio:
+            qualifying.append(Rectangular(w, h))
+    if len(qualifying) == 0:
+        raise Error("no standard rectangular size meets the aspect_ratio")
+
+    # Insertion-sort by area (tiny lists).
+    for i in range(1, len(qualifying)):
+        var j = i
+        while j > 0 and qualifying[j].area < qualifying[j - 1].area:
+            var tmp = qualifying[j]
+            qualifying[j] = qualifying[j - 1]
+            qualifying[j - 1] = tmp
+            j -= 1
+
+    var last_section = qualifying[len(qualifying) - 1]
+    var last_v = flowrate / last_section.area
+    for i in range(len(qualifying)):
+        var s = qualifying[i]
+        var v = flowrate / s.area
+        if v <= target_velocity:
+            return Tuple[Rectangular, Float64](s, v)
+        last_section = s
+        last_v = v
+    return Tuple[Rectangular, Float64](last_section, last_v)
