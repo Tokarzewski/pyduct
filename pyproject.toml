@@ -8,16 +8,20 @@ authors = [
 dependencies = [
     "networkx>=3.0",
     "scipy>=1.9.3",
+    "pydantic>=2.0",
 ]
 requires-python = ">=3.10"
 license = {text = "MIT"}
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.6.3"]
+yaml = ["pyyaml>=6.0"]
 dev = [
     "pytest>=8.0",
     "ruff>=0.5",
     "mypy>=1.10",
+    "pyyaml>=6.0",
+    "matplotlib>=3.6.3",
 ]
 
 [build-system]
@@ -28,7 +32,7 @@ build-backend = "pdm.pep517.api"
 distribution = true
 
 [tool.setuptools.packages.find]
-include = ["pyduct*", "pyduct2*"]
+include = ["pyduct*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -57,4 +61,4 @@ strict = false
 warn_unused_ignores = true
 warn_redundant_casts = true
 ignore_missing_imports = true
-files = ["pyduct2"]
+files = ["pyduct"]
