@@ -2,39 +2,43 @@
 
 Ductwork design library — sizing, pressure-drop, fitting losses, network
 solving — being ported from Python to Mojo. The repo currently hosts both
-implementations side by side.
+implementations side by side; the Python package is production-ready, the
+Mojo port covers the entire pure-math + sizing + fittings surface and is
+diff-tested against it.
 
 ```
-mojoduct/                 ← native-Mojo port (in progress)
-python/pyduct/            ← reference Python implementation (production-ready)
-python/tests/             ← Python test suite (184 tests, mypy & ruff clean)
-mojoduct/tests/           ← Mojo test suite (20 tests today)
+mojoduct/                 ← native-Mojo port (28 parity-tested kernels)
+python/pyduct/            ← reference Python implementation (the oracle)
+python/tests/             ← Python pytest suite       (184 tests)
+mojoduct/tests/           ← Mojo TestSuite suite      (20 unit + 28 parity)
+mojoduct/benchmarks/      ← Mojo↔Python speedup numbers
 ```
 
-## Hybrid plan
+## Coverage status
 
-The Mojo port lands in layers. Math/physics primitives that need no graph
-or schema libraries are native Mojo today; the higher-level graph solver
-and serialization stay in the Python package and will be called from Mojo
-via Python interop (`std.python`) until a Mojo-native replacement is ready.
+| Module                        | Mojo (`mojoduct/`)        | Python (`python/pyduct/`) |
+|-------------------------------|---------------------------|---------------------------|
+| Cross-section geometry        | ✅                         | ✅                         |
+| Fluid + altitude correction   | ✅                         | ✅                         |
+| Friction & losses             | ✅                         | ✅                         |
+| Flex-duct correction          | ✅                         | ✅                         |
+| Unit converters               | ✅                         | ✅                         |
+| EN standard sizes             | ✅                         | ✅                         |
+| Sizing (velocity / EF / budget / NC / aspect-ratio) | ✅ (round + rect) | ✅           |
+| Fittings library (9 correls)  | ✅                         | ✅                         |
+| Component classes (Tee, …)    | —                          | ✅                         |
+| Network / solver              | partial (Mojo critical-path) | ✅                       |
+| Pydantic schemas + I/O        | —                          | ✅                         |
+| Visualization                 | —                          | ✅                         |
 
-| Module                      | Mojo (`mojoduct/`) | Python (`python/pyduct/`) |
-|-----------------------------|--------------------|---------------------------|
-| Cross-section geometry      | ✅                  | ✅                         |
-| Fluid + altitude correction | ✅                  | ✅                         |
-| Friction & losses           | ✅                  | ✅                         |
-| Unit converters             | ✅                  | ✅                         |
-| EN standard sizes           | —                  | ✅                         |
-| Components (RigidDuct, Tee…) | —                  | ✅                         |
-| Network / solver            | — (Python interop) | ✅                         |
-| Pydantic schemas + I/O      | — (Python interop) | ✅                         |
-| Visualization               | — (Python interop) | ✅                         |
+The remaining gaps need Mojo struct types and Mojo collections; everything
+below that line is native Mojo today.
 
 ## Quick start (Python — currently production)
 
 ```bash
 uv sync --extra dev
-uv run --extra dev pytest python/tests
+just test-all     # Python + Mojo unit + Mojo parity
 ```
 
 ```python
@@ -52,76 +56,96 @@ net.connect("ahu", "duct"); net.connect("duct", "term")
 print(net.solve(), "Pa")
 ```
 
-## Quick start (Mojo — native math/physics)
+Under the hood, `net.solve()` calls a Mojo critical-path DP kernel via
+`mojo.importer`.
 
-Requires the Mojo toolchain (already vendored via `uv add mojo --prerelease allow`).
+## Quick start (Mojo — direct, full speedup)
 
 ```mojo
 from mojoduct.core.geometry import Round
 from mojoduct.core.fluid import standard_air
 from mojoduct.physics.friction import friction_factor, reynolds, relative_roughness
 from mojoduct.physics.losses import straight_pressure_drop
+from mojoduct.sizing import velocity_method_round, aspect_ratio_method
 
 def main() raises:
-    var section = Round(0.2)            # 200 mm round duct
-    var air = standard_air()
-    var v = 0.1 / section.area
-    var re = reynolds(v, section.hydraulic_diameter, air.kinematic_viscosity)
-    var f = friction_factor(re, relative_roughness(0.0001, section.hydraulic_diameter))
-    var dp = straight_pressure_drop(f, 20.0, section.hydraulic_diameter, v, air.density)
-    print("dp =", dp, "Pa")
+    var section, v = velocity_method_round(0.1, target_velocity=4.0)
+    print("sized D =", section.diameter, "m at v =", v, "m/s")
+
+    # Or a flat rectangular duct:
+    var rect, vr = aspect_ratio_method(0.2, target_velocity=4.0, aspect_ratio=2.5)
+    print("flat duct:", rect.width, "×", rect.height, "v =", vr)
 ```
 
-Run the Mojo test suites:
+## Mojo kernel speedup vs Python reference
 
-```bash
-just mojo-test       # 20 unit tests   (closed-form expected values)
-just mojo-parity     # 11 parity tests (every function diff-tested vs. Python)
-just test-all        # Python suite + both Mojo suites
-```
+Measured on a recent laptop CPU; numbers vary with hardware but the
+*ratios* are stable. Run `just mojo-suite` to reproduce.
+
+| Kernel                       | n         | Mojo     | Python    | Speedup |
+|------------------------------|-----------|----------|-----------|---------|
+| `friction_factor`            | 1 000 000 |  47 ms   |  640 ms   | **13×** |
+| `local_pressure_drop`        | 1 000 000 | 1.6 ms   |  507 ms   | **300×**|
+| `velocity_method_round`      |    50 000 | 3.1 ms   |   86 ms   | **27×** |
+| `velocity_method_rectangular`|    50 000 | 7.1 ms   |  110 ms   | **15×** |
+| `equal_friction_method_round`|    50 000 |  32 ms   |  355 ms   | **11×** |
+| `aspect_ratio_method`        |    50 000 |  34 ms   |  556 ms   | **17×** |
+| `rectangular_elbow`          |   100 000 | 4.1 ms   |   90 ms   | **22×** |
+
+Caveat: per-call boundary cost between Python and Mojo is ~600 ns. For
+single-call use from Python, the boundary dominates the math. The Mojo
+speedup materialises when the kernel runs in a Mojo loop (the benchmark
+shape) or when the network solver crosses the boundary once and lets
+Mojo do the whole walk.
 
 ## Parity contract
 
-The Python `pyduct` is the **reference oracle**. The Mojo port follows the
-Branch-C pattern from the `migration-to-python-mojo` skill: every Mojo
-function is diff-tested against its Python counterpart over a corpus of
-inputs, with tolerance ≤ 1e-9 relative (1e-12 for non-transcendental
-closed forms). If the Mojo side ever drifts, `just mojo-parity` fails
-before anything ships.
-
-This means: the Python implementation is allowed to evolve, the Mojo
-implementation must stay numerically equivalent (within tolerance), and
-the Mojo side is a verified performance escalation rather than a free-
-form rewrite.
+The Python `pyduct` is the **reference oracle**. Every Mojo function is
+diff-tested against its Python counterpart over a corpus of inputs, with
+tolerance ≤ 1e-9 relative (1e-12 for non-transcendental closed forms).
+The check runs as `just mojo-parity` and currently covers 28 functions.
 
 ## Layout
 
 ```
-mojoduct/                     # Mojo port
+mojoduct/                       # Mojo port
 ├── core/
-│   ├── geometry.mojo         # Round / Rectangular / equivalent_round_diameter
-│   └── fluid.mojo            # Fluid / standard_air / air_at_altitude
+│   ├── geometry.mojo           # Round / Rectangular / equivalent_round_diameter
+│   └── fluid.mojo              # Fluid / standard_air / air_at_altitude
 ├── physics/
-│   ├── friction.mojo         # reynolds / friction_factor / Colebrook iterator
-│   └── losses.mojo           # straight & local pressure-drop
-├── units.mojo                # cfm / inwc / ft / fpm / °F / ACH helpers
-└── tests/
-    ├── test_core.mojo        # 20 unit tests
-    └── test_parity.mojo      # 11 parity tests vs. Python via std.python interop
+│   ├── friction.mojo           # reynolds / friction_factor / Colebrook iterator
+│   ├── losses.mojo             # straight & local pressure-drop
+│   └── flex.mojo               # stretch_correction_factor
+├── data/standard_sizes.mojo    # EN 1505/1506 sizes + nearest_round_size
+├── units.mojo                  # cfm / inwc / ft / fpm / °F / ACH helpers
+├── sizing.mojo                 # velocity / EF / budget / aspect / noise — round + rect
+├── components/
+│   └── fittings_library.mojo   # 9 loss correlations (full library parity)
+├── network/solver.mojo         # critical_path_sum kernel
+├── ext/solver_ext.mojo         # Python extension (Mojo callable from Python)
+├── tests/
+│   ├── test_core.mojo          # 20 unit tests with closed-form expected values
+│   └── test_parity.mojo        # 28 parity tests vs. Python (std.python interop)
+└── benchmarks/
+    ├── bench_friction.mojo     # friction_factor + a couple of sizing fns
+    └── bench_suite.mojo        # full kernel-by-kernel comparison table
 
-python/pyduct/                # Python implementation (the reference)
-python/tests/                 # pytest suite (184 tests)
+python/pyduct/                  # Python implementation (the reference)
+python/tests/                   # pytest suite (184 tests, mypy + ruff clean)
 
-docs/                         # historical design notes from the Python redesign
+docs/                           # historical design notes from the Python redesign
 ```
 
 ## Development
 
 ```bash
-uv run --extra dev pytest python/tests     # Python suite (184 tests)
-uv run --extra dev mypy python/pyduct      # type-check the Python side
-uv run --extra dev ruff check .             # lint
-uv run mojo run mojoduct/tests/test_core.mojo  # Mojo suite (20 tests)
+just check         # Python pytest (184)
+just types         # mypy python/pyduct
+just lint          # ruff
+just mojo-test     # Mojo unit tests (20)
+just mojo-parity   # Mojo parity tests (28)
+just mojo-suite    # Full Mojo↔Python speedup table
+just test-all      # Python + Mojo unit + Mojo parity
 ```
 
 ## Bibliography
@@ -130,6 +154,7 @@ uv run mojo run mojoduct/tests/test_core.mojo  # Mojo suite (20 tests)
 - Hendiger, Ziętek, Chludzińska: *Wentylacja i Klimatyzacja — Materiały pomocniczne do projektowania*
 - Swamee & Jain (1976): *Explicit equations for pipe-flow problems*
 - Colebrook–White equation (friction factor correlation)
+- Idelchik: *Handbook of Hydraulic Resistance*
 
 ## License
 

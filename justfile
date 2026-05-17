@@ -24,6 +24,10 @@ mojo-parity:
 mojo-bench:
     uv run mojo run mojoduct/benchmarks/bench_friction.mojo
 
+# Comprehensive kernel-by-kernel benchmark across the full Mojo surface.
+mojo-suite:
+    uv run mojo run mojoduct/benchmarks/bench_suite.mojo
+
 # Everything — both sides, both kinds of Mojo tests
 test-all: check mojo-test mojo-parity
     @echo "All tests passed."
