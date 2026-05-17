@@ -1,29 +1,21 @@
 """Cross-section geometry primitives.
 
 A `CrossSection` is an immutable value object that knows its area and
-hydraulic diameter. It replaces the previous `RigidDuctType` whose 8 optional
-fields encoded round and rectangular shapes in one mutable bag.
+hydraulic diameter. Both are computed once in ``__post_init__`` and cached
+as instance attributes, so per-call sizing loops avoid repeated `math`.
 """
 
 from __future__ import annotations
 
-from abc import ABC, abstractmethod
 from dataclasses import dataclass
 from math import pi
 
 
-class CrossSection(ABC):
-    """A duct cross-section."""
+class CrossSection:
+    """Base class for duct cross-sections."""
 
-    @property
-    @abstractmethod
-    def area(self) -> float:
-        """Cross-sectional area [m^2]."""
-
-    @property
-    @abstractmethod
-    def hydraulic_diameter(self) -> float:
-        """Hydraulic diameter D_h = 4 A / P_wetted [m]."""
+    area: float
+    hydraulic_diameter: float
 
 
 @dataclass(frozen=True)
@@ -35,14 +27,8 @@ class Round(CrossSection):
     def __post_init__(self) -> None:
         if self.diameter <= 0:
             raise ValueError(f"diameter must be positive, got {self.diameter}")
-
-    @property
-    def area(self) -> float:
-        return pi * (self.diameter / 2) ** 2
-
-    @property
-    def hydraulic_diameter(self) -> float:
-        return self.diameter
+        object.__setattr__(self, "area", pi * (self.diameter / 2) ** 2)
+        object.__setattr__(self, "hydraulic_diameter", self.diameter)
 
 
 @dataclass(frozen=True)
@@ -58,12 +44,27 @@ class Rectangular(CrossSection):
                 f"width and height must be positive, got "
                 f"width={self.width}, height={self.height}"
             )
+        object.__setattr__(self, "area", self.width * self.height)
+        # D_h = 4 A / P = 2 W H / (W + H)
+        object.__setattr__(
+            self,
+            "hydraulic_diameter",
+            2 * self.width * self.height / (self.width + self.height),
+        )
 
-    @property
-    def area(self) -> float:
-        return self.width * self.height
 
-    @property
-    def hydraulic_diameter(self) -> float:
-        # D_h = 4 A / P = 4 (W H) / (2 (W + H)) = 2 W H / (W + H)
-        return 2 * self.width * self.height / (self.width + self.height)
+def equivalent_round_diameter(width: float, height: float) -> float:
+    """ASHRAE equivalent round diameter for a rectangular duct.
+
+    Returns the round duct diameter that yields the same friction loss and
+    air flow for the same pressure drop:
+
+        D_eq = 1.30 · (a·b)^0.625 / (a + b)^0.25      [m]
+
+    Reference: ASHRAE Fundamentals Handbook, Chapter 21.
+    """
+    if width <= 0 or height <= 0:
+        raise ValueError(
+            f"width and height must be positive, got width={width}, height={height}"
+        )
+    return 1.30 * (width * height) ** 0.625 / (width + height) ** 0.25

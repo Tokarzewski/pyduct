@@ -33,11 +33,20 @@ from .components.fittings_library import (
     junction_tee_combine,
     reducer_round,
 )
-from .core import STANDARD_AIR, CrossSection, Fluid, Rectangular, Round
+from .core import (
+    STANDARD_AIR,
+    CrossSection,
+    Fluid,
+    Rectangular,
+    Round,
+    equivalent_round_diameter,
+)
 from .data import (
     STANDARD_RECTANGULAR_DUCT_SIZES,
+    STANDARD_RECTANGULAR_SECTIONS,
     STANDARD_ROUND_BRANCH_SIZES,
     STANDARD_ROUND_DUCT_SIZES,
+    STANDARD_ROUND_SECTIONS,
     STANDARD_ROUND_TRANSFORMATION_SIZES,
     nearest_round_size,
 )
@@ -91,6 +100,7 @@ __all__ = [
     "CrossSection",
     "Round",
     "Rectangular",
+    "equivalent_round_diameter",
     # components
     "Component",
     "Port",
@@ -112,7 +122,9 @@ __all__ = [
     "grille_return",
     # data
     "STANDARD_RECTANGULAR_DUCT_SIZES",
+    "STANDARD_RECTANGULAR_SECTIONS",
     "STANDARD_ROUND_DUCT_SIZES",
+    "STANDARD_ROUND_SECTIONS",
     "STANDARD_ROUND_BRANCH_SIZES",
     "STANDARD_ROUND_TRANSFORMATION_SIZES",
     "nearest_round_size",

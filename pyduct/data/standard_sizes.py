@@ -4,11 +4,15 @@
 * :data:`STANDARD_ROUND_DUCT_SIZES`           — EN 1506:2007
 * :data:`STANDARD_ROUND_BRANCH_SIZES`         — round branch combinations
 * :data:`STANDARD_ROUND_TRANSFORMATION_SIZES` — round reducer combinations
+* :data:`STANDARD_ROUND_SECTIONS`             — pre-built ``Round`` instances
+* :data:`STANDARD_RECTANGULAR_SECTIONS`       — pre-built ``Rectangular`` instances
 """
 
 from __future__ import annotations
 
 from bisect import bisect_left
+
+from ..core.geometry import Rectangular, Round
 
 # EN 1505:2001 - Rectangular ducts (width x height in mm).
 STANDARD_RECTANGULAR_DUCT_SIZES: tuple[tuple[int, int], ...] = (
@@ -94,6 +98,16 @@ STANDARD_ROUND_TRANSFORMATION_SIZES: tuple[tuple[int, int], ...] = (
     (710, 800), (630, 900), (710, 900), (800, 900),
     (710, 1000), (800, 1000), (900, 1000), (800, 1120),
     (900, 1120), (1000, 1120), (900, 1250), (1000, 1250),
+)
+
+
+# Pre-built CrossSection instances (areas and hydraulic diameters are cached
+# at construction time, so sizing loops iterate these without re-instantiating).
+STANDARD_ROUND_SECTIONS: tuple[Round, ...] = tuple(
+    Round(d / 1000) for d in STANDARD_ROUND_DUCT_SIZES
+)
+STANDARD_RECTANGULAR_SECTIONS: tuple[Rectangular, ...] = tuple(
+    Rectangular(w / 1000, h / 1000) for w, h in STANDARD_RECTANGULAR_DUCT_SIZES
 )
 
 

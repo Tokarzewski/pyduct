@@ -5,7 +5,7 @@ from math import isclose, pi
 
 import pytest
 
-from pyduct import Rectangular, Round
+from pyduct import Rectangular, Round, equivalent_round_diameter
 
 
 class TestRound:
@@ -51,3 +51,17 @@ class TestRectangular:
             Rectangular(width=0.0, height=0.3)
         with pytest.raises(ValueError):
             Rectangular(width=0.3, height=-0.1)
+
+
+class TestEquivalentRoundDiameter:
+    def test_square_known_value(self) -> None:
+        # ASHRAE: D_eq = 1.30 · (a·b)^0.625 / (a+b)^0.25
+        a = b = 0.3
+        expected = 1.30 * (a * b) ** 0.625 / (a + b) ** 0.25
+        assert isclose(equivalent_round_diameter(a, b), expected)
+
+    def test_rejects_nonpositive(self) -> None:
+        with pytest.raises(ValueError):
+            equivalent_round_diameter(0.0, 0.3)
+        with pytest.raises(ValueError):
+            equivalent_round_diameter(0.3, -0.1)
