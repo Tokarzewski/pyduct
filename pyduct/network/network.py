@@ -47,6 +47,7 @@ class Network:
     components: dict[str, Component] = field(default_factory=dict)
     graph: nx.DiGraph = field(default_factory=nx.DiGraph)
     _topo_cache: list[str] | None = field(default=None, init=False, repr=False)
+    _preds_cache: dict[str, list[str]] | None = field(default=None, init=False, repr=False)
 
     # ---- building the network ----------------------------------------------
 
@@ -76,6 +77,7 @@ class Network:
                 # air leaves the component through this port: component -> port
                 self.graph.add_edge(component_id, pid)
         self._topo_cache = None
+        self._preds_cache = None
         return component
 
     def connect(self, source: str, target: str) -> None:
@@ -96,6 +98,7 @@ class Network:
             port_node_id(dst_cid, dst_port.name),
         )
         self._topo_cache = None
+        self._preds_cache = None
 
     # ---- analysis ----------------------------------------------------------
 
@@ -105,12 +108,52 @@ class Network:
             self._topo_cache = list(nx.topological_sort(self.graph))
         return self._topo_cache
 
+    def predecessors_map(self) -> dict[str, list[str]]:
+        """``node_id -> [predecessor_ids]``, cached until the graph changes.
+
+        Materialising this avoids hitting NetworkX's PredView wrapper on every
+        solver iteration.
+        """
+        if self._preds_cache is None:
+            G = self.graph
+            self._preds_cache = {n: list(G.predecessors(n)) for n in G.nodes}
+        return self._preds_cache
+
     def solve(self, fluid: Fluid | None = None) -> float:
         """Run the full solver and return critical-path pressure drop [Pa]."""
         from ..core.fluid import STANDARD_AIR
         from .solver import solve
 
         return solve(self, fluid if fluid is not None else STANDARD_AIR)
+
+    # ---- serialization (thin wrappers around pyduct.io) --------------------
+
+    @classmethod
+    def from_dict(cls, data: dict) -> Network:
+        from ..io import load_network_from_dict
+        return load_network_from_dict(data)
+
+    def to_dict(self) -> dict:
+        from ..io import save_network_to_dict
+        return save_network_to_dict(self)
+
+    @classmethod
+    def from_yaml(cls, filepath: str) -> Network:
+        from ..io import load_from_yaml
+        return load_from_yaml(filepath)
+
+    def to_yaml(self, filepath: str) -> None:
+        from ..io import save_to_yaml
+        save_to_yaml(self, filepath)
+
+    @classmethod
+    def from_json(cls, filepath: str) -> Network:
+        from ..io import load_from_json
+        return load_from_json(filepath)
+
+    def to_json(self, filepath: str) -> None:
+        from ..io import save_to_json
+        save_to_json(self, filepath)
 
     # ---- iteration ---------------------------------------------------------
 

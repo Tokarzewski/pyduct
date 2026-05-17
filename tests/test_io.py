@@ -151,3 +151,19 @@ class TestIOErrorHandling:
                 sys.modules["yaml"] = yaml_backup
             else:
                 sys.modules.pop("yaml", None)
+
+
+class TestNetworkClassmethods:
+    def test_to_dict_from_dict_roundtrip(self, simple_network: Network) -> None:
+        data = simple_network.to_dict()
+        roundtripped = Network.from_dict(data)
+        assert roundtripped.name == simple_network.name
+        assert set(roundtripped.components) == set(simple_network.components)
+
+    def test_to_json_from_json_roundtrip(self, simple_network: Network) -> None:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            path = str(Path(tmpdir) / "n.json")
+            simple_network.to_json(path)
+            loaded = Network.from_json(path)
+            assert loaded.name == simple_network.name
+            assert set(loaded.components) == set(simple_network.components)

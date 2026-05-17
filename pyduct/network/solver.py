@@ -31,17 +31,20 @@ def propagate_flowrates(network: Network) -> None:
     Terminal demands are propagated upstream so each duct/fitting/source sees
     the total volumetric flow it must carry.
     """
-    G = network.graph
+    # Direct dict access into NetworkX's internal node store skips the
+    # NodeView wrapper, which dominates the profile for tight solver loops.
+    nodes = network.graph._node
+    preds = network.predecessors_map()
 
     # Reset all node flowrates.
-    for node in G.nodes:
-        G.nodes[node]["flowrate"] = 0.0
+    for attrs in nodes.values():
+        attrs["flowrate"] = 0.0
 
     # Seed terminal demands onto their in-port nodes.
     for cid, comp in network.components.items():
         if isinstance(comp, Terminal):
             (port,) = comp.ports
-            G.nodes[port_node_id(cid, port.name)]["flowrate"] = comp.flowrate
+            nodes[port_node_id(cid, port.name)]["flowrate"] = comp.flowrate
 
     # Reverse topological order: downstream nodes first.
     #
@@ -54,7 +57,7 @@ def propagate_flowrates(network: Network) -> None:
     # an out-port BEFORE its owning component, and a component BEFORE its
     # in-ports. That's exactly the order we need to push flowrates upstream.
     for node in reversed(network.topo_order()):
-        attrs = G.nodes[node]
+        attrs = nodes[node]
         flow = attrs["flowrate"]
 
         if attrs["kind"] == "port":
@@ -62,23 +65,21 @@ def propagate_flowrates(network: Network) -> None:
             if port_obj.direction == "in":
                 # Push flow back across the connection edge to the upstream
                 # out-port (if any).
-                for pred in G.predecessors(node):
-                    if G.nodes[pred]["kind"] == "port":
-                        G.nodes[pred]["flowrate"] += flow
+                for pred in preds[node]:
+                    pred_attrs = nodes[pred]
+                    if pred_attrs["kind"] == "port":
+                        pred_attrs["flowrate"] += flow
             else:  # out-port
                 # Push flow to the owning component.
-                for pred in G.predecessors(node):
-                    if G.nodes[pred]["kind"] == "component":
-                        G.nodes[pred]["flowrate"] += flow
+                for pred in preds[node]:
+                    pred_attrs = nodes[pred]
+                    if pred_attrs["kind"] == "component":
+                        pred_attrs["flowrate"] += flow
         else:  # component
             # Distribute the component's accumulated flow to its in-ports.
-            in_port_nodes = [
-                pred
-                for pred in G.predecessors(node)
-                if G.nodes[pred]["kind"] == "port"
-            ]
+            in_port_nodes = [p for p in preds[node] if nodes[p]["kind"] == "port"]
             if len(in_port_nodes) == 1:
-                G.nodes[in_port_nodes[0]]["flowrate"] += flow
+                nodes[in_port_nodes[0]]["flowrate"] += flow
             # 0 in-ports → Source: nothing to do.
             # >1 in-ports would need a split rule; not supported yet.
 
@@ -86,29 +87,21 @@ def propagate_flowrates(network: Network) -> None:
     # can use them directly.
     for cid, comp in network.components.items():
         for p in comp.ports:
-            p.flowrate = G.nodes[port_node_id(cid, p.name)]["flowrate"]
+            p.flowrate = nodes[port_node_id(cid, p.name)]["flowrate"]
 
 
 def compute_pressure_drops(
     network: Network, fluid: Fluid = STANDARD_AIR
 ) -> None:
-    """Call ``compute()`` on every component and copy results to graph nodes.
-
-    The per-node pressure drops are also encoded as edge weights so that
-    :func:`networkx.dag_longest_path` can be used directly: each edge gets a
-    weight equal to the pressure drop of its target node.
-    """
-    G = network.graph
+    """Call ``compute()`` on every component and copy results to graph nodes."""
+    nodes = network.graph._node
     for cid, comp in network.components.items():
         comp.compute(fluid)
         for p in comp.ports:
-            G.nodes[port_node_id(cid, p.name)]["pressure_drop"] = p.pressure_drop
+            nodes[port_node_id(cid, p.name)]["pressure_drop"] = p.pressure_drop
     # Component nodes carry no pressure drop themselves.
     for cid in network.components:
-        G.nodes[cid].setdefault("pressure_drop", 0.0)
-    # Encode node weights onto edges (target-side) for dag_longest_path.
-    for u, v in G.edges:
-        G[u][v]["pressure_drop"] = G.nodes[v].get("pressure_drop", 0.0)
+        nodes[cid].setdefault("pressure_drop", 0.0)
 
 
 def critical_path(network: Network) -> list[str]:
@@ -119,12 +112,12 @@ def critical_path(network: Network) -> list[str]:
     single-pass DP over the cached topological order — O(V + E), no NetworkX
     longest-path call.
     """
-    G = network.graph
-    nodes = G.nodes
+    nodes = network.graph._node
+    preds_map = network.predecessors_map()
     dist: dict[str, float] = {}
     prev: dict[str, str | None] = {}
     for n in network.topo_order():
-        preds = list(G.predecessors(n))
+        preds = preds_map[n]
         if preds:
             best_p = max(preds, key=dist.__getitem__)
             best_d = dist[best_p]
@@ -147,8 +140,8 @@ def critical_path(network: Network) -> list[str]:
 
 def critical_path_pressure_drop(network: Network) -> float:
     """Return the total pressure drop along the critical path [Pa]."""
-    G = network.graph
-    return sum(G.nodes[n].get("pressure_drop", 0.0) for n in critical_path(network))
+    nodes = network.graph._node
+    return sum(nodes[n].get("pressure_drop", 0.0) for n in critical_path(network))
 
 
 def solve(network: Network, fluid: Fluid = STANDARD_AIR) -> float:

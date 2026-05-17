@@ -137,3 +137,6 @@ dmypy.json
 
 # direnv cache
 .direnv/
+
+# Claude Code local state
+.claude/
