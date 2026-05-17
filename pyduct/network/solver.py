@@ -19,7 +19,6 @@ network skip the topo sort entirely.
 
 from __future__ import annotations
 
-from ..components.fitting import Terminal
 from ..core.fluid import STANDARD_AIR, Fluid
 from .network import Network
 
@@ -43,11 +42,10 @@ def propagate_flowrates(network: Network) -> None:
     for attrs in nodes.values():
         attrs["flowrate"] = 0.0
 
-    # Seed terminal demands onto their in-port nodes.
-    for comp in network.components.values():
-        if isinstance(comp, Terminal):
-            (port,) = comp.ports
-            nodes[port.node_id]["flowrate"] = comp.flowrate
+    # Seed terminal demands onto their in-port nodes. The terminal list is
+    # cached on the Network so we don't isinstance-scan every solve.
+    for term in network.terminals():
+        nodes[term.ports[0].node_id]["flowrate"] = term.flowrate
 
     # Walk downstream-first; each node forwards its accumulated flow to every
     # predecessor (which is the correct upstream node by construction).

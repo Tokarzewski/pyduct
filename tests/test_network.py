@@ -133,3 +133,43 @@ class TestSolve:
         assert s["terminals"] >= 1
         assert s["total_flowrate_m3s"] > 0
         assert s["critical_path_dp_pa"] > 0
+
+
+class TestNetworkErgonomics:
+    def test_len_and_contains(self) -> None:
+        net = _two_branch_net()
+        assert len(net) == len(net.components)
+        # Pick a known component id from the fixture
+        cid = next(iter(net.components))
+        assert cid in net
+        assert "not_a_real_component" not in net
+
+    def test_getitem_returns_component(self) -> None:
+        net = _two_branch_net()
+        cid = next(iter(net.components))
+        assert net[cid] is net.components[cid]
+        with pytest.raises(KeyError):
+            _ = net["nope"]
+
+    def test_repr_is_concise(self) -> None:
+        net = _two_branch_net()
+        r = repr(net)
+        assert "Network(" in r and "components=" in r and "connections=" in r
+        # The unhelpful auto-dataclass repr would dump every field.
+        assert "graph=" not in r and "components={" not in r
+
+    def test_validate_healthy_network(self) -> None:
+        net = _two_branch_net()
+        assert net.validate() == []
+
+    def test_validate_flags_orphan_component(self) -> None:
+        net = _two_branch_net()
+        net.add("orphan", Source("orphan"))
+        problems = net.validate()
+        assert any("orphan" in p for p in problems)
+
+    def test_validate_flags_no_source(self) -> None:
+        net = Network("empty")
+        net.add("t", Terminal("t", flowrate=0.05))
+        problems = net.validate()
+        assert "no Source component" in problems

@@ -83,6 +83,8 @@ class TwoPortFitting(Component):
     ports: list[Port] = field(init=False)
 
     def __post_init__(self) -> None:
+        # Cache 1/area: turns a per-solve division into a multiplication.
+        self._inv_area = 1.0 / self.cross_section.area
         self.ports = [
             Port(name="inlet", direction="in"),
             Port(name="outlet", direction="out"),
@@ -94,7 +96,7 @@ class TwoPortFitting(Component):
             raise ValueError(
                 f"TwoPortFitting {self.name!r}: inlet flowrate not set"
             )
-        v = inlet.flowrate / self.cross_section.area
+        v = inlet.flowrate * self._inv_area
         inlet.velocity = v
         outlet.velocity = v
         outlet.flowrate = inlet.flowrate
@@ -125,6 +127,9 @@ class Tee(Component):
     ports: list[Port] = field(init=False)
 
     def __post_init__(self) -> None:
+        # All three legs share `cross_section`; cache 1/area to spare three
+        # divisions per solve.
+        self._inv_area = 1.0 / self.cross_section.area
         self.ports = [
             Port(name="combined", direction="in"),
             Port(name="straight", direction="out"),
@@ -135,12 +140,12 @@ class Tee(Component):
         combined, straight, branch = self.ports
         if straight.flowrate is None or branch.flowrate is None:
             raise ValueError(f"Tee {self.name!r}: leg flowrates not set")
-        a = self.cross_section.area
+        inv_a = self._inv_area
         rho = fluid.density
-        v_s = straight.flowrate / a
-        v_b = branch.flowrate / a
+        v_s = straight.flowrate * inv_a
+        v_b = branch.flowrate * inv_a
         combined.flowrate = straight.flowrate + branch.flowrate
-        combined.velocity = combined.flowrate / a
+        combined.velocity = combined.flowrate * inv_a
         combined.pressure_drop = 0.0
         straight.velocity = v_s
         branch.velocity = v_b

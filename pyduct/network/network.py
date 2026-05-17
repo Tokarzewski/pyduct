@@ -26,6 +26,7 @@ import networkx as nx
 from ..components.base import Component, Port
 
 if TYPE_CHECKING:
+    from ..components.fitting import Source, Terminal
     from ..core.fluid import Fluid
 
 
@@ -34,7 +35,7 @@ def port_node_id(component_id: str, port_name: str) -> str:
     return f"{component_id}:{port_name}"
 
 
-@dataclass
+@dataclass(repr=False)
 class Network:
     """A directed graph of ductwork components.
 
@@ -48,6 +49,7 @@ class Network:
     graph: nx.DiGraph = field(default_factory=nx.DiGraph)
     _topo_cache: list[str] | None = field(default=None, init=False, repr=False)
     _preds_cache: dict[str, list[str]] | None = field(default=None, init=False, repr=False)
+    _terminals_cache: list[Terminal] | None = field(default=None, init=False, repr=False)
 
     # ---- building the network ----------------------------------------------
 
@@ -84,6 +86,7 @@ class Network:
                 self.graph.add_edge(component_id, pid)
         self._topo_cache = None
         self._preds_cache = None
+        self._terminals_cache = None
         return component
 
     def connect(self, source: str, target: str) -> None:
@@ -124,6 +127,53 @@ class Network:
             G = self.graph
             self._preds_cache = {n: list(G.predecessors(n)) for n in G.nodes}
         return self._preds_cache
+
+    def terminals(self) -> list[Terminal]:
+        """Cached list of :class:`Terminal` components in the network."""
+        if self._terminals_cache is None:
+            from ..components.fitting import Terminal as _Terminal
+
+            self._terminals_cache = [
+                c for c in self.components.values() if isinstance(c, _Terminal)
+            ]
+        return self._terminals_cache
+
+    def sources(self) -> list[Source]:
+        """List of :class:`Source` components in the network."""
+        from ..components.fitting import Source as _Source
+
+        return [c for c in self.components.values() if isinstance(c, _Source)]
+
+    def validate(self) -> list[str]:
+        """Return a list of structural problems with the network.
+
+        An empty list means the network is healthy (has at least one source
+        and one terminal, and every registered component is wired to at
+        least one other component).
+        """
+        problems: list[str] = []
+        if not self.sources():
+            problems.append("no Source component")
+        if not self.terminals():
+            problems.append("no Terminal component")
+        G = self.graph
+        for cid, comp in self.components.items():
+            connected = False
+            for p in comp.ports:
+                neighbours = (
+                    G.successors(p.node_id)
+                    if p.direction == "out"
+                    else G.predecessors(p.node_id)
+                )
+                for n in neighbours:
+                    if G.nodes[n].get("kind") == "port":
+                        connected = True
+                        break
+                if connected:
+                    break
+            if not connected:
+                problems.append(f"component {cid!r} is not connected")
+        return problems
 
     def solve(self, fluid: Fluid | None = None) -> float:
         """Run the full solver and return critical-path pressure drop [Pa]."""
@@ -181,10 +231,26 @@ class Network:
         from ..io import save_to_json
         save_to_json(self, filepath)
 
-    # ---- iteration ---------------------------------------------------------
+    # ---- iteration & indexing ---------------------------------------------
 
     def iter_components(self) -> Iterator[tuple[str, Component]]:
         return iter(self.components.items())
+
+    def __len__(self) -> int:
+        return len(self.components)
+
+    def __contains__(self, component_id: object) -> bool:
+        return component_id in self.components
+
+    def __getitem__(self, component_id: str) -> Component:
+        return self.components[component_id]
+
+    def __repr__(self) -> str:
+        return (
+            f"Network(name={self.name!r}, "
+            f"components={len(self.components)}, "
+            f"connections={self.graph.number_of_edges()})"
+        )
 
     # ---- internals ---------------------------------------------------------
 
