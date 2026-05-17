@@ -50,6 +50,10 @@ class Network:
     _topo_cache: list[str] | None = field(default=None, init=False, repr=False)
     _preds_cache: dict[str, list[str]] | None = field(default=None, init=False, repr=False)
     _terminals_cache: list[Terminal] | None = field(default=None, init=False, repr=False)
+    # Int-indexed projection for Mojo kernels. Built lazily.
+    _int_index_cache: dict[str, int] | None = field(default=None, init=False, repr=False)
+    _int_topo_cache: list[int] | None = field(default=None, init=False, repr=False)
+    _int_preds_cache: list[list[int]] | None = field(default=None, init=False, repr=False)
 
     # ---- building the network ----------------------------------------------
 
@@ -87,6 +91,9 @@ class Network:
         self._topo_cache = None
         self._preds_cache = None
         self._terminals_cache = None
+        self._int_index_cache = None
+        self._int_topo_cache = None
+        self._int_preds_cache = None
         return component
 
     def connect(self, source: str, target: str) -> None:
@@ -108,6 +115,9 @@ class Network:
         )
         self._topo_cache = None
         self._preds_cache = None
+        self._int_index_cache = None
+        self._int_topo_cache = None
+        self._int_preds_cache = None
 
     # ---- analysis ----------------------------------------------------------
 
@@ -127,6 +137,28 @@ class Network:
             G = self.graph
             self._preds_cache = {n: list(G.predecessors(n)) for n in G.nodes}
         return self._preds_cache
+
+    def int_topo_view(self) -> tuple[dict[str, int], list[int], list[list[int]]]:
+        """Int-indexed projection used by the Mojo solver kernel.
+
+        Returns ``(node_index, int_topo, int_preds)``:
+          * ``node_index[node_id]`` → integer index in ``int_topo``
+          * ``int_topo`` is the topological order with integer node ids
+          * ``int_preds[i]`` lists predecessors of node ``i`` as integers
+        Cached until the graph changes.
+        """
+        if self._int_index_cache is None:
+            topo = self.topo_order()
+            self._int_index_cache = {n: i for i, n in enumerate(topo)}
+            self._int_topo_cache = list(range(len(topo)))
+            preds = self.predecessors_map()
+            idx = self._int_index_cache
+            self._int_preds_cache = [[idx[p] for p in preds[n]] for n in topo]
+        return (
+            self._int_index_cache,
+            self._int_topo_cache,
+            self._int_preds_cache,
+        )
 
     def terminals(self) -> list[Terminal]:
         """Cached list of :class:`Terminal` components in the network."""

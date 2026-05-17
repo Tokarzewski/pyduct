@@ -12,6 +12,21 @@ Public API:
 >>> total_dp = solve(net)
 """
 
+# Bootstrap the sibling Mojo package on sys.path so the Mojo-backed
+# solver kernel (critical_path_sum) is importable, then install the
+# mojo.importer hook so .mojo sources auto-compile on first import.
+# Must run before any module that imports `mojoduct.ext.*`.
+import sys as _sys
+from pathlib import Path as _Path
+
+_repo_root = str(_Path(__file__).resolve().parents[2])
+if _repo_root not in _sys.path:
+    _sys.path.insert(0, _repo_root)
+
+import mojo.importer  # noqa: F401, E402
+
+del _sys, _Path, _repo_root
+
 from .components import (
     Component,
     ElbowRound,
