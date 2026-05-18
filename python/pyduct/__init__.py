@@ -13,11 +13,13 @@ Public API:
 """
 
 # Bootstrap the sibling Mojo package on sys.path so the Mojo-backed
-# solver kernel (critical_path_sum) is importable, then install the
+# solver kernel + math shims are importable, then install the
 # mojo.importer hook so .mojo sources auto-compile on first import.
-# Must run before any module that imports `wenta.ext.*`.
-import sys as _sys
-from pathlib import Path as _Path
+# Must run before any module that imports wenta.ext — that's why every
+# package import below carries an E402 noqa (intentionally not at the
+# top of the file).
+import sys as _sys  # noqa: E402
+from pathlib import Path as _Path  # noqa: E402
 
 _repo_root = str(_Path(__file__).resolve().parents[2])
 if _repo_root not in _sys.path:
@@ -27,7 +29,7 @@ import mojo.importer  # noqa: F401, E402
 
 del _sys, _Path, _repo_root
 
-from .components import (
+from .components import (  # noqa: E402
     Component,
     ElbowRound,
     FlexDuct,
@@ -39,7 +41,7 @@ from .components import (
     Terminal,
     TwoPortFitting,
 )
-from .components.fittings_library import (
+from .components.fittings_library import (  # noqa: E402
     damper_butterfly,
     diffuser_ceiling,
     expander_round,
@@ -50,7 +52,7 @@ from .components.fittings_library import (
     rectangular_elbow,
     reducer_round,
 )
-from .core import (
+from .core import (  # noqa: E402
     STANDARD_AIR,
     CrossSection,
     Fluid,
@@ -59,7 +61,7 @@ from .core import (
     air_at_altitude,
     equivalent_round_diameter,
 )
-from .data import (
+from .data import (  # noqa: E402
     STANDARD_RECTANGULAR_DUCT_SIZES,
     STANDARD_RECTANGULAR_SECTIONS,
     STANDARD_ROUND_BRANCH_SIZES,
@@ -68,7 +70,7 @@ from .data import (
     STANDARD_ROUND_TRANSFORMATION_SIZES,
     nearest_round_size,
 )
-from .io import (
+from .io import (  # noqa: E402
     load_from_json,
     load_from_yaml,
     load_network_from_dict,
@@ -76,7 +78,7 @@ from .io import (
     save_to_json,
     save_to_yaml,
 )
-from .network import (
+from .network import (  # noqa: E402
     Network,
     compute_pressure_drops,
     critical_path,
@@ -84,14 +86,14 @@ from .network import (
     propagate_flowrates,
     solve,
 )
-from .results import (
+from .results import (  # noqa: E402
     ComponentResult,
     extract_results,
     results_as_csv,
     results_as_dicts,
     results_summary,
 )
-from .schemas import (
+from .schemas import (  # noqa: E402
     CrossSectionSchema,
     FlexDuctSchema,
     FluidSchema,
@@ -103,7 +105,7 @@ from .schemas import (
     TerminalSchema,
     TwoPortFittingSchema,
 )
-from .sizing import (
+from .sizing import (  # noqa: E402
     NOISE_LIMITS_M_S,
     aspect_ratio_method,
     equal_friction_method,
@@ -111,7 +113,7 @@ from .sizing import (
     pressure_drop_budget,
     velocity_method,
 )
-from .units import (
+from .units import (  # noqa: E402
     air_changes_per_hour,
     c_to_f,
     cfm_to_m3s,

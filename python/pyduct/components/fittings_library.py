@@ -9,13 +9,29 @@ from __future__ import annotations
 
 from wenta.ext.fittings_ext import (
     damper_butterfly as _damper_butterfly,
+)
+from wenta.ext.fittings_ext import (
     diffuser_ceiling as _diffuser_ceiling,
+)
+from wenta.ext.fittings_ext import (
     expander_round as _expander_round,
+)
+from wenta.ext.fittings_ext import (
     grille_return as _grille_return,
+)
+from wenta.ext.fittings_ext import (
     junction_tee_branch as _junction_tee_branch,
+)
+from wenta.ext.fittings_ext import (
     junction_tee_combine as _junction_tee_combine,
+)
+from wenta.ext.fittings_ext import (
     mitered_elbow as _mitered_elbow,
+)
+from wenta.ext.fittings_ext import (
     rectangular_elbow as _rectangular_elbow,
+)
+from wenta.ext.fittings_ext import (
     reducer_round as _reducer_round,
 )
 

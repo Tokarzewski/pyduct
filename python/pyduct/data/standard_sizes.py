@@ -10,8 +10,6 @@
 
 from __future__ import annotations
 
-from bisect import bisect_left
-
 from ..core.geometry import Rectangular, Round
 
 # EN 1505:2001 - Rectangular ducts (width x height in mm).
@@ -114,22 +112,9 @@ STANDARD_RECTANGULAR_SECTIONS: tuple[Rectangular, ...] = tuple(
 def nearest_round_size(diameter_mm: float, *, round_up: bool = True) -> int:
     """Return the nearest EN 1506 nominal diameter [mm].
 
-    Parameters
-    ----------
-    diameter_mm:
-        Desired diameter in millimetres.
-    round_up:
-        If True (default), pick the smallest standard size >= the requested
-        diameter. If False, pick the closest standard size in either direction.
+    With ``round_up=True`` (default), picks the smallest standard size that
+    is ≥ ``diameter_mm``; otherwise picks the closest standard size in either
+    direction. Math runs in ``wenta.data.standard_sizes.nearest_round_size``.
     """
-    sizes = STANDARD_ROUND_DUCT_SIZES
-    if diameter_mm <= sizes[0]:
-        return sizes[0]
-    if diameter_mm >= sizes[-1]:
-        return sizes[-1]
-    idx = bisect_left(sizes, diameter_mm)
-    if round_up or sizes[idx] == diameter_mm:
-        return sizes[idx]
-    # idx points to first element >= diameter_mm; pick whichever is closer.
-    lo, hi = sizes[idx - 1], sizes[idx]
-    return hi if (hi - diameter_mm) < (diameter_mm - lo) else lo
+    from wenta.ext.leaf_ext import nearest_round_size as _nrs
+    return _nrs(diameter_mm, round_up)

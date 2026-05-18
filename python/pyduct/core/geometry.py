@@ -56,15 +56,11 @@ class Rectangular(CrossSection):
 def equivalent_round_diameter(width: float, height: float) -> float:
     """ASHRAE equivalent round diameter for a rectangular duct.
 
-    Returns the round duct diameter that yields the same friction loss and
-    air flow for the same pressure drop:
-
-        D_eq = 1.30 · (a·b)^0.625 / (a + b)^0.25      [m]
-
-    Reference: ASHRAE Fundamentals Handbook, Chapter 21.
+    ``D_eq = 1.30 · (a·b)^0.625 / (a + b)^0.25`` [m]. Math runs in
+    ``wenta.core.geometry.equivalent_round_diameter``.
     """
-    if width <= 0 or height <= 0:
-        raise ValueError(
-            f"width and height must be positive, got width={width}, height={height}"
-        )
-    return 1.30 * (width * height) ** 0.625 / (width + height) ** 0.25
+    from wenta.ext.leaf_ext import equivalent_round_diameter as _eq
+    try:
+        return _eq(width, height)
+    except Exception as e:
+        raise ValueError(str(e)) from e

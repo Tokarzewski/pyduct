@@ -19,7 +19,7 @@ from __future__ import annotations
 
 from collections.abc import Iterator
 from dataclasses import dataclass, field
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 import networkx as nx
 
@@ -56,15 +56,15 @@ class Network:
     _int_preds_cache: list[list[int]] | None = field(default=None, init=False, repr=False)
     # Component-view caches for the Mojo batch compute kernel — numpy
     # arrays so the kernel reads them via zero-copy raw pointers.
-    _comp_types_cache: "Any" = field(default=None, init=False, repr=False)
-    _comp_params_cache: "Any" = field(default=None, init=False, repr=False)
-    _comp_port_idx_cache: "Any" = field(default=None, init=False, repr=False)
+    _comp_types_cache: Any = field(default=None, init=False, repr=False)
+    _comp_params_cache: Any = field(default=None, init=False, repr=False)
+    _comp_port_idx_cache: Any = field(default=None, init=False, repr=False)
     # Pre-flattened (Port, flat_index) list for fast scatter/gather.
     _flat_ports_cache: list[tuple[object, int]] | None = field(
         default=None, init=False, repr=False
     )
     # Reusable numpy buffers for the Mojo batch kernel (flows/velocities/dps).
-    _solve_buffers: "Any" = field(default=None, init=False, repr=False)
+    _solve_buffers: Any = field(default=None, init=False, repr=False)
 
     # ---- building the network ----------------------------------------------
 
@@ -185,8 +185,10 @@ class Network:
           * ``port_indices``— ``int64[N*3]``, ``-1`` for unused slots
         """
         if self._comp_types_cache is None:
-            import numpy as np
             from math import pi
+
+            import numpy as np
+
             from ..components.duct import FlexDuct, RigidDuct
             from ..components.fitting import Source, Tee, Terminal, TwoPortFitting
 
