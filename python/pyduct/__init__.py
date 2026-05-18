@@ -112,6 +112,7 @@ from .sizing import (  # noqa: E402
     noise_limit_method,
     pressure_drop_budget,
     velocity_method,
+    velocity_method_batch,
 )
 from .units import (  # noqa: E402
     air_changes_per_hour,
@@ -171,6 +172,7 @@ __all__ = [
     "nearest_round_size",
     # sizing
     "velocity_method",
+    "velocity_method_batch",
     "equal_friction_method",
     "pressure_drop_budget",
     "aspect_ratio_method",

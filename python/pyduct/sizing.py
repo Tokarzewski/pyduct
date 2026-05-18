@@ -166,6 +166,28 @@ def noise_limit_method(
     )
 
 
+def velocity_method_batch(
+    flowrates,
+    target_velocity: float = 4.0,
+):
+    """Size N round ducts in a single Mojo call.
+
+    Vectorised counterpart to :func:`velocity_method` (round path). Accepts
+    an iterable or numpy array of flowrates and returns ``(diameters,
+    velocities)`` as numpy float64 arrays — one boundary crossing total
+    for the whole batch.
+    """
+    import numpy as np
+    from wenta.ext.sizing_batch_ext import velocity_method_round_batch as _batch
+
+    flows = np.asarray(flowrates, dtype=np.float64)
+    n = flows.shape[0]
+    diameters = np.empty(n, dtype=np.float64)
+    velocities = np.empty(n, dtype=np.float64)
+    _batch(flows, diameters, velocities, float(target_velocity))
+    return diameters, velocities
+
+
 def aspect_ratio_method(
     flowrate: float,
     target_velocity: float = 4.0,

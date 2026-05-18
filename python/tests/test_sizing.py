@@ -120,6 +120,29 @@ class TestSizingIntegration:
         assert v <= 4.0
 
 
+class TestVelocityMethodBatch:
+    def test_matches_per_call_velocity_method(self) -> None:
+        import numpy as np
+        from pyduct import velocity_method, velocity_method_batch
+
+        flows = [0.05, 0.10, 0.25, 0.50, 1.0]
+        diameters, velocities = velocity_method_batch(flows, target_velocity=4.0)
+        for q, d_batch, v_batch in zip(flows, diameters, velocities, strict=True):
+            section, v = velocity_method(q, "round", 4.0)
+            assert np.isclose(d_batch, section.diameter)
+            assert np.isclose(v_batch, v)
+
+    def test_accepts_numpy_array_and_returns_ndarrays(self) -> None:
+        import numpy as np
+        from pyduct import velocity_method_batch
+
+        flows = np.array([0.05, 0.10])
+        d, v = velocity_method_batch(flows)
+        assert isinstance(d, np.ndarray) and d.dtype == np.float64
+        assert isinstance(v, np.ndarray) and v.dtype == np.float64
+        assert d.shape == (2,) and v.shape == (2,)
+
+
 class TestAspectRatioMethod:
     def test_returns_flat_section(self) -> None:
         from pyduct import Rectangular, aspect_ratio_method
