@@ -34,24 +34,27 @@ def _i64_ptr(arr: PythonObject) raises -> UnsafePointer[Int64, MutExternalOrigin
 
 
 def batch_compute(
-    types: PythonObject,        # int64[N]
-    params: PythonObject,       # float64[6*N]
-    port_idx: PythonObject,     # int64[3*N]
-    flows: PythonObject,        # float64[P], pre-populated
-    velocities: PythonObject,   # float64[P], output
-    dps: PythonObject,          # float64[P], output
-    density: PythonObject,
-    kinematic_viscosity: PythonObject,
+    types: PythonObject,         # int64[N]
+    params: PythonObject,        # float64[6*N]
+    port_idx: PythonObject,      # int64[3*N]
+    flow_buffer: PythonObject,   # float64[3*P]: flows | velocities (out) | dps (out)
+    fluid: PythonObject,         # float64[2]: density, kinematic_viscosity
 ) raises -> PythonObject:
+    """Mojo's 26.2 ``def_function`` caps at 6 positional args; we pack the
+    three per-port output buffers into one 3P-long ndarray and the two
+    scalar fluid params into a 2-element ndarray."""
     var n = Int(py=types.shape[0])
+    var p = Int(py=flow_buffer.shape[0]) // 3
     var t_ptr = _i64_ptr(types)
     var p_ptr = _f64_ptr(params)
     var i_ptr = _i64_ptr(port_idx)
-    var f_ptr = _f64_ptr(flows)
-    var v_ptr = _f64_ptr(velocities)
-    var d_ptr = _f64_ptr(dps)
-    var rho = Float64(py=density)
-    var nu = Float64(py=kinematic_viscosity)
+    var fb = _f64_ptr(flow_buffer)
+    var f_ptr = fb            # flows: offset 0
+    var v_ptr = fb + p        # velocities: offset P
+    var d_ptr = fb + 2 * p    # dps: offset 2P
+    var fluid_ptr = _f64_ptr(fluid)
+    var rho = fluid_ptr[0]
+    var nu = fluid_ptr[1]
 
     for i in range(n):
         var tag = Int(t_ptr[i])

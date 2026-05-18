@@ -140,3 +140,4 @@ dmypy.json
 
 # Claude Code local state
 .claude/
+vendor/

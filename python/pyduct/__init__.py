@@ -25,9 +25,29 @@ _repo_root = str(_Path(__file__).resolve().parents[2])
 if _repo_root not in _sys.path:
     _sys.path.insert(0, _repo_root)
 
+# Mojo's `importer` calls `mojo build` without any `-I` flags. NuMojo lives
+# at wenta/_mojo_libs/numojo.mojopkg and Mojo's default search path doesn't
+# include it, so monkey-patch `subprocess_run_mojo` to inject the include
+# before the importer ever runs.
+import mojo.run as _mojo_run  # noqa: E402
+
+
+def _make_subprocess_run_wrapper(libs_path: str, original):  # type: ignore[no-untyped-def]
+    def _wrapped(args, **kwargs):  # type: ignore[no-untyped-def]
+        if args and args[0] == "build":
+            args = [args[0], "-I", libs_path, *args[1:]]
+        return original(args, **kwargs)
+    return _wrapped
+
+
+_mojo_run.subprocess_run_mojo = _make_subprocess_run_wrapper(
+    str(_Path(_repo_root) / "wenta" / "_mojo_libs"),
+    _mojo_run.subprocess_run_mojo,
+)
+
 import mojo.importer  # noqa: F401, E402
 
-del _sys, _Path, _repo_root
+del _sys, _Path, _repo_root, _mojo_run, _make_subprocess_run_wrapper
 
 from .components import (  # noqa: E402
     Component,

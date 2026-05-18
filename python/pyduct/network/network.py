@@ -248,19 +248,22 @@ class Network:
         return self._comp_types_cache, self._comp_params_cache, self._comp_port_idx_cache
 
     def solve_buffers(self):
-        """Reusable ``(flows, velocities, dps)`` numpy arrays for the batch kernel.
+        """Reusable ``(flow_buffer, fluid_buf)`` numpy arrays for the batch kernel.
 
-        Allocated lazily, sized to match the current node count, and reused
-        across solves. Callers are responsible for zeroing before each pass.
+        ``flow_buffer`` is a single 3P-long float64 ndarray packed as
+        ``[flows | velocities | dps]`` so the Mojo kernel takes ≤ 6
+        positional args (Mojo 26.2's ``def_function`` limit). ``fluid_buf``
+        is a 2-element ndarray ``[density, kinematic_viscosity]``. Both
+        are sized to the current node count and reused across solves;
+        callers zero ``flow_buffer`` before each pass.
         """
         if self._solve_buffers is None:
             import numpy as np
             int_topo = self.int_topo_view()[1]
             n = len(int_topo)
             self._solve_buffers = (
-                np.zeros(n, dtype=np.float64),
-                np.zeros(n, dtype=np.float64),
-                np.zeros(n, dtype=np.float64),
+                np.zeros(3 * n, dtype=np.float64),
+                np.zeros(2, dtype=np.float64),
             )
         return self._solve_buffers
 

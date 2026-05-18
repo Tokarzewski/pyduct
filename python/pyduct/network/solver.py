@@ -78,26 +78,28 @@ def compute_pressure_drops(
 
     types, params, port_idx = network.component_view()
     flat_ports = network.flat_ports()
-    flows, velocities, dps = network.solve_buffers()
+    flow_buffer, fluid_buf = network.solve_buffers()
+    n_nodes = flow_buffer.size // 3
 
-    # Zero buffers + populate flows from current port flowrates.
-    flows.fill(0.0)
-    velocities.fill(0.0)
-    dps.fill(0.0)
+    # Layout: [0 : P] flows (input), [P : 2P] velocities (out), [2P : 3P] dps (out).
+    flow_buffer.fill(0.0)
+    flows = flow_buffer[:n_nodes]
     for p, idx in flat_ports:
         if p.flowrate is not None:
             flows[idx] = p.flowrate
+    fluid_buf[0] = fluid.density
+    fluid_buf[1] = fluid.kinematic_viscosity
 
-    batch_compute(
-        types, params, port_idx, flows, velocities, dps,
-        fluid.density, fluid.kinematic_viscosity,
-    )
+    batch_compute(types, params, port_idx, flow_buffer, fluid_buf)
+
+    velocities = flow_buffer[n_nodes : 2 * n_nodes]
+    dps = flow_buffer[2 * n_nodes : 3 * n_nodes]
 
     # Scatter back to Port objects and graph node attrs.
     nodes = network.graph._node
     topo_str = network.topo_order()
     for i, node_id in enumerate(topo_str):
-        nodes[node_id]["pressure_drop"] = dps[i]
+        nodes[node_id]["pressure_drop"] = float(dps[i])
     for p, idx in flat_ports:
         p.velocity = float(velocities[idx])
         p.pressure_drop = float(dps[idx])
