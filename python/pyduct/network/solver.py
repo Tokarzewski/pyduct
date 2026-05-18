@@ -65,14 +65,42 @@ def propagate_flowrates(network: Network) -> None:
 def compute_pressure_drops(
     network: Network, fluid: Fluid = STANDARD_AIR
 ) -> None:
-    """Call ``compute()`` on every component and copy results to graph nodes."""
+    """Compute every port's pressure drop in one Mojo call.
+
+    The Python solver projects each component to (type-tag, params,
+    port-indices) once when the graph is built (cached on the Network);
+    the per-port flowrates produced by ``propagate_flowrates`` are then
+    passed alongside, and the Mojo kernel dispatches by type tag in a
+    single loop. The scatter step copies velocities + pressure drops
+    back onto the Port objects and the graph node attrs.
+    """
+    from wenta.ext.compute_batch_ext import batch_compute
+
+    int_topo = network.int_topo_view()[1]
+    types, params, port_idx = network.component_view()
+    flat_ports = network.flat_ports()
+    n_nodes = len(int_topo)
+
+    # Build per-port flowrate array aligned with node_index (single
+    # cached loop over (port, flat_index) tuples).
+    flows = [0.0] * n_nodes
+    for p, idx in flat_ports:
+        if p.flowrate is not None:
+            flows[idx] = p.flowrate
+
+    velocities, dps = batch_compute(
+        types, params, port_idx, flows,
+        fluid.density, fluid.kinematic_viscosity,
+    )
+
+    # Scatter back to Port objects and graph node attrs.
     nodes = network.graph._node
-    for comp in network.components.values():
-        comp.compute(fluid)
-        for p in comp.ports:
-            nodes[p.node_id]["pressure_drop"] = p.pressure_drop
-    # Component nodes' pressure_drop is initialised to 0.0 in Network.add(),
-    # so no setdefault is needed here.
+    topo_str = network.topo_order()
+    for i, node_id in enumerate(topo_str):
+        nodes[node_id]["pressure_drop"] = dps[i]
+    for p, idx in flat_ports:
+        p.velocity = velocities[idx]
+        p.pressure_drop = dps[idx]
 
 
 def critical_path(network: Network) -> list[str]:
