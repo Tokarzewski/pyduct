@@ -136,10 +136,27 @@ python/tests/                   # pytest suite (184 tests, mypy + ruff clean)
 docs/                           # historical design notes from the Python redesign
 ```
 
+## Command-line interface
+
+After ``pip install`` the package exposes a ``wenta`` console script:
+
+```bash
+wenta solve   network.yaml                       # text table (default)
+wenta solve   network.yaml --format markdown     # markdown report
+wenta solve   network.yaml --format json         # machine-readable
+wenta solve   network.yaml --format csv          # spreadsheet-friendly
+wenta solve   network.yaml --output report.md    # write to file
+wenta info    network.yaml                       # structural summary, no solve
+wenta validate network.yaml                      # schema + structural check
+```
+
+Accepts YAML or JSON input (any input that ``Network.from_yaml`` or
+``Network.from_json`` can load).
+
 ## Development
 
 ```bash
-just check         # Python pytest (184)
+just check         # Python pytest (195)
 just types         # mypy python/pyduct
 just lint          # ruff
 just mojo-test     # Mojo unit tests (20)
