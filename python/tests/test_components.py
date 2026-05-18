@@ -2,7 +2,7 @@
 
 
 import pytest
-from pyduct import (
+from wenta import (
     STANDARD_AIR,
     ElbowRound,
     FlexDuct,

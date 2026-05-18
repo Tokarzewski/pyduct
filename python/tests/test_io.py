@@ -5,7 +5,7 @@ import tempfile
 from pathlib import Path
 
 import pytest
-from pyduct import (
+from wenta import (
     Network,
     RigidDuct,
     Round,
@@ -103,7 +103,7 @@ class TestJSONSerialization:
 class TestYAMLSerialization:
     def test_save_to_yaml(self, simple_network: Network) -> None:
         pytest.importorskip("yaml")  # Skip if pyyaml not installed
-        from pyduct import save_to_yaml
+        from wenta import save_to_yaml
 
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = Path(tmpdir) / "network.yaml"
@@ -112,7 +112,7 @@ class TestYAMLSerialization:
 
     def test_load_from_yaml(self, simple_network: Network) -> None:
         pytest.importorskip("yaml")
-        from pyduct import load_from_yaml, save_to_yaml
+        from wenta import load_from_yaml, save_to_yaml
 
         with tempfile.TemporaryDirectory() as tmpdir:
             filepath = Path(tmpdir) / "network.yaml"
@@ -136,7 +136,7 @@ class TestIOErrorHandling:
         sys.modules["yaml"] = None  # type: ignore
 
         try:
-            from pyduct import save_to_yaml
+            from wenta import save_to_yaml
 
             with (
                 pytest.raises(ImportError, match="pyyaml"),

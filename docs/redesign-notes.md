@@ -1,7 +1,7 @@
 # pyduct redesign — `pyduct2`
 
-A breaking redesign of `pyduct` lives in the new top-level package `pyduct2/`,
-side-by-side with the original `pyduct/` (which is untouched). All new tests
+A breaking redesign of `wenta` lives in the new top-level package `pyduct2/`,
+side-by-side with the original `wenta/` (which is untouched). All new tests
 are under `tests/v2/`.
 
 ## Why a rewrite
@@ -156,7 +156,7 @@ reports **57 passed**.
 
 Because the old package still exists, you can migrate at your own pace:
 
-| Old (`pyduct`)                            | New (`pyduct2`)                                |
+| Old (`wenta`)                            | New (`pyduct2`)                                |
 |-------------------------------------------|------------------------------------------------|
 | `RigidDuctType(shape="round", diameter=…)`| `Round(diameter=…)`                            |
 | `RigidDuctType(shape="rectangular", …)`   | `Rectangular(width=…, height=…)`               |

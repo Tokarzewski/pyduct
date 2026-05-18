@@ -2,7 +2,7 @@
 
 import pytest
 from pydantic import ValidationError
-from pyduct import (
+from wenta import (
     CrossSectionSchema,
     FluidSchema,
     NetworkDesignSchema,

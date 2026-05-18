@@ -1,8 +1,8 @@
 """Tests for the fittings loss coefficient library."""
 
 import pytest
-from pyduct import air_at_altitude
-from pyduct.components.fittings_library import (
+from wenta import air_at_altitude
+from wenta.components.fittings_library import (
     damper_butterfly,
     diffuser_ceiling,
     expander_round,
@@ -13,7 +13,7 @@ from pyduct.components.fittings_library import (
     rectangular_elbow,
     reducer_round,
 )
-from pyduct.units import (
+from wenta.units import (
     air_changes_per_hour,
     cfm_to_m3s,
     f_to_c,
@@ -175,7 +175,7 @@ class TestMiteredElbow:
 
 class TestAirAtAltitude:
     def test_sea_level_matches_standard(self) -> None:
-        from pyduct import STANDARD_AIR
+        from wenta import STANDARD_AIR
 
         f = air_at_altitude(0.0, temperature_c=20.0)
         # Sutherland/ideal-gas vs CoolProp's reference: ~1% agreement

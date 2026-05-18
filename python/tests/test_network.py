@@ -1,7 +1,7 @@
 """End-to-end tests for the Network model and solver."""
 
 import pytest
-from pyduct import (
+from wenta import (
     Network,
     RigidDuct,
     Round,

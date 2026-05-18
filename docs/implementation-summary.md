@@ -1,6 +1,6 @@
 # pyduct2 — Complete Implementation Summary
 
-A ground-up redesign and substantial expansion of `pyduct`. Everything lives in a new parallel package `pyduct2/` (original `pyduct/` untouched). This document summarizes what was built.
+A ground-up redesign and substantial expansion of `wenta`. Everything lives in a new parallel package `pyduct2/` (original `wenta/` untouched). This document summarizes what was built.
 
 ---
 
@@ -174,7 +174,7 @@ pyduct2/
 
 ## Physical Flow Direction (Key Design Fix)
 
-In the original `pyduct`, graph edges pointed **backwards** (from terminals toward AHU). This was unintuitive — users had to think in reverse.
+In the original `wenta`, graph edges pointed **backwards** (from terminals toward AHU). This was unintuitive — users had to think in reverse.
 
 **pyduct2 reverses it**: edges follow physical airflow (Source → ducts → Tee → Terminals).
 

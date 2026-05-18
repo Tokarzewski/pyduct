@@ -7,16 +7,16 @@ Mojo port covers the entire pure-math + sizing + fittings surface and is
 diff-tested against it.
 
 ```
-wenta/                 ← native-Mojo port (28 parity-tested kernels)
-python/pyduct/            ← reference Python implementation (the oracle)
+wentamojo/             ← native-Mojo port (28 parity-tested kernels)
+python/wenta/            ← reference Python implementation (the oracle)
 python/tests/             ← Python pytest suite       (184 tests)
-wenta/tests/           ← Mojo TestSuite suite      (20 unit + 28 parity)
-wenta/benchmarks/      ← Mojo↔Python speedup numbers
+wentamojo/tests/       ← Mojo TestSuite suite      (20 unit + 28 parity)
+wentamojo/benchmarks/  ← Mojo↔Python speedup numbers
 ```
 
 ## Coverage status
 
-| Module                        | Mojo (`wenta/`)        | Python (`python/pyduct/`) |
+| Module                        | Mojo ( `wentamojo/`)| Python (`python/wenta/`) |
 |-------------------------------|---------------------------|---------------------------|
 | Cross-section geometry        | ✅                         | ✅                         |
 | Fluid + altitude correction   | ✅                         | ✅                         |
@@ -42,7 +42,7 @@ just test-all     # Python + Mojo unit + Mojo parity
 ```
 
 ```python
-from pyduct import (
+from wenta import (
     Network, Source, RigidDuct, Terminal, Round, solve,
     velocity_method, results_summary,
 )
@@ -62,11 +62,11 @@ Under the hood, `net.solve()` calls a Mojo critical-path DP kernel via
 ## Quick start (Mojo — direct, full speedup)
 
 ```mojo
-from wenta.core.geometry import Round
-from wenta.core.fluid import standard_air
-from wenta.physics.friction import friction_factor, reynolds, relative_roughness
-from wenta.physics.losses import straight_pressure_drop
-from wenta.sizing import velocity_method_round, aspect_ratio_method
+from wentamojo.core.geometry import Round
+from wentamojo.core.fluid import standard_air
+from wentamojo.physics.friction import friction_factor, reynolds, relative_roughness
+from wentamojo.physics.losses import straight_pressure_drop
+from wentamojo.sizing import velocity_method_round, aspect_ratio_method
 
 def main() raises:
     var section, v = velocity_method_round(0.1, target_velocity=4.0)
@@ -81,7 +81,7 @@ def main() raises:
 
 Measured on a recent laptop CPU, Mojo 26.2 stable. Numbers vary with
 hardware but the ratios are stable. Run `just mojo-suite` to reproduce;
-`uv run pyduct.sizing.velocity_method_batch` for the batch row.
+`uv run wenta.sizing.velocity_method_batch` for the batch row.
 
 | Kernel                          | n         | Mojo     | Python  | Speedup |
 |---------------------------------|-----------|----------|---------|---------|
@@ -103,13 +103,13 @@ single-call use from Python, the boundary dominates the math. The Mojo
 speedup materialises when the kernel runs in a Mojo loop (the benchmark
 shape) or when the network solver crosses the boundary once and lets
 Mojo do the whole walk. The Python column reflects the *current* paths
-through Python's `pyduct` module, which routes through the same Mojo
+through Python's `wenta` module, which routes through the same Mojo
 shims for everything except the per-component dispatch in the solver —
 so the speedups are net of any boundary cost in the Python side too.
 
 ## Parity contract
 
-The Python `pyduct` is the **reference oracle**. Every Mojo function is
+The Python `wenta` is the **reference oracle**. Every Mojo function is
 diff-tested against its Python counterpart over a corpus of inputs, with
 tolerance ≤ 1e-9 relative (1e-12 for non-transcendental closed forms).
 The check runs as `just mojo-parity` and currently covers 28 functions.
@@ -117,7 +117,7 @@ The check runs as `just mojo-parity` and currently covers 28 functions.
 ## Layout
 
 ```
-wenta/                       # Mojo port
+wentamojo/                   # Mojo port
 ├── core/
 │   ├── geometry.mojo           # Round / Rectangular / equivalent_round_diameter
 │   └── fluid.mojo              # Fluid / standard_air / air_at_altitude
@@ -139,7 +139,7 @@ wenta/                       # Mojo port
     ├── bench_friction.mojo     # friction_factor + a couple of sizing fns
     └── bench_suite.mojo        # full kernel-by-kernel comparison table
 
-python/pyduct/                  # Python implementation (the reference)
+python/wenta/                  # Python implementation (the reference)
 python/tests/                   # pytest suite (184 tests, mypy + ruff clean)
 
 docs/                           # historical design notes from the Python redesign
@@ -166,7 +166,7 @@ Accepts YAML or JSON input (any input that ``Network.from_yaml`` or
 
 ```bash
 just check         # Python pytest (195)
-just types         # mypy python/pyduct
+just types         # mypy python/wenta
 just lint          # ruff
 just mojo-test     # Mojo unit tests (20)
 just mojo-parity   # Mojo parity tests (28)

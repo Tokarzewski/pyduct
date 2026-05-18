@@ -15,7 +15,7 @@ requires-python = ">=3.10"
 license = {text = "MIT"}
 
 [project.scripts]
-wenta = "pyduct.cli:main"
+wenta = "wenta.cli:main"
 
 [project.optional-dependencies]
 plot = ["matplotlib>=3.6.3"]
@@ -42,7 +42,7 @@ package-dir = {"" = "python"}
 
 [tool.setuptools.packages.find]
 where = ["python"]
-include = ["pyduct*"]
+include = ["wenta*"]
 
 [tool.pytest.ini_options]
 testpaths = ["python/tests"]
@@ -71,7 +71,7 @@ strict = false
 warn_unused_ignores = true
 warn_redundant_casts = true
 ignore_missing_imports = true
-files = ["python/pyduct"]
+files = ["python/wenta"]
 
 # ---------------------------------------------------------------------------
 # Mojo port (work in progress) lives under `wenta/`. The Python package

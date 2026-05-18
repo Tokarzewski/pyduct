@@ -4,7 +4,7 @@ import dataclasses
 from math import isclose, pi
 
 import pytest
-from pyduct import Rectangular, Round, equivalent_round_diameter
+from wenta import Rectangular, Round, equivalent_round_diameter
 
 
 class TestRound:

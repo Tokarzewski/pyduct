@@ -3,7 +3,7 @@
 from math import isclose
 
 import pytest
-from pyduct.physics.friction import (
+from wenta.physics.friction import (
     friction_factor,
     friction_factor_colebrook,
     relative_roughness,

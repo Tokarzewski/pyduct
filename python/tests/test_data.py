@@ -1,7 +1,7 @@
 """Tests for the standard-sizes data module."""
 
 
-from pyduct import STANDARD_ROUND_DUCT_SIZES, nearest_round_size
+from wenta import STANDARD_ROUND_DUCT_SIZES, nearest_round_size
 
 
 def test_round_sizes_sorted() -> None:

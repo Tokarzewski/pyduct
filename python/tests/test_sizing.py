@@ -2,7 +2,7 @@
 
 
 import pytest
-from pyduct import (
+from wenta import (
     Rectangular,
     Round,
     equal_friction_method,
@@ -88,7 +88,7 @@ class TestPressureDropBudget:
 class TestSizingIntegration:
     def test_sized_duct_in_network(self) -> None:
         """End-to-end: size a duct using velocity method, add to network, solve."""
-        from pyduct import Network, RigidDuct, Source, Terminal, solve
+        from wenta import Network, RigidDuct, Source, Terminal, solve
 
         # Size the duct
         section, _ = velocity_method(0.05, "round", target_velocity=4.0)
@@ -108,7 +108,7 @@ class TestSizingIntegration:
 
     def test_sizing_with_custom_fluid(self) -> None:
         """Sizing with a custom fluid (e.g. warmer air)."""
-        from pyduct import Fluid
+        from wenta import Fluid
 
         # Air at 40 °C (slightly less dense and viscous)
         warm_air = Fluid(density=1.13, dynamic_viscosity=1.92e-5)
@@ -123,7 +123,7 @@ class TestSizingIntegration:
 class TestVelocityMethodBatch:
     def test_matches_per_call_velocity_method(self) -> None:
         import numpy as np
-        from pyduct import velocity_method, velocity_method_batch
+        from wenta import velocity_method, velocity_method_batch
 
         flows = [0.05, 0.10, 0.25, 0.50, 1.0]
         diameters, velocities = velocity_method_batch(flows, target_velocity=4.0)
@@ -134,7 +134,7 @@ class TestVelocityMethodBatch:
 
     def test_accepts_numpy_array_and_returns_ndarrays(self) -> None:
         import numpy as np
-        from pyduct import velocity_method_batch
+        from wenta import velocity_method_batch
 
         flows = np.array([0.05, 0.10])
         d, v = velocity_method_batch(flows)
@@ -145,7 +145,7 @@ class TestVelocityMethodBatch:
 
 class TestAspectRatioMethod:
     def test_returns_flat_section(self) -> None:
-        from pyduct import Rectangular, aspect_ratio_method
+        from wenta import Rectangular, aspect_ratio_method
 
         sec, v = aspect_ratio_method(0.2, target_velocity=4.0, aspect_ratio=2.0)
         assert isinstance(sec, Rectangular)
@@ -156,13 +156,13 @@ class TestAspectRatioMethod:
         assert v <= 4.0 or sec.area == max(s.area for s in [sec])
 
     def test_rejects_aspect_ratio_below_one(self) -> None:
-        from pyduct import aspect_ratio_method
+        from wenta import aspect_ratio_method
 
         with pytest.raises(ValueError):
             aspect_ratio_method(0.1, aspect_ratio=0.5)
 
     def test_rejects_nonpositive_flowrate(self) -> None:
-        from pyduct import aspect_ratio_method
+        from wenta import aspect_ratio_method
 
         with pytest.raises(ValueError):
             aspect_ratio_method(0.0)
@@ -170,14 +170,14 @@ class TestAspectRatioMethod:
 
 class TestNoiseLimitMethod:
     def test_bedroom_is_quieter_than_office(self) -> None:
-        from pyduct import noise_limit_method
+        from wenta import noise_limit_method
 
         _, v_bed = noise_limit_method(0.1, "bedroom")
         _, v_off = noise_limit_method(0.1, "office")
         assert v_bed <= v_off  # bedroom limit is lower
 
     def test_unknown_space_rejected(self) -> None:
-        from pyduct import noise_limit_method
+        from wenta import noise_limit_method
 
         with pytest.raises(ValueError, match="unknown space_type"):
             noise_limit_method(0.1, "not_a_space")

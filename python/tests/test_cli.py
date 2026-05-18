@@ -1,4 +1,4 @@
-"""In-process tests for the ``wenta`` command-line interface.
+"""In-process tests for the ``wentamojo`` command-line interface.
 
 Earlier draft used ``subprocess.run`` per case (~600 ms each — Python
 startup dominated). This version calls ``cli.main(argv)`` directly and
@@ -12,14 +12,14 @@ import json
 from pathlib import Path
 
 import pytest
-from pyduct.cli import main as cli_main
+from wenta.cli import main as cli_main
 
 REPO = Path(__file__).resolve().parents[2]
-EXAMPLE = REPO / "python" / "pyduct" / "examples" / "network_yaml.yaml"
+EXAMPLE = REPO / "python" / "wenta" / "examples" / "network_yaml.yaml"
 
 
 def _run(*argv: str, capsys) -> tuple[int, str]:
-    """Invoke ``wenta`` in-process. Returns ``(exit_code, stdout)``."""
+    """Invoke ``wentamojo`` in-process. Returns ``(exit_code, stdout)``."""
     try:
         rc = cli_main(list(argv))
     except SystemExit as e:  # argparse on parse error / _load on missing file

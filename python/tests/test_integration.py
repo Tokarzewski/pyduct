@@ -1,7 +1,7 @@
 """End-to-end integration tests: realistic use cases."""
 
 
-from pyduct import (
+from wenta import (
     ElbowRound,
     Network,
     RigidDuct,
@@ -15,7 +15,7 @@ from pyduct import (
     solve,
     velocity_method,
 )
-from pyduct.components.fittings_library import (
+from wenta.components.fittings_library import (
     damper_butterfly,
 )
 
