@@ -8,15 +8,15 @@ diff-tested against it.
 
 ```
 wentamojo/             ← native-Mojo port (28 parity-tested kernels)
-python/wenta/            ← reference Python implementation (the oracle)
-python/tests/             ← Python pytest suite       (184 tests)
+python/wenta/          ← reference Python implementation (the oracle)
+python/tests/          ← Python pytest suite       (197 tests)
 wentamojo/tests/       ← Mojo TestSuite suite      (20 unit + 28 parity)
 wentamojo/benchmarks/  ← Mojo↔Python speedup numbers
 ```
 
 ## Coverage status
 
-| Module                        | Mojo ( `wentamojo/`)| Python (`python/wenta/`) |
+| Module                        | Mojo (`wentamojo/`)       | Python (`python/wenta/`)  |
 |-------------------------------|---------------------------|---------------------------|
 | Cross-section geometry        | ✅                         | ✅                         |
 | Fluid + altitude correction   | ✅                         | ✅                         |
@@ -165,7 +165,7 @@ Accepts YAML or JSON input (any input that ``Network.from_yaml`` or
 ## Development
 
 ```bash
-just check         # Python pytest (195)
+just check         # Python pytest (197)
 just types         # mypy python/wenta
 just lint          # ruff
 just mojo-test     # Mojo unit tests (20)

@@ -74,6 +74,6 @@ ignore_missing_imports = true
 files = ["python/wenta"]
 
 # ---------------------------------------------------------------------------
-# Mojo port (work in progress) lives under `wenta/`. The Python package
-# remains usable as `import pyduct` until the Mojo side reaches parity.
+# Mojo port (work in progress) lives under `wentamojo/`. The Python package
+# remains usable as `import wenta` until the Mojo side reaches parity.
 # ---------------------------------------------------------------------------
