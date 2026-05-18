@@ -21,9 +21,11 @@ from pathlib import Path
 
 
 def _load(path: Path):
-    """Dispatch on the file extension."""
+    """Dispatch on the file extension. Exits cleanly on missing or invalid files."""
     from . import Network
 
+    if not path.exists():
+        raise SystemExit(f"no such file: {path}")
     suffix = path.suffix.lower()
     if suffix in (".yaml", ".yml"):
         return Network.from_yaml(str(path))

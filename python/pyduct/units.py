@@ -113,7 +113,5 @@ def air_changes_per_hour(flowrate_m3s: float, volume_m3: float) -> float:
     Raises :class:`ValueError` when ``volume_m3`` is non-positive or
     ``flowrate_m3s`` is negative.
     """
-    try:
-        return _air_changes_per_hour(flowrate_m3s, volume_m3)
-    except Exception as e:  # Mojo raises generic Error; translate to ValueError.
-        raise ValueError(str(e)) from e
+    from ._mojo_shim import translate_error
+    return translate_error(_air_changes_per_hour, flowrate_m3s, volume_m3)
