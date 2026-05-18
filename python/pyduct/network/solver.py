@@ -76,20 +76,20 @@ def compute_pressure_drops(
     """
     from wenta.ext.compute_batch_ext import batch_compute
 
-    int_topo = network.int_topo_view()[1]
     types, params, port_idx = network.component_view()
     flat_ports = network.flat_ports()
-    n_nodes = len(int_topo)
+    flows, velocities, dps = network.solve_buffers()
 
-    # Build per-port flowrate array aligned with node_index (single
-    # cached loop over (port, flat_index) tuples).
-    flows = [0.0] * n_nodes
+    # Zero buffers + populate flows from current port flowrates.
+    flows.fill(0.0)
+    velocities.fill(0.0)
+    dps.fill(0.0)
     for p, idx in flat_ports:
         if p.flowrate is not None:
             flows[idx] = p.flowrate
 
-    velocities, dps = batch_compute(
-        types, params, port_idx, flows,
+    batch_compute(
+        types, params, port_idx, flows, velocities, dps,
         fluid.density, fluid.kinematic_viscosity,
     )
 
@@ -99,8 +99,8 @@ def compute_pressure_drops(
     for i, node_id in enumerate(topo_str):
         nodes[node_id]["pressure_drop"] = dps[i]
     for p, idx in flat_ports:
-        p.velocity = velocities[idx]
-        p.pressure_drop = dps[idx]
+        p.velocity = float(velocities[idx])
+        p.pressure_drop = float(dps[idx])
 
 
 def critical_path(network: Network) -> list[str]:

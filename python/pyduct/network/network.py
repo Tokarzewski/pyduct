@@ -54,14 +54,17 @@ class Network:
     _int_index_cache: dict[str, int] | None = field(default=None, init=False, repr=False)
     _int_topo_cache: list[int] | None = field(default=None, init=False, repr=False)
     _int_preds_cache: list[list[int]] | None = field(default=None, init=False, repr=False)
-    # Component-view caches for the Mojo batch compute kernel.
-    _comp_types_cache: list[int] | None = field(default=None, init=False, repr=False)
-    _comp_params_cache: list[float] | None = field(default=None, init=False, repr=False)
-    _comp_port_idx_cache: list[int] | None = field(default=None, init=False, repr=False)
+    # Component-view caches for the Mojo batch compute kernel — numpy
+    # arrays so the kernel reads them via zero-copy raw pointers.
+    _comp_types_cache: "Any" = field(default=None, init=False, repr=False)
+    _comp_params_cache: "Any" = field(default=None, init=False, repr=False)
+    _comp_port_idx_cache: "Any" = field(default=None, init=False, repr=False)
     # Pre-flattened (Port, flat_index) list for fast scatter/gather.
     _flat_ports_cache: list[tuple[object, int]] | None = field(
         default=None, init=False, repr=False
     )
+    # Reusable numpy buffers for the Mojo batch kernel (flows/velocities/dps).
+    _solve_buffers: "Any" = field(default=None, init=False, repr=False)
 
     # ---- building the network ----------------------------------------------
 
@@ -129,6 +132,7 @@ class Network:
         self._comp_params_cache = None
         self._comp_port_idx_cache = None
         self._flat_ports_cache = None
+        self._solve_buffers = None
 
     # ---- analysis ----------------------------------------------------------
 
@@ -171,88 +175,92 @@ class Network:
             self._int_preds_cache,
         )
 
-    def component_view(self) -> tuple[list[int], list[float], list[int]]:
+    def component_view(self):
         """Flat-array projection used by the Mojo ``batch_compute`` kernel.
 
-        Returns ``(types, params, port_indices)``:
-          * ``types[i]``         — tag identifying component i's type
-                                   (0=Source, 1=Terminal, 2=RigidDuct,
-                                   3=FlexDuct, 4=TwoPortFitting, 5=Tee)
-          * ``params``           — flat ``len(components) * 6`` floats;
-                                   per-type packing documented in
-                                   ``wenta.network.compute_batch``
-          * ``port_indices``     — flat ``len(components) * 3`` ints; each
-                                   triple is (port0, port1, port2) where
-                                   unused slots are ``-1``. The integer
-                                   index targets ``int_topo_view()``'s
-                                   ``node_index`` mapping.
-        Cached until the graph changes.
+        Returns three contiguous numpy arrays (cached until the graph
+        changes) that the Mojo kernel reads via raw-pointer access:
+          * ``types``       — ``int64[N]``
+          * ``params``      — ``float64[N*6]``, layout per type
+          * ``port_indices``— ``int64[N*3]``, ``-1`` for unused slots
         """
         if self._comp_types_cache is None:
+            import numpy as np
             from math import pi
             from ..components.duct import FlexDuct, RigidDuct
             from ..components.fitting import Source, Tee, Terminal, TwoPortFitting
 
             node_index, _, _ = self.int_topo_view()
-            types: list[int] = []
-            params: list[float] = []
-            port_idx: list[int] = []
-            for comp in self.components.values():
-                # Pad each row to fixed width.
-                row_params = [0.0] * 6
-                row_ports = [-1, -1, -1]
+            n = len(self.components)
+            types = np.empty(n, dtype=np.int64)
+            params = np.zeros(n * 6, dtype=np.float64)
+            port_idx = np.full(n * 3, -1, dtype=np.int64)
+            for i, comp in enumerate(self.components.values()):
+                pb = i * 6
+                ib = i * 3
                 if isinstance(comp, Source):
-                    types.append(0)
-                    row_ports[0] = node_index[comp.ports[0].node_id]
+                    types[i] = 0
+                    port_idx[ib] = node_index[comp.ports[0].node_id]
                 elif isinstance(comp, Terminal):
-                    types.append(1)
-                    row_ports[0] = node_index[comp.ports[0].node_id]
+                    types[i] = 1
+                    port_idx[ib] = node_index[comp.ports[0].node_id]
                     if comp.cross_section is not None:
-                        row_params[0] = comp.cross_section.area
-                        row_params[1] = comp.zeta
+                        params[pb] = comp.cross_section.area
+                        params[pb + 1] = comp.zeta
                 elif isinstance(comp, RigidDuct):
-                    types.append(2)
-                    row_ports[0] = node_index[comp.ports[0].node_id]  # inlet
-                    row_ports[1] = node_index[comp.ports[1].node_id]  # outlet
-                    row_params[0] = comp.cross_section.area
-                    row_params[1] = comp.cross_section.hydraulic_diameter
-                    row_params[2] = comp.length
-                    row_params[3] = comp.absolute_roughness
+                    types[i] = 2
+                    port_idx[ib]     = node_index[comp.ports[0].node_id]
+                    port_idx[ib + 1] = node_index[comp.ports[1].node_id]
+                    params[pb]     = comp.cross_section.area
+                    params[pb + 1] = comp.cross_section.hydraulic_diameter
+                    params[pb + 2] = comp.length
+                    params[pb + 3] = comp.absolute_roughness
                 elif isinstance(comp, FlexDuct):
-                    types.append(3)
-                    row_ports[0] = node_index[comp.ports[0].node_id]
-                    row_ports[1] = node_index[comp.ports[1].node_id]
-                    row_params[0] = pi * (comp.diameter / 2) ** 2  # area
-                    row_params[1] = comp.diameter
-                    row_params[2] = comp.length
-                    row_params[3] = comp.pressure_drop_per_meter
-                    row_params[4] = comp.stretch_percentage
+                    types[i] = 3
+                    port_idx[ib]     = node_index[comp.ports[0].node_id]
+                    port_idx[ib + 1] = node_index[comp.ports[1].node_id]
+                    params[pb]     = pi * (comp.diameter / 2) ** 2
+                    params[pb + 1] = comp.diameter
+                    params[pb + 2] = comp.length
+                    params[pb + 3] = comp.pressure_drop_per_meter
+                    params[pb + 4] = comp.stretch_percentage
                 elif isinstance(comp, Tee):
-                    types.append(5)
-                    row_ports[0] = node_index[comp.ports[0].node_id]  # combined in
-                    row_ports[1] = node_index[comp.ports[1].node_id]  # straight out
-                    row_ports[2] = node_index[comp.ports[2].node_id]  # branch out
-                    row_params[0] = comp.cross_section.area
-                    row_params[1] = comp.zeta_straight
-                    row_params[2] = comp.zeta_branch
+                    types[i] = 5
+                    port_idx[ib]     = node_index[comp.ports[0].node_id]
+                    port_idx[ib + 1] = node_index[comp.ports[1].node_id]
+                    port_idx[ib + 2] = node_index[comp.ports[2].node_id]
+                    params[pb]     = comp.cross_section.area
+                    params[pb + 1] = comp.zeta_straight
+                    params[pb + 2] = comp.zeta_branch
                 elif isinstance(comp, TwoPortFitting):
-                    types.append(4)
-                    row_ports[0] = node_index[comp.ports[0].node_id]
-                    row_ports[1] = node_index[comp.ports[1].node_id]
-                    row_params[0] = comp.cross_section.area
-                    row_params[1] = comp.zeta
+                    types[i] = 4
+                    port_idx[ib]     = node_index[comp.ports[0].node_id]
+                    port_idx[ib + 1] = node_index[comp.ports[1].node_id]
+                    params[pb]     = comp.cross_section.area
+                    params[pb + 1] = comp.zeta
                 else:
-                    raise TypeError(f"unsupported component type for batch view: {type(comp).__name__}")
-                params.extend(row_params)
-                port_idx.extend(row_ports)
+                    raise TypeError(f"unsupported component for batch view: {type(comp).__name__}")
             self._comp_types_cache = types
             self._comp_params_cache = params
             self._comp_port_idx_cache = port_idx
-        return (
-            self._comp_types_cache,
-            self._comp_params_cache,
-            self._comp_port_idx_cache,
-        )
+        return self._comp_types_cache, self._comp_params_cache, self._comp_port_idx_cache
+
+    def solve_buffers(self):
+        """Reusable ``(flows, velocities, dps)`` numpy arrays for the batch kernel.
+
+        Allocated lazily, sized to match the current node count, and reused
+        across solves. Callers are responsible for zeroing before each pass.
+        """
+        if self._solve_buffers is None:
+            import numpy as np
+            int_topo = self.int_topo_view()[1]
+            n = len(int_topo)
+            self._solve_buffers = (
+                np.zeros(n, dtype=np.float64),
+                np.zeros(n, dtype=np.float64),
+                np.zeros(n, dtype=np.float64),
+            )
+        return self._solve_buffers
 
     def flat_ports(self) -> list[tuple]:
         """Cached ``[(port, flat_index), ...]`` for fast scatter/gather.
