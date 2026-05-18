@@ -12,7 +12,6 @@ import json
 from pathlib import Path
 
 import pytest
-
 from pyduct.cli import main as cli_main
 
 REPO = Path(__file__).resolve().parents[2]
