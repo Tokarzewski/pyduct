@@ -79,24 +79,33 @@ def main() raises:
 
 ## Mojo kernel speedup vs Python reference
 
-Measured on a recent laptop CPU; numbers vary with hardware but the
-*ratios* are stable. Run `just mojo-suite` to reproduce.
+Measured on a recent laptop CPU, Mojo 26.2 stable. Numbers vary with
+hardware but the ratios are stable. Run `just mojo-suite` to reproduce;
+`uv run pyduct.sizing.velocity_method_batch` for the batch row.
 
-| Kernel                       | n         | Mojo     | Python    | Speedup |
-|------------------------------|-----------|----------|-----------|---------|
-| `friction_factor`            | 1 000 000 |  47 ms   |  640 ms   | **13×** |
-| `local_pressure_drop`        | 1 000 000 | 1.6 ms   |  507 ms   | **300×**|
-| `velocity_method_round`      |    50 000 | 3.1 ms   |   86 ms   | **27×** |
-| `velocity_method_rectangular`|    50 000 | 7.1 ms   |  110 ms   | **15×** |
-| `equal_friction_method_round`|    50 000 |  32 ms   |  355 ms   | **11×** |
-| `aspect_ratio_method`        |    50 000 |  34 ms   |  556 ms   | **17×** |
-| `rectangular_elbow`          |   100 000 | 4.1 ms   |   90 ms   | **22×** |
+| Kernel                          | n         | Mojo     | Python  | Speedup |
+|---------------------------------|-----------|----------|---------|---------|
+| `friction_factor`               | 1 000 000 |  49 ms   |  653 ms | **13×** |
+| `local_pressure_drop`           | 1 000 000 | 1.6 ms   |  726 ms | **441×**|
+| `velocity_method_round`         |    50 000 | 2.8 ms   |   81 ms | **29×** |
+| `velocity_method_rectangular`   |    50 000 | 7.1 ms   |  112 ms | **16×** |
+| `equal_friction_method_round`   |    50 000 |  35 ms   |  652 ms | **19×** |
+| `aspect_ratio_method`           |    50 000 |  29 ms   |  562 ms | **20×** |
+| `rectangular_elbow`             |   100 000 | 6.0 ms   |   94 ms | **16×** |
+| `velocity_method_batch` (×200)  |  1 000 ×  |  10 ms   |  409 ms | **40×** |
+
+`velocity_method_batch` sizes 200 ducts in a single Mojo call via a
+zero-copy numpy ndarray — one Python↔Mojo boundary crossing for the
+whole sweep instead of 200.
 
 Caveat: per-call boundary cost between Python and Mojo is ~600 ns. For
 single-call use from Python, the boundary dominates the math. The Mojo
 speedup materialises when the kernel runs in a Mojo loop (the benchmark
 shape) or when the network solver crosses the boundary once and lets
-Mojo do the whole walk.
+Mojo do the whole walk. The Python column reflects the *current* paths
+through Python's `pyduct` module, which routes through the same Mojo
+shims for everything except the per-component dispatch in the solver —
+so the speedups are net of any boundary cost in the Python side too.
 
 ## Parity contract
 
