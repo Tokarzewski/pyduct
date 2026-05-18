@@ -78,22 +78,18 @@ def compute_pressure_drops(
 
     types, params, port_idx = network.component_view()
     flat_ports = network.flat_ports()
-    flow_buffer, fluid_buf = network.solve_buffers()
-    n_nodes = flow_buffer.size // 3
+    flows, velocities, dps, fluid_buf = network.solve_buffers()
+    packed = network._packed_flow_buffer()
 
-    # Layout: [0 : P] flows (input), [P : 2P] velocities (out), [2P : 3P] dps (out).
-    flow_buffer.fill(0.0)
-    flows = flow_buffer[:n_nodes]
+    # Zero the shared 3P buffer + populate flows from current port flowrates.
+    packed.fill(0.0)
     for p, idx in flat_ports:
         if p.flowrate is not None:
             flows[idx] = p.flowrate
     fluid_buf[0] = fluid.density
     fluid_buf[1] = fluid.kinematic_viscosity
 
-    batch_compute(types, params, port_idx, flow_buffer, fluid_buf)
-
-    velocities = flow_buffer[n_nodes : 2 * n_nodes]
-    dps = flow_buffer[2 * n_nodes : 3 * n_nodes]
+    batch_compute(types, params, port_idx, packed, fluid_buf)
 
     # Scatter back to Port objects and graph node attrs.
     nodes = network.graph._node

@@ -7,13 +7,10 @@ solve — not per math op — so the per-call overhead pays off.
 """
 
 from std.os import abort
-from std.python import Python, PythonObject
+from std.python import PythonObject
 from std.python.bindings import PythonModuleBuilder
 
-from wenta.network.solver import (
-    critical_path_sum as _critical_path_sum,
-    propagate_flows as _propagate_flows,
-)
+from wenta.network.solver import critical_path_sum as _critical_path_sum
 
 
 def _list_int_from_py(py: PythonObject) raises -> List[Int]:
@@ -49,27 +46,11 @@ def critical_path_sum(
     )
 
 
-def propagate_flows(
-    topo: PythonObject, preds: PythonObject, flows: PythonObject
-) raises -> PythonObject:
-    """Run the flow walk and return the resulting flows as a Python list."""
-    var out = _propagate_flows(
-        _list_int_from_py(topo),
-        _list_list_int_from_py(preds),
-        _list_float_from_py(flows),
-    )
-    var py_out: PythonObject = []
-    for i in range(len(out)):
-        py_out.append(out[i])
-    return py_out^
-
-
 @export
 def PyInit_solver_ext() -> PythonObject:
     try:
         var m = PythonModuleBuilder("solver_ext")
         m.def_function[critical_path_sum]("critical_path_sum")
-        m.def_function[propagate_flows]("propagate_flows")
         return m.finalize()
     except e:
         abort(String("failed to create solver_ext module: ", e))

@@ -47,24 +47,11 @@ class Network:
     name: str = ""
     components: dict[str, Component] = field(default_factory=dict)
     graph: nx.DiGraph = field(default_factory=nx.DiGraph)
-    _topo_cache: list[str] | None = field(default=None, init=False, repr=False)
-    _preds_cache: dict[str, list[str]] | None = field(default=None, init=False, repr=False)
-    _terminals_cache: list[Terminal] | None = field(default=None, init=False, repr=False)
-    # Int-indexed projection for Mojo kernels. Built lazily.
-    _int_index_cache: dict[str, int] | None = field(default=None, init=False, repr=False)
-    _int_topo_cache: list[int] | None = field(default=None, init=False, repr=False)
-    _int_preds_cache: list[list[int]] | None = field(default=None, init=False, repr=False)
-    # Component-view caches for the Mojo batch compute kernel — numpy
-    # arrays so the kernel reads them via zero-copy raw pointers.
-    _comp_types_cache: Any = field(default=None, init=False, repr=False)
-    _comp_params_cache: Any = field(default=None, init=False, repr=False)
-    _comp_port_idx_cache: Any = field(default=None, init=False, repr=False)
-    # Pre-flattened (Port, flat_index) list for fast scatter/gather.
-    _flat_ports_cache: list[tuple[object, int]] | None = field(
-        default=None, init=False, repr=False
-    )
-    # Reusable numpy buffers for the Mojo batch kernel (flows/velocities/dps).
-    _solve_buffers: Any = field(default=None, init=False, repr=False)
+    # Single bag of lazily-built kernel-view state. Each key is cleared by
+    # ``_invalidate_caches`` whenever the graph changes (add/connect). New
+    # cached projections can be added without touching the invalidation
+    # logic — just write to ``self._cache[name]``.
+    _cache: dict[str, Any] = field(default_factory=dict, init=False, repr=False)
 
     # ---- building the network ----------------------------------------------
 
@@ -122,25 +109,15 @@ class Network:
         self._invalidate_caches()
 
     def _invalidate_caches(self) -> None:
-        self._topo_cache = None
-        self._preds_cache = None
-        self._terminals_cache = None
-        self._int_index_cache = None
-        self._int_topo_cache = None
-        self._int_preds_cache = None
-        self._comp_types_cache = None
-        self._comp_params_cache = None
-        self._comp_port_idx_cache = None
-        self._flat_ports_cache = None
-        self._solve_buffers = None
+        self._cache.clear()
 
     # ---- analysis ----------------------------------------------------------
 
     def topo_order(self) -> list[str]:
         """Topological order of graph nodes, cached until the graph changes."""
-        if self._topo_cache is None:
-            self._topo_cache = list(nx.topological_sort(self.graph))
-        return self._topo_cache
+        if "topo" not in self._cache:
+            self._cache["topo"] = list(nx.topological_sort(self.graph))
+        return self._cache["topo"]
 
     def predecessors_map(self) -> dict[str, list[str]]:
         """``node_id -> [predecessor_ids]``, cached until the graph changes.
@@ -148,32 +125,27 @@ class Network:
         Materialising this avoids hitting NetworkX's PredView wrapper on every
         solver iteration.
         """
-        if self._preds_cache is None:
+        if "preds" not in self._cache:
             G = self.graph
-            self._preds_cache = {n: list(G.predecessors(n)) for n in G.nodes}
-        return self._preds_cache
+            self._cache["preds"] = {n: list(G.predecessors(n)) for n in G.nodes}
+        return self._cache["preds"]
 
     def int_topo_view(self) -> tuple[dict[str, int], list[int], list[list[int]]]:
         """Int-indexed projection used by the Mojo solver kernel.
 
-        Returns ``(node_index, int_topo, int_preds)``:
-          * ``node_index[node_id]`` → integer index in ``int_topo``
-          * ``int_topo`` is the topological order with integer node ids
-          * ``int_preds[i]`` lists predecessors of node ``i`` as integers
-        Cached until the graph changes.
+        Returns ``(node_index, int_topo, int_preds)`` — cached until the
+        graph changes.
         """
-        if self._int_index_cache is None:
+        if "int_topo" not in self._cache:
             topo = self.topo_order()
-            self._int_index_cache = {n: i for i, n in enumerate(topo)}
-            self._int_topo_cache = list(range(len(topo)))
+            node_index = {n: i for i, n in enumerate(topo)}
             preds = self.predecessors_map()
-            idx = self._int_index_cache
-            self._int_preds_cache = [[idx[p] for p in preds[n]] for n in topo]
-        return (
-            self._int_index_cache,
-            self._int_topo_cache,
-            self._int_preds_cache,
-        )
+            self._cache["int_topo"] = (
+                node_index,
+                list(range(len(topo))),
+                [[node_index[p] for p in preds[n]] for n in topo],
+            )
+        return self._cache["int_topo"]
 
     def component_view(self):
         """Flat-array projection used by the Mojo ``batch_compute`` kernel.
@@ -184,7 +156,7 @@ class Network:
           * ``params``      — ``float64[N*6]``, layout per type
           * ``port_indices``— ``int64[N*3]``, ``-1`` for unused slots
         """
-        if self._comp_types_cache is None:
+        if "component_view" not in self._cache:
             from math import pi
 
             import numpy as np
@@ -242,30 +214,42 @@ class Network:
                     params[pb + 1] = comp.zeta
                 else:
                     raise TypeError(f"unsupported component for batch view: {type(comp).__name__}")
-            self._comp_types_cache = types
-            self._comp_params_cache = params
-            self._comp_port_idx_cache = port_idx
-        return self._comp_types_cache, self._comp_params_cache, self._comp_port_idx_cache
+            self._cache["component_view"] = (types, params, port_idx)
+        return self._cache["component_view"]
 
     def solve_buffers(self):
-        """Reusable ``(flow_buffer, fluid_buf)`` numpy arrays for the batch kernel.
+        """Per-port numpy buffers + scalar slot for the batch Mojo kernel.
 
-        ``flow_buffer`` is a single 3P-long float64 ndarray packed as
-        ``[flows | velocities | dps]`` so the Mojo kernel takes ≤ 6
-        positional args (Mojo 26.2's ``def_function`` limit). ``fluid_buf``
-        is a 2-element ndarray ``[density, kinematic_viscosity]``. Both
-        are sized to the current node count and reused across solves;
-        callers zero ``flow_buffer`` before each pass.
+        Returns ``(flows, velocities, dps, fluid_buf)``:
+          * ``flows`` / ``velocities`` / ``dps``: views into a shared
+            3P-long float64 buffer (Mojo 26.2's ``def_function`` caps at
+            6 positional args, so the three per-port slices live in one
+            allocation that gets passed once).
+          * ``fluid_buf``: 2-element ``[density, kinematic_viscosity]``
+            ndarray the kernel reads each call.
+
+        Backing storage is cached on the Network and reused across
+        solves; callers are responsible for zeroing before each pass.
         """
-        if self._solve_buffers is None:
+        if "solve_buffers" not in self._cache:
             import numpy as np
-            int_topo = self.int_topo_view()[1]
-            n = len(int_topo)
-            self._solve_buffers = (
-                np.zeros(3 * n, dtype=np.float64),
+            n = len(self.int_topo_view()[1])
+            packed = np.zeros(3 * n, dtype=np.float64)
+            self._cache["solve_buffers"] = (
+                packed[:n],
+                packed[n : 2 * n],
+                packed[2 * n :],
                 np.zeros(2, dtype=np.float64),
+                packed,                   # retained so the views stay live
             )
-        return self._solve_buffers
+        flows, vels, dps, fluid_buf, _packed = self._cache["solve_buffers"]
+        return flows, vels, dps, fluid_buf
+
+    def _packed_flow_buffer(self):
+        """Internal: the contiguous ``[flows | velocities | dps]`` buffer
+        that ``batch_compute`` actually receives. Not part of the public API."""
+        self.solve_buffers()
+        return self._cache["solve_buffers"][4]
 
     def flat_ports(self) -> list[tuple]:
         """Cached ``[(port, flat_index), ...]`` for fast scatter/gather.
@@ -274,24 +258,24 @@ class Network:
         components × ports loop and to skip the per-port node_index
         dict lookup on every solve.
         """
-        if self._flat_ports_cache is None:
+        if "flat_ports" not in self._cache:
             node_index, _, _ = self.int_topo_view()
-            self._flat_ports_cache = [
+            self._cache["flat_ports"] = [
                 (p, node_index[p.node_id])
                 for comp in self.components.values()
                 for p in comp.ports
             ]
-        return self._flat_ports_cache
+        return self._cache["flat_ports"]
 
     def terminals(self) -> list[Terminal]:
         """Cached list of :class:`Terminal` components in the network."""
-        if self._terminals_cache is None:
+        if "terminals" not in self._cache:
             from ..components.fitting import Terminal as _Terminal
 
-            self._terminals_cache = [
+            self._cache["terminals"] = [
                 c for c in self.components.values() if isinstance(c, _Terminal)
             ]
-        return self._terminals_cache
+        return self._cache["terminals"]
 
     def sources(self) -> list[Source]:
         """List of :class:`Source` components in the network."""

@@ -117,10 +117,12 @@ class TestSolve:
     def test_topo_order_invalidated_on_change(self) -> None:
         net = _simple_linear_net()
         first = net.solve()
-        # Mutate the network and re-solve; topo cache must be rebuilt
-        # so the new component shows up in the critical path.
+        # Touch the cache so it materialises; then mutating the network
+        # must invalidate it.
+        _ = net.topo_order()
+        assert "topo" in net._cache
         net.add("extra", Source("extra"))  # disconnected, but enough to invalidate
-        assert net._topo_cache is None
+        assert net._cache == {}
         # Solving still works.
         assert net.solve() == pytest.approx(first)
 
