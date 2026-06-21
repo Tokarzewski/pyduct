@@ -115,12 +115,6 @@ def _cmd_validate(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    import sentry_sdk
-
-    sentry_sdk.init(
-        dsn="https://a6d1143b0a893c63f156f701a0d4f694@o4511596868599808.ingest.de.sentry.io/4511597478084688",
-    )
-
     p = argparse.ArgumentParser(
         prog="wentamojo",
         description="Ductwork design utility (Mojo-backed solver).",
