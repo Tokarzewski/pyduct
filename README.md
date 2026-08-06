@@ -140,7 +140,7 @@ wentamojo/                   # Mojo port
     └── bench_suite.mojo        # full kernel-by-kernel comparison table
 
 python/wenta/                  # Python implementation (the reference)
-python/tests/                   # pytest suite (184 tests, mypy + ruff clean)
+python/tests/                   # pytest suite (197 tests, mypy + ruff clean)
 
 docs/                           # historical design notes from the Python redesign
 ```
