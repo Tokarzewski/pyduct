@@ -61,3 +61,26 @@ Completed the LOAD→SAVE round-trip in the wenta YAML/JSON format:
 - After completion, branches were committed, merged into `main` (clean — the
   only conflict was per-agent `REPORT.md`, resolved by consolidating here), and
   the whole crate re-formatted + re-verified.
+
+---
+
+# Round 2 — Parallel-Agent Build Session (4 agents)
+
+A second batch of 4 parallel `pi` agents (dedicated worktrees/branches) delivered:
+
+| Branch | Issue | Deliverable |
+|---|---|---|
+| `venti/standards` | #8 | Configurable standards: `venti::standards` (Standard enum: EN/ASHRAE/DIN size tables + `nearest_round_size_for`) |
+| `venti/bench` | #10 | Per-kernel benchmark binary `src/bin/bench.rs` (+ `just bench` + README table) |
+| `venti/cabi` | #12 | C-ABI exports for sound + balancing cores in `ffi.rs` |
+| `venti/example` | — | `examples/design_workflow.rs` — end-to-end pipeline demo (size → solve → schedule → save → sound → balance → fittings) |
+
+Integrated result: **91 tests pass** (83 unit + 2 io + 5 parity + 1 doctest),
+clippy `-D`-clean, fmt clean, WASM builds (217 KB) and runs from Node.
+
+- **Standards (#8):** `Standard::{En1505_1506, AsHrae, Din}`; ASHRAE (inch-derived) + DIN (Renard R10/R20) tables in mm; `round_sizes_mm`, `rect_sizes_mm`, `nearest_round_size_for`; existing `data::standard_sizes` untouched.
+- **Bench (#10):** `cargo run --release --bin bench` times friction/reynolds/drops/sizing/batch/network-solve; measured e.g. friction_factor ~18 M calls/s, local_pressure_drop ~1 G calls/s, velocity_method_round ~118 M calls/s, network build+solve ~22.7 k/s.
+- **C-ABI (#12):** `venti_regenerated_noise_round`, `venti_duct_pressure_level`, `venti_nc_ok`, `venti_required_zeta`, `venti_balancing_zeta`, `venti_damper_open_percentage` — verified in `venti.wasm`; 2 ffi tests.
+- **Example:** deterministic 7-step workflow printing size, ΔP=23.28 Pa, schedule, JSON, NC compliance, damper open %, and a fire-damper zeta — runs cleanly.
+
+_(Note: the standards agent's `REPORT.md` was a copy/paste of the sound report; the code itself is a real, tested `standards` module — see `venti/src/standards.rs`.)_
