@@ -26,6 +26,7 @@ use core::slice;
 use std::string::String;
 use std::sync::{Mutex, OnceLock};
 
+use crate::balancing::{balancing_zeta, damper_open_percentage, required_zeta};
 use crate::components::fittings_library::{
     damper_butterfly, diffuser_ceiling, expander_round, grille_return, junction_tee_branch,
     junction_tee_combine, mitered_elbow, rectangular_elbow, reducer_round,
@@ -42,6 +43,7 @@ use crate::physics::losses::{local_pressure_drop, straight_pressure_drop};
 use crate::sizing::{
     aspect_ratio_method, equal_friction_method_round, velocity_method_batch, velocity_method_round,
 };
+use crate::sound::{duct_pressure_level, nc_ok, regenerated_noise_round};
 
 // ---- core: geometry ------------------------------------------------------
 
@@ -453,6 +455,74 @@ pub unsafe extern "C" fn venti_batch_compute(
         }
     }
     0
+}
+
+// ---- sound / acoustics ----------------------------------------------------
+
+/// Regenerated (airflow) sound-power level of a straight round duct [dB re
+/// 1e-12 W]. `density` <= 0 selects standard air; NAN on bad input.
+#[no_mangle]
+pub extern "C" fn venti_regenerated_noise_round(velocity: f64, diameter: f64, density: f64) -> f64 {
+    let rho = if density > 0.0 { Some(density) } else { None };
+    regenerated_noise_round(velocity, diameter, rho).unwrap_or(f64::NAN)
+}
+
+/// Convert a duct sound-*power* level into the reverberant sound-*pressure*
+/// level [dB re 20 µPa] in a room. NAN on bad input.
+#[no_mangle]
+pub extern "C" fn venti_duct_pressure_level(
+    sound_power_db: f64,
+    room_area: f64,
+    absorption: f64,
+) -> f64 {
+    duct_pressure_level(sound_power_db, room_area, absorption).unwrap_or(f64::NAN)
+}
+
+/// Check `level_db` against the NC target for `space_type` (a `(ptr, len)`
+/// byte string, e.g. `"office"`). Writes `*out_ok` (1 = passes). Returns 0 on
+/// success, nonzero for an unknown space type.
+#[no_mangle]
+pub unsafe extern "C" fn venti_nc_ok(
+    space_ptr: *const u8,
+    space_len: usize,
+    level_db: f64,
+    out_ok: *mut i32,
+) -> i32 {
+    let space = str_from(space_ptr, space_len);
+    match nc_ok(&space, level_db) {
+        Ok(ok) => {
+            *out_ok = if ok { 1 } else { 0 };
+            0
+        }
+        Err(_) => 1,
+    }
+}
+
+// ---- balancing -------------------------------------------------------------
+
+/// Loss coefficient (ζ) a damper must add to produce `required_dp_pa` of
+/// pressure drop at the given velocity: ζ = 2·dp/(ρ·v²).
+#[no_mangle]
+pub extern "C" fn venti_required_zeta(required_dp_pa: f64, velocity: f64, density: f64) -> f64 {
+    required_zeta(required_dp_pa, velocity, density)
+}
+
+/// Damper ζ that balances a branch whose available pressure is below its
+/// requirement (0.0 when the branch is already met/over-supplied).
+#[no_mangle]
+pub extern "C" fn venti_balancing_zeta(
+    total_req_pa: f64,
+    branch_avail_pa: f64,
+    velocity: f64,
+    density: f64,
+) -> f64 {
+    balancing_zeta(total_req_pa, branch_avail_pa, velocity, density)
+}
+
+/// Invert the butterfly-damper correlation: ζ -> open percentage [0, 100].
+#[no_mangle]
+pub extern "C" fn venti_damper_open_percentage(zeta: f64) -> f64 {
+    damper_open_percentage(zeta)
 }
 
 // ---------------------------------------------------------------------------
@@ -887,6 +957,62 @@ mod tests {
             h
         };
         let _ = h;
+    }
+
+    #[test]
+    fn sound_ffi_closed_form_and_errors() {
+        // Regenerated noise with default density (density = 0 selects standard
+        // air, so the ρ/ρ₀ term vanishes): Lw = 10 + 60·log10(v) − 20·log10(d).
+        let lw = venti_regenerated_noise_round(2.0, 0.5, 0.0);
+        let expected = 10.0 + 60.0 * 2.0f64.log10() - 20.0 * 0.5f64.log10();
+        assert!((lw - expected).abs() < 1e-9, "lw = {lw}");
+        // Bad input -> NAN.
+        assert!(venti_regenerated_noise_round(0.0, 0.5, 1.204).is_nan());
+        assert!(venti_regenerated_noise_round(4.0, -1.0, 1.204).is_nan());
+
+        // Duct pressure level (room equation) closed form.
+        let lp = venti_duct_pressure_level(60.0, 100.0, 0.2);
+        let exp = 60.0 + 10.0 * (4.0 * 0.8f64 / (0.2 * 100.0)).log10();
+        assert!((lp - exp).abs() < 1e-9, "lp = {lp}");
+        assert!(venti_duct_pressure_level(60.0, 0.0, 0.2).is_nan());
+        assert!(venti_duct_pressure_level(60.0, 100.0, 1.0).is_nan());
+
+        // nc_ok: office target = 35 dB.
+        let mut ok = -1i32;
+        unsafe {
+            assert_eq!(venti_nc_ok(b"office".as_ptr(), 6, 35.0, &mut ok), 0);
+            assert_eq!(ok, 1);
+            assert_eq!(venti_nc_ok(b"office".as_ptr(), 6, 36.0, &mut ok), 0);
+            assert_eq!(ok, 0);
+            // Unknown space type -> nonzero status.
+            assert_ne!(venti_nc_ok(b"bogus".as_ptr(), 5, 10.0, &mut ok), 0);
+        }
+    }
+
+    #[test]
+    fn balancing_ffi_closed_form() {
+        // ζ = 2·dp/(ρ·v²): dp=19.264, v=4, ρ=1.204 -> dynamic 9.632 -> ζ = 2.
+        let z = venti_required_zeta(19.264, 4.0, 1.204);
+        assert!((z - 2.0).abs() < 1e-9, "zeta = {z}");
+
+        // Branch short of requirement by 19.264 Pa at dynamic 9.632 -> ζ = 2;
+        // already-met branch stays fully open (0).
+        let z2 = venti_balancing_zeta(30.0, 10.736, 4.0, 1.204);
+        assert!((z2 - 2.0).abs() < 1e-9, "zeta2 = {z2}");
+        assert_eq!(venti_balancing_zeta(10.0, 20.0, 4.0, 1.204), 0.0);
+        assert_eq!(venti_balancing_zeta(10.0, 10.0, 4.0, 1.204), 0.0);
+
+        // Damper open-percentage round-trips through the butterfly correlation
+        // (venti_damper_open_percentage -> venti_damper_butterfly).
+        for zeta in [0.1, 0.5, 1.0, 2.5, 5.0, 8.0, 10.0] {
+            let open = venti_damper_open_percentage(zeta);
+            let back = venti_damper_butterfly(open);
+            assert!(
+                (back - zeta).abs() < 1e-9,
+                "zeta={zeta} open={open} back={back}"
+            );
+        }
+        assert_eq!(venti_damper_open_percentage(0.05), 100.0); // below floor
     }
 
     #[test]
