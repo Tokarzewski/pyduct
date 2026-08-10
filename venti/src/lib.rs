@@ -56,6 +56,7 @@ pub mod results;
 pub mod sizing;
 pub mod sound;
 pub mod standards;
+pub mod topology;
 pub mod units;
 
 #[cfg(feature = "cli")]
@@ -87,6 +88,7 @@ pub use network::{
 };
 pub use results::{extract_results, results_as_csv, results_summary, ComponentResult};
 pub use standards::{nearest_round_size_for, rect_sizes_mm, round_sizes_mm, Standard};
+pub use topology::{trace, Polyline, Segment, TraceOptions, TracedSystem};
 
 #[cfg(feature = "cli")]
 pub use results::{report_json_string, results_as_json_rows};

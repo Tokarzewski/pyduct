@@ -18,6 +18,7 @@ venti/
 │   ├── sizing.rs   velocity / EF / budget / noise / aspect-ratio sizing
 │   ├── components/ ducts, fittings, terminals, round elbow + 9 fittings
 │   ├── network/    graph model + solver (critical-path DP, batch kernel)
+│   ├── topology/   M3 core: trace polylines → Network, flatten → draw segments
 │   ├── ffi.rs      C-ABI exports (the WASM / cdylib symbol surface)
 │   └── main.rs     CLI (`venti solve|info|validate <network.[yaml|json]>`)
 ├── host/           language-example hosts (Node->WASM, Python ctypes->cdylib)
@@ -42,6 +43,7 @@ venti/
 | Component classes (Source/Terminal/Duct/Flex/Fitting/Tee) | ✅ | ✅ | ✅ |
 | Round elbow (spline)          | ✅ (scipy) | — | ✅ (bilinear) |
 | Network graph model + solver  | ✅ (NetworkX) | partial | ✅ (self-contained) |
+| Geometry topology (trace/flatten) | partial | — | ✅ (host-agnostic, M3 core) |
 | Critical-path DP kernel       | ✅ | ✅ | ✅ |
 | Batch pressure-drop kernel    | ✅ | ✅ | ✅ |
 | Pydantic schemas + visualisation | ✅ | — | — (CLI tables) |
