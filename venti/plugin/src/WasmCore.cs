@@ -61,6 +61,12 @@ namespace Venti.Plugin
         public double FrictionFactor(double re, double relRoughness) =>
             F2("venti_friction_factor")(re, relRoughness);
 
+        public double Reynolds(double velocity, double dHyd, double kinVisc) =>
+            F3("venti_reynolds")(velocity, dHyd, kinVisc);
+
+        public double RelativeRoughness(double absRough, double dHyd) =>
+            F2("venti_relative_roughness")(absRough, dHyd);
+
         public double LocalPressureDrop(double zeta, double v, double rho) =>
             F3("venti_local_pressure_drop")(zeta, v, rho);
 

@@ -48,9 +48,11 @@ the csproj’s `None` item — the build already copies the WASM core from
 
 1. Start ZWCAD.
 2. Command `NETLOAD` → select `Venti.Plugin.dll`.
-3. Command `VENTI` → prints the scaffold banner.
-4. Command `VENTI_SIZE` → prompts for a flowrate (returns a placeholder until
-   #15).
+3. Command `VENTI` → prints the scaffold banner + backend.
+4. Command `VENTI_SIZE` → prompts for a flowrate; sizes a round duct by the
+   velocity method and reports D + velocity + friction factor (issue #16).
+5. Command `VENTI_SOLVE` → solves a Source→Duct→Fitting→Terminal chain and
+   reports critical-path static pressure (issue #16).
 
 ## Notes
 

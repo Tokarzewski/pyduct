@@ -43,6 +43,8 @@ namespace Venti.Plugin
 
         // ---- friction / hydraulics (venti::physics) ----
         double FrictionFactor(double reynolds, double relRoughness);
+        double Reynolds(double velocity, double hydraulicDiameter, double kinematicViscosity);
+        double RelativeRoughness(double absoluteRoughness, double hydraulicDiameter);
         double LocalPressureDrop(double zeta, double velocity, double density);
         double StraightPressureDrop(double f, double length, double dHyd, double velocity, double density);
 

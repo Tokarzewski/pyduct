@@ -22,6 +22,12 @@ namespace Venti.Plugin
         private static extern double venti_friction_factor(double re, double relRoughness);
 
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+        private static extern double venti_reynolds(double velocity, double dHyd, double kinematicViscosity);
+
+        [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
+        private static extern double venti_relative_roughness(double absRough, double dHyd);
+
+        [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
         private static extern double venti_local_pressure_drop(double zeta, double v, double rho);
 
         [DllImport(Library, CallingConvention = CallingConvention.Cdecl)]
@@ -72,6 +78,12 @@ namespace Venti.Plugin
 
         public double FrictionFactor(double re, double relRoughness) =>
             venti_friction_factor(re, relRoughness);
+
+        public double Reynolds(double velocity, double dHyd, double kinVisc) =>
+            venti_reynolds(velocity, dHyd, kinVisc);
+
+        public double RelativeRoughness(double absRough, double dHyd) =>
+            venti_relative_roughness(absRough, dHyd);
 
         public double LocalPressureDrop(double zeta, double velocity, double density) =>
             venti_local_pressure_drop(zeta, velocity, density);
