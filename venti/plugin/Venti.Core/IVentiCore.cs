@@ -1,6 +1,6 @@
 using System;
 
-namespace Venti.Plugin
+namespace Venti.Core
 {
     /// <summary>
     /// A sizing result: a round/rectangular section in metres plus the actual

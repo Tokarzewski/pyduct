@@ -10,14 +10,23 @@ managed API + stages `venti.wasm`. Real functionality lands over issues
 
 ```
 plugin/
-├── Venti.Plugin.csproj   # net48 class library → Venti.Plugin.dll
-└── src/
-    ├── Commands.cs        # [CommandMethod] VENTI / VENTI_SIZE entry points
-    ├── IVentiCore.cs      # host-agnostic facade (issue #14)
-    ├── NativeCore.cs      # P/Invoke into the venti cdylib (issue #14)
-    ├── WasmCore.cs        # embed venti.wasm via Wasmtime (issue #14)
-    └── VentiCoreFactory.cs# backend selection (issue #14)
+├── Venti.Plugin.csproj        # ZWCAD-loaded assembly (net48) → Venti.Plugin.dll
+├── Venti.Core/                # ZWCAD-independent bindings (netstandard2.0) — issue #18
+│   ├── Venti.Core.csproj
+│   ├── IVentiCore.cs          # host-agnostic facade (issue #14)
+│   ├── NativeCore.cs          # P/Invoke into the venti cdylib (issue #14)
+│   ├── WasmCore.cs            # embed venti.wasm via Wasmtime (issue #14)
+│   └── VentiCoreFactory.cs    # backend selection (issue #14)
+├── tests/Venti.Core.Tests/    # headless binding tests (xunit, no ZWCAD) — issue #18
+│   ├── Venti.Core.Tests.csproj
+│   └── CoreBindingTests.cs
+├── scripts/stage-wasm.{cmd,sh}# stage venti.wasm beside the DLL (issue #17)
+├── src/Commands.cs            # [CommandMethod] VENTI / VENTI_SIZE / VENTI_SOLVE
+└── README.md
 ```
+
+`Venti.Core` and `Venti.Plugin` are separate assemblies so the compute bindings
+(and their tests) never require ZWCAD.
 
 ## Backends (issue #14)
 

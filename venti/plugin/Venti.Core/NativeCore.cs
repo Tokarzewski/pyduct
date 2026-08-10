@@ -2,7 +2,7 @@ using System;
 using System.Runtime.InteropServices;
 using System.Text;
 
-namespace Venti.Plugin
+namespace Venti.Core
 {
     /// <summary>
     /// P/Invoke backend: calls straight into the native venti C-ABI cdylib

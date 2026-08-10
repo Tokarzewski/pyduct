@@ -1,6 +1,6 @@
 using System;
 
-namespace Venti.Plugin
+namespace Venti.Core
 {
     /// <summary>Selectable compute backends.</summary>
     public enum VentiBackend

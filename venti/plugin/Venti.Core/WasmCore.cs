@@ -1,6 +1,6 @@
 using System;
 
-namespace Venti.Plugin
+namespace Venti.Core
 {
     /// <summary>
     /// WASM backend: embeds venti.wasm via the Wasmtime .NET SDK (NuGet
