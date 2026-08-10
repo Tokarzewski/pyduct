@@ -38,6 +38,11 @@
     </Reference>
   </ItemGroup>
 
+  <!-- WASM backend (issue #14). Omit this package to use the native-only build. -->
+  <ItemGroup Condition="'$(UseWasm)' != 'false'">
+    <PackageReference Include="Wasmtime" Version="0.38.0" />
+  </ItemGroup>
+
   <!-- Stage the venti WASM core beside the plugin assembly (issue #17). -->
   <ItemGroup>
     <None Include="..\..\target\wasm32-wasip1\release\venti.wasm"

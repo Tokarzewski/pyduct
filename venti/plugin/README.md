@@ -12,8 +12,22 @@ managed API + stages `venti.wasm`. Real functionality lands over issues
 plugin/
 ├── Venti.Plugin.csproj   # net48 class library → Venti.Plugin.dll
 └── src/
-    └── Commands.cs        # [CommandMethod] VENTI / VENTI_SIZE entry points
+    ├── Commands.cs        # [CommandMethod] VENTI / VENTI_SIZE entry points
+    ├── IVentiCore.cs      # host-agnostic facade (issue #14)
+    ├── NativeCore.cs      # P/Invoke into the venti cdylib (issue #14)
+    ├── WasmCore.cs        # embed venti.wasm via Wasmtime (issue #14)
+    └── VentiCoreFactory.cs# backend selection (issue #14)
 ```
+
+## Backends (issue #14)
+
+`IVentiCore` abstracts the compute core so command code never touches the WASM
+FDIn; pick a backend at runtime with `VentiCoreFactory.Create(...)`:
+
+- **Native** (default) — `NativeCore` P/Invokes the C-ABI cdylib
+  (`venti.dll` / `libventi.so`) with `[DllImport]`.
+- **Wasm** — `WasmCore` embeds `venti.wasm` via the `Wasmtime` NuGet package
+  (single cross-platform artifact; no native lib).
 
 ## Build
 
