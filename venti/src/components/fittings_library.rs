@@ -361,3 +361,246 @@ mod tests {
         assert!(attenuator_open(-0.1).is_err());
     }
 }
+
+// ---------------------------------------------------------------------------
+// Expanded library (ductwork breadth)
+// ---------------------------------------------------------------------------
+// Additional loss-coefficient correlations spanning rectangular transitions,
+// round elbows, louvers, filters and round taps — all in the same
+// `Result<f64, String>` + validation style, with documented sources.
+
+/// Half-angle diffuser-performance factor (ASHRAE Fundamentals F29).
+///
+/// Small included angles act as efficient diffusers (low loss); the factor
+/// rises toward 1.0 (the sudden-expansion Borda–Carnot limit) as the angle
+/// grows. `angle_deg` is the total included cone angle, clamped to ≤ 180.
+fn diffuser_factor(angle_deg: f64) -> f64 {
+    if angle_deg <= 10.0 {
+        0.3
+    } else if angle_deg <= 20.0 {
+        0.5
+    } else if angle_deg <= 45.0 {
+        0.7
+    } else if angle_deg <= 60.0 {
+        0.9
+    } else {
+        1.0
+    }
+}
+
+/// Rectangular reducer (contraction) loss coefficient, referenced to the
+/// **outlet** velocity (ASHRAE F29 / Idelchik §4).
+///
+/// ``zeta = (0.04 + 0.37·(1 − A_out/A_in)) · f_angle`` — smoother for smaller
+/// included angles; an ideal (equal-area) transition gives `0`.
+pub fn reducer_rectangular(
+    w_in: f64,
+    h_in: f64,
+    w_out: f64,
+    h_out: f64,
+    angle_deg: f64,
+) -> Result<f64, String> {
+    if w_in <= 0.0 || h_in <= 0.0 || w_out <= 0.0 || h_out <= 0.0 {
+        return Err("widths and heights must be positive".into());
+    }
+    let a_in = w_in * h_in;
+    let a_out = w_out * h_out;
+    if a_out > a_in {
+        return Err("outlet area must be <= inlet area (this is a reducer)".into());
+    }
+    let r = a_out / a_in;
+    let f = diffuser_factor(angle_deg.min(180.0));
+    Ok((0.04 + 0.37 * (1.0 - r)) * f)
+}
+
+/// Rectangular expander / diffuser loss coefficient, referenced to the
+/// **inlet** velocity (ASHRAE F29; Borda–Carnot sudden-expansion baseline).
+///
+/// ``zeta = (1 − A_in/A_out)² · f_angle``.
+pub fn expander_rectangular(
+    w_in: f64,
+    h_in: f64,
+    w_out: f64,
+    h_out: f64,
+    angle_deg: f64,
+) -> Result<f64, String> {
+    if w_in <= 0.0 || h_in <= 0.0 || w_out <= 0.0 || h_out <= 0.0 {
+        return Err("widths and heights must be positive".into());
+    }
+    let a_in = w_in * h_in;
+    let a_out = w_out * h_out;
+    if a_out < a_in {
+        return Err("outlet area must be >= inlet area (this is an expander)".into());
+    }
+    let r = a_in / a_out;
+    let f = diffuser_factor(angle_deg.min(180.0));
+    Ok((1.0 - r) * (1.0 - r) * f)
+}
+
+/// Round elbow loss coefficient (ASHRAE Fundamentals, smooth-radius round
+/// elbow). Use `ElbowRound` (tabulated interpolation in `components::elbow`)
+/// when you need the full R/D vs angle table; this is a compact algebraic form.
+///
+/// ``zeta = zeta_90 · (angle/90)`` with ``zeta_90 = clamp(0.21 / √(R/D)) ≤ 1.0``.
+pub fn elbow_round(bend_radius: f64, diameter: f64, angle_deg: f64) -> Result<f64, String> {
+    if diameter <= 0.0 || bend_radius <= 0.0 {
+        return Err("bend_radius and diameter must be positive".into());
+    }
+    if !(angle_deg > 0.0 && angle_deg <= 180.0) {
+        return Err("angle_deg must be in (0, 180]".into());
+    }
+    let rd = bend_radius / diameter;
+    if rd < 0.5 {
+        return Err("R/D must be >= 0.5 for a smooth round elbow".into());
+    }
+    let zeta_90 = (0.21 / rd.sqrt()).min(1.0);
+    Ok(zeta_90 * (angle_deg / 90.0))
+}
+
+/// Louver (intake / relief / face) loss coefficient — long characteristic of
+/// stationary-louver weather hoods (ASHRAE F25 / manufacturer data).
+///
+/// ``zeta = 0.25 + 4·(1 − open/100)³`` — low (~0.25) fully open, rising steeply
+/// as the blades close.
+pub fn louver_open(open_percentage: f64) -> Result<f64, String> {
+    if !(0.0..=100.0).contains(&open_percentage) {
+        return Err("open_percentage must be in [0, 100]".into());
+    }
+    let closed = 1.0 - open_percentage / 100.0;
+    Ok(0.25 + 4.0 * closed * closed * closed)
+}
+
+/// Panel / throwaway filter-bank loss coefficient as a function of the free
+/// face-area fraction left open by the media (ASHRAE / filter manufacturer
+/// data). Loss rises quickly as the media clogs (free area falls).
+///
+/// ``zeta = 0.12 / open_fraction²``
+pub fn filter_bank(open_fraction: f64) -> Result<f64, String> {
+    if !(0.05..=1.0).contains(&open_fraction) {
+        return Err("open_fraction must be in [0.05, 1]".into());
+    }
+    Ok(0.12 / (open_fraction * open_fraction))
+}
+
+/// Round-tap branch loss coefficient into a round main (Miller / ASHRAE tap
+/// data), referenced to the branch velocity. `split_ratio` is the fraction of
+/// the main flow diverted into the tap (0..1).
+///
+/// ``zeta = 0.6 + 0.5·(1 − (d_tap/d_main)²) + 0.8·(1 − split)``
+pub fn round_tap_branch(d_main: f64, d_tap: f64, split_ratio: f64) -> Result<f64, String> {
+    if d_main <= 0.0 {
+        return Err("d_main must be positive".into());
+    }
+    if !(d_tap > 0.0 && d_tap <= d_main) {
+        return Err("d_tap must be in (0, d_main]".into());
+    }
+    if !(0.0..=1.0).contains(&split_ratio) {
+        return Err("split_ratio must be in [0, 1]".into());
+    }
+    let area = (d_tap / d_main) * (d_tap / d_main);
+    Ok(0.6 + 0.5 * (1.0 - area) + 0.8 * (1.0 - split_ratio))
+}
+
+/// Named constant zeta values for common devices — the seed of a
+/// vendor-catalogue lookup (FR-19). `named_zeta` resolves a device key to a
+/// loss coefficient, or `None` if unknown.
+pub const NAMED_FITTING_ZETAS: &[(&str, f64)] = &[
+    ("duct_section", 0.0),
+    ("fire_damper_open", 0.18),
+    ("butterfly_open", 0.1),
+    ("silencer_open", 0.35),
+    ("diffuser_face", 0.4),
+    ("grille_return", 0.25),
+    ("louver_open", 0.25),
+    ("damper_open", 0.1),
+];
+
+/// Look up a named device loss coefficient (constant), e.g.
+/// `named_zeta("fire_damper_open") == Some(0.18)`.
+pub fn named_zeta(name: &str) -> Option<f64> {
+    NAMED_FITTING_ZETAS
+        .iter()
+        .find(|(k, _)| *k == name)
+        .map(|(_, z)| *z)
+}
+
+#[cfg(test)]
+mod tests_expanded {
+    use super::*;
+
+    #[test]
+    fn reducer_rectangular_closed_form_and_ideal() {
+        // equal areas -> only the connection base loss (the 0.04 housing term)
+        assert!((reducer_rectangular(0.3, 0.2, 0.3, 0.2, 90.0).unwrap() - 0.04).abs() < 1e-9);
+        // a real contraction is positive
+        let full = reducer_rectangular(0.4, 0.3, 0.2, 0.2, 90.0).unwrap();
+        // r = 0.04/0.12 = 1/3 -> (0.04 + 0.37*2/3) * f(90°)=1.0
+        assert!((full - (0.04 + 0.37 * (2.0 / 3.0))).abs() < 1e-9);
+        // a reducer can't expand
+        assert!(reducer_rectangular(0.2, 0.2, 0.4, 0.4, 45.0).is_err());
+    }
+
+    #[test]
+    fn expander_rectangular_borda_carnot() {
+        let z = expander_rectangular(0.2, 0.2, 0.4, 0.4, 90.0).unwrap();
+        // r = 0.25, (1-0.25)^2 * 1.0
+        assert!((z - 0.75 * 0.75).abs() < 1e-9);
+        assert!(expander_rectangular(0.4, 0.4, 0.2, 0.2, 45.0).is_err());
+    }
+
+    #[test]
+    fn elbow_round_scales_with_angle_and_rd() {
+        let tight = elbow_round(0.2, 0.4, 90.0).unwrap(); // RD=0.5
+        let wide = elbow_round(0.4, 0.4, 90.0).unwrap(); // RD=1.0
+        assert!(wide < tight);
+        // angle scales linearly: 45° is half of 90°
+        let half = elbow_round(0.4, 0.4, 45.0).unwrap();
+        assert!((half - wide / 2.0).abs() < 1e-12);
+        // RD < 0.5 rejected
+        assert!(elbow_round(0.1, 0.4, 90.0).is_err());
+    }
+
+    #[test]
+    fn louver_open_is_steep_close() {
+        assert!((louver_open(100.0).unwrap() - 0.25).abs() < 1e-12);
+        let closed = louver_open(0.0).unwrap();
+        let half = louver_open(50.0).unwrap();
+        assert!(closed > half);
+        assert!((closed - (0.25 + 4.0)).abs() < 1e-9);
+        assert!(louver_open(101.0).is_err());
+    }
+
+    #[test]
+    fn filter_bank_monotonic_and_closed_form() {
+        assert!((filter_bank(1.0).unwrap() - 0.12).abs() < 1e-12);
+        let clogged = filter_bank(0.5).unwrap();
+        let open = filter_bank(0.9).unwrap();
+        assert!(clogged > open);
+        assert!((clogged - 0.48).abs() < 1e-9); // 0.12/0.25
+    }
+
+    #[test]
+    fn round_tap_branch_validation_and_monotone() {
+        let z = round_tap_branch(0.3, 0.15, 0.5).unwrap();
+        assert!(z > 0.0);
+        // larger tap (more area) and more split -> lower loss
+        assert!(round_tap_branch(0.3, 0.25, 0.5).unwrap() < z);
+        assert!(round_tap_branch(0.3, 0.15, 0.9).unwrap() < z);
+        assert!(round_tap_branch(0.0, 0.1, 0.5).is_err());
+        assert!(round_tap_branch(0.3, 0.4, 0.5).is_err()); // tap > main
+    }
+
+    #[test]
+    fn named_zeta_lookup() {
+        assert_eq!(named_zeta("fire_damper_open"), Some(0.18));
+        assert_eq!(named_zeta("diffuser_face"), Some(0.4));
+        assert_eq!(named_zeta("no_such_device"), None);
+    }
+
+    #[test]
+    fn diffuser_factor_grows_with_angle() {
+        // helper: monotonic non-decreasing
+        assert!(diffuser_factor(5.0) <= diffuser_factor(50.0));
+        assert!(diffuser_factor(50.0) <= diffuser_factor(120.0));
+    }
+}

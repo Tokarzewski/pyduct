@@ -84,3 +84,25 @@ clippy `-D`-clean, fmt clean, WASM builds (217 KB) and runs from Node.
 - **Example:** deterministic 7-step workflow printing size, ΔP=23.28 Pa, schedule, JSON, NC compliance, damper open %, and a fire-damper zeta — runs cleanly.
 
 _(Note: the standards agent's `REPORT.md` was a copy/paste of the sound report; the code itself is a real, tested `standards` module — see `venti/src/standards.rs`.)_
+---
+
+# Fitting-library expansion (continued core work)
+
+Expanded `venti::components::fittings_library` (now **21 correlations** + a
+named-zeta catalog seed):
+
+| New correlation | Notes |
+|---|---|
+| `elbow_round(R,d,angle)` | round elbow, `zeta = min(0.21/√(R/D),1)·(angle/90)`, R/D ≥ 0.5 |
+| `reducer_rectangular(w,h,w',h',angle)` | contraction ref. outlet velocity, `(0.04+0.37(1−Aₒ/Aᵢ))·f(angle)` |
+| `expander_rectangular(...)` | diffuser ref. inlet velocity, Borda–Carnot `(1−Aᵢ/Aₒ)²·f(angle)` |
+| `louver_open(open%)` | `0.25 + 4·(1−open/100)³` |
+| `filter_bank(open_frac)` | `0.12/open_frac²` (media clog) |
+| `round_tap_branch(d_main,d_tap,split)` | tap into round main |
+| `named_zeta(name)` / `NAMED_FITTING_ZETAS` | constant device zetas (FR-19 catalog seed) |
+
+All are `Result<f64,String>` + validated + doc'd; 8 new tests (13 → 21).
+Rounded out the C-ABI too: `venti_elbow_round`, `venti_reducer_rectangular`,
+`venti_expander_rectangular`, `venti_louver_open`, `venti_filter_bank`,
+`venti_round_tap_branch`, `venti_named_zeta` — all present in `venti.wasm`.
+Suite: **96 unit** + 2 io + 5 parity + 1 doctest, clippy + fmt clean.

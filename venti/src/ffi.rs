@@ -28,8 +28,10 @@ use std::sync::{Mutex, OnceLock};
 
 use crate::balancing::{balancing_zeta, damper_open_percentage, required_zeta};
 use crate::components::fittings_library::{
-    damper_butterfly, diffuser_ceiling, expander_round, grille_return, junction_tee_branch,
-    junction_tee_combine, mitered_elbow, rectangular_elbow, reducer_round,
+    damper_butterfly, diffuser_ceiling, elbow_round, expander_rectangular, expander_round,
+    filter_bank, grille_return, junction_tee_branch, junction_tee_combine, louver_open,
+    mitered_elbow, named_zeta, rectangular_elbow, reducer_rectangular, reducer_round,
+    round_tap_branch,
 };
 use crate::core::fluid::{self, air_at_altitude};
 use crate::core::geometry::{self, Round};
@@ -523,6 +525,63 @@ pub extern "C" fn venti_balancing_zeta(
 #[no_mangle]
 pub extern "C" fn venti_damper_open_percentage(zeta: f64) -> f64 {
     damper_open_percentage(zeta)
+}
+
+// ---- expanded fitting library (round-trip into the WASM core) -------------
+
+#[no_mangle]
+pub extern "C" fn venti_elbow_round(bend_radius: f64, diameter: f64, angle_deg: f64) -> f64 {
+    elbow_round(bend_radius, diameter, angle_deg).unwrap_or(f64::NAN)
+}
+
+#[no_mangle]
+pub extern "C" fn venti_reducer_rectangular(
+    w_in: f64, h_in: f64, w_out: f64, h_out: f64, angle_deg: f64,
+) -> f64 {
+    reducer_rectangular(w_in, h_in, w_out, h_out, angle_deg).unwrap_or(f64::NAN)
+}
+
+#[no_mangle]
+pub extern "C" fn venti_expander_rectangular(
+    w_in: f64, h_in: f64, w_out: f64, h_out: f64, angle_deg: f64,
+) -> f64 {
+    expander_rectangular(w_in, h_in, w_out, h_out, angle_deg).unwrap_or(f64::NAN)
+}
+
+#[no_mangle]
+pub extern "C" fn venti_louver_open(open_percentage: f64) -> f64 {
+    louver_open(open_percentage).unwrap_or(f64::NAN)
+}
+
+#[no_mangle]
+pub extern "C" fn venti_filter_bank(open_fraction: f64) -> f64 {
+    filter_bank(open_fraction).unwrap_or(f64::NAN)
+}
+
+#[no_mangle]
+pub extern "C" fn venti_round_tap_branch(d_main: f64, d_tap: f64, split_ratio: f64) -> f64 {
+    round_tap_branch(d_main, d_tap, split_ratio).unwrap_or(f64::NAN)
+}
+
+/// Look up a named constant zeta; writes `out_ok = 1` when found.
+#[no_mangle]
+pub unsafe extern "C" fn venti_named_zeta(
+    name: *const u8,
+    name_len: usize,
+    out: *mut f64,
+    out_ok: *mut i32,
+) {
+    let name = str_from(name, name_len);
+    match named_zeta(&name) {
+        Some(z) => {
+            *out = z;
+            *out_ok = 1;
+        }
+        None => {
+            *out = f64::NAN;
+            *out_ok = 0;
+        }
+    }
 }
 
 // ---------------------------------------------------------------------------
