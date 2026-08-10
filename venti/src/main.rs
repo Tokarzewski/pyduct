@@ -42,6 +42,16 @@ enum Commands {
     Info { file: PathBuf },
     /// Validate a network file structurally.
     Validate { file: PathBuf },
+    /// Dump the ζ database (built-in reference, optionally merged with a
+    /// vendor catalogue JSON).
+    Catalog {
+        /// Optional vendor catalogue JSON to merge in.
+        #[arg(long)]
+        vendor: Option<PathBuf>,
+        /// Output format: text | csv | json
+        #[arg(long, default_value = "text")]
+        format: String,
+    },
     /// Load a network file and write it back out (wenta YAML/JSON round-trip).
     Save {
         file: PathBuf,
@@ -62,6 +72,7 @@ fn main() {
         Commands::Report { file, format } => cmd_report(&file, &format),
         Commands::Info { file } => cmd_info(&file),
         Commands::Validate { file } => cmd_validate(&file),
+        Commands::Catalog { vendor, format } => cmd_catalog(vendor.as_deref(), &format),
         Commands::Save { file, out } => cmd_save(&file, &out),
     };
     if let Err(e) = result {
@@ -207,6 +218,45 @@ fn cmd_save(file: &std::path::Path, out: &str) -> Result<(), String> {
         file.display(),
         out_path.display()
     );
+    Ok(())
+}
+
+fn cmd_catalog(vendor: Option<&std::path::Path>, format: &str) -> Result<(), String> {
+    let mut cat = venti::reference_catalog();
+    if let Some(vpath) = vendor {
+        let vc = venti::vendor_catalog_from_file(vpath.to_str().ok_or("invalid vendor path")?)?;
+        cat.merge(&vc.to_catalog());
+    }
+    match format {
+        "json" => {
+            let rows: Vec<serde_json::Value> = cat.iter().map(|e| serde_json::json!({
+                "key": e.key, "name": e.name,
+                "category": format!("{:?}", e.category),
+                "zeta": e.zeta,
+                "reference_velocity": format!("{:?}", e.reference_velocity),
+                "source": e.source, "size_mm": e.size_mm,
+            })).collect();
+            println!("{}", serde_json::to_string_pretty(&rows).map_err(|e| e.to_string())?);
+        }
+        "csv" => {
+            println!("key,category,zeta,reference_velocity,source,size_mm");
+            for e in cat.iter() {
+                let sz = e.size_mm.map(|x| x.to_string()).unwrap_or_default();
+                println!("{},{:?},{},{:?},{},{}", e.key, e.category, e.zeta, e.reference_velocity, e.source, sz);
+            }
+        }
+        _ => {
+            println!("{:<28} {:<9} {:>6} {:<9} {:<18} {}", "key", "cat", "zeta", "ref", "source", "size");
+            for e in cat.iter() {
+                let sz = e.size_mm.map(|x| format!("{x} mm")).unwrap_or_default();
+                println!("{:<28} {:<9} {:>6.2} {:<9} {:<18} {}", e.key,
+                    format!("{:?}", e.category), e.zeta,
+                    format!("{:?}", e.reference_velocity), e.source, sz);
+            }
+            println!();
+            println!("{} entries in database.", cat.len());
+        }
+    }
     Ok(())
 }
 

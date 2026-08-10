@@ -16,7 +16,8 @@ venti/
 │   ├── data/       EN 1505/1506 standard sizes
 │   ├── units.rs    unit converters + air-changes-per-hour
 │   ├── sizing.rs   velocity / EF / budget / noise / aspect-ratio sizing
-│   ├── components/ ducts, fittings, terminals, round elbow + 9 fittings
+│   ├── components/ ducts, fittings, terminals, round elbow + fittings
+│   ├── catalog/    ζ database (FR-19): reference + vendor merge, serde JSON
 │   ├── network/    graph model + solver (critical-path DP, batch kernel)
 │   ├── topology/   M3 core: trace polylines → Network, flatten → draw segments
 │   ├── ffi.rs      C-ABI exports (the WASM / cdylib symbol surface)
@@ -39,7 +40,8 @@ venti/
 | Unit converters               | ✅ | ✅ | ✅ |
 | EN standard sizes             | ✅ | ✅ | ✅ |
 | Sizing (velocity/EF/budget/NC/aspect) | ✅ | ✅ | ✅ |
-| Fittings library (9 correls)  | ✅ | ✅ | ✅ |
+| Fittings library (correls)      | ✅ | ✅ | ✅ |
+| ζ database / vendor catalog (FR-19) | partial | — | ✅ (reference + serde vendor JSON) |
 | Component classes (Source/Terminal/Duct/Flex/Fitting/Tee) | ✅ | ✅ | ✅ |
 | Round elbow (spline)          | ✅ (scipy) | — | ✅ (bilinear) |
 | Network graph model + solver  | ✅ (NetworkX) | partial | ✅ (self-contained) |
@@ -82,6 +84,8 @@ venti solve   examples/network_yaml.yaml --format json
 venti solve   examples/network_yaml.yaml --format csv
 venti info    examples/network_yaml.yaml            # structural summary, no solve
 venti validate examples/network_yaml.yaml           # structural check
+venti catalog                              # dump the ζ database (text/csv/json)
+venti catalog --vendor examples/vendor_catalog.json  # merge a vendor catalogue
 venti report  examples/network_yaml.yaml           # per-component schedule table
 venti report  examples/network_yaml.yaml --format json|csv
 ```
