@@ -101,6 +101,53 @@ cargo test             # 47 unit tests + doctest
 cargo build --no-default-features --lib   # library only (no serde/clap)
 ```
 
+## Per-kernel benchmarks
+
+`venti` ships a dependency-free benchmark binary (no criterion — just
+`std::time::Instant` + `std::hint::black_box`) that times each kernel over many
+iterations and prints a (kernel, n, total_ms, per_call_s, calls_per_sec) table.
+
+```bash
+cargo run --release --bin bench
+# or, if you have `just` (see the repo-root justfile):
+just bench
+```
+
+Example output (single machine, `--release`, varies by hardware):
+
+```
+== venti (Rust) == kernel micro-benchmarks
+kernel                                        n     total_ms     per_call_s    calls_per_sec
+friction_factor                         1000000       57.546       5.755e-8       17377452.6
+reynolds                                1000000        1.208       1.208e-9      827567258.5
+local_pressure_drop                     1000000        0.968      9.677e-10     1033378113.1
+straight_pressure_drop                  1000000        1.533       1.533e-9      652225949.3
+velocity_method_round                     50000        0.422       8.435e-9      118559267.8
+equal_friction_method_round               50000       26.343       5.269e-7        1898059.3
+aspect_ratio_method                       50000       27.169       5.434e-7        1840337.7
+velocity_method_batch (200 ducts)          1000        1.409       1.409e-6         709632.0
+network build+solve (3-zone)               1000       43.965       4.397e-5          22745.1
+```
+
+For reference, the Python/Mojo numbers below are from the existing
+`wentamojo/benchmarks/bench_suite.mojo` table in the `pyduct` README (same
+hardware class, Mojo 26.2); they are **not** measured by this crate:
+
+| Kernel                          | n         | Mojo     | Python  | Speedup |
+|---------------------------------|-----------|----------|---------|---------|
+| `friction_factor`               | 1 000 000 |  49 ms   |  653 ms | **13×** |
+| `local_pressure_drop`           | 1 000 000 | 1.6 ms   |  726 ms | **441×**|
+| `velocity_method_round`         |    50 000 | 2.8 ms   |   81 ms | **29×** |
+| `velocity_method_rectangular`   |    50 000 | 7.1 ms   |  112 ms | **16×** |
+| `equal_friction_method_round`   |    50 000 |  35 ms   |  652 ms | **19×** |
+| `aspect_ratio_method`           |    50 000 |  29 ms   |  562 ms | **20×** |
+| `rectangular_elbow`             |   100 000 | 6.0 ms   |   94 ms | **16×** |
+| `velocity_method_batch` (×200)  |  1 000 ×  |  10 ms   |  409 ms | **40×** |
+
+Use these only as a rough relative sense of where the native core sits; rerun
+`cargo run --release --bin bench` on your own machine for venti's actual
+numbers.
+
 ## Embed as a WebAssembly core
 
 `venti` compiles to a small (~86 KB) self-contained **WASM core** exposing a

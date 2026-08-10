@@ -1,6 +1,10 @@
 default:
     @just --list
 
+# Rust native core per-kernel micro-benchmarks (dependency-free, no criterion)
+bench:
+    cargo run --release --bin bench --manifest-path venti/Cargo.toml
+
 # Python side
 lint:
     uvx ruff check .
