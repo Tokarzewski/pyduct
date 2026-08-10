@@ -70,8 +70,9 @@ pub use components::duct::{FlexDuct, RigidDuct};
 pub use components::elbow::{ElbowRound, ANGLE_GRID, RD_GRID, ZETA_TABLE};
 pub use components::fitting::{Source, Tee, Terminal, TwoPortFitting};
 pub use components::fittings_library::{
-    damper_butterfly, diffuser_ceiling, expander_round, grille_return, junction_tee_branch,
-    junction_tee_combine, mitered_elbow, rectangular_elbow, reducer_round,
+    attenuator, attenuator_open, cross_fitting, damper_butterfly, diffuser_ceiling,
+    expander_round, fire_damper, grille_return, junction_tee_branch, junction_tee_combine,
+    mitered_elbow, rectangular_elbow, reducer_round, taper_transition,
 };
 pub use core::fluid::{air_at_altitude, Fluid, STANDARD_AIR};
 pub use core::geometry::{equivalent_round_diameter, CrossSection, Rectangular, Round};
