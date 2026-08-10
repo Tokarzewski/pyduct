@@ -157,6 +157,101 @@ pub fn mitered_elbow(angle_deg: f64, vaned: bool) -> Result<f64, String> {
     Ok(zeta_unvaned * if vaned { 0.4 } else { 1.0 })
 }
 
+/// Two-port taper transition (ASHRAE F23 / Idelchik §4). Blends reducer and
+/// expander behaviour: when `d_outlet > d_inlet` it is a diffuser (Borda–Carnot
+/// baseline referenced to the inlet velocity), otherwise a reducer (contraction
+/// referenced to the outlet velocity). All loss is driven by the inlet/outlet
+/// area ratio and the included (cone) angle; smaller included angles give a
+/// longer, smoother transition and lower loss.
+pub fn taper_transition(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f64, String> {
+    if d_inlet <= 0.0 || d_outlet <= 0.0 {
+        return Err("d_inlet and d_outlet must be positive".into());
+    }
+    if angle_deg <= 0.0 || angle_deg > 90.0 {
+        return Err("angle_deg must be in (0, 90]".into());
+    }
+    // Smaller included angle = gentler, longer cone = smoother flow = less loss.
+    let angle_factor = if angle_deg <= 10.0 {
+        0.25
+    } else if angle_deg <= 20.0 {
+        0.4
+    } else if angle_deg <= 45.0 {
+        0.6
+    } else {
+        1.0
+    };
+    let area_ratio = (d_outlet / d_inlet).powi(2);
+    if d_outlet >= d_inlet {
+        // Expander / diffuser, referenced to the inlet velocity.
+        let zeta_borda = (1.0 - 1.0 / area_ratio).powi(2);
+        Ok(angle_factor * zeta_borda)
+    } else {
+        // Reducer / contraction, referenced to the outlet velocity (ASHRAE).
+        let zeta_contraction = 0.05 + 0.5 * (1.0 - area_ratio);
+        Ok(angle_factor * zeta_contraction)
+    }
+}
+
+/// 4-way cross junction loss coefficients `(zeta_main, zeta_branch)` (ASHRAE
+/// F25 / Miller). `flow_ratio` is the fraction of the total flow that leaves
+/// through the branch leg (0 = straight-through only, 1 = all diverted). The
+/// main/straight leg loss is modest and rises with the amount diverted, while
+/// the branch leg carries a larger loss that also penalises a small branch
+/// area relative to the main.
+pub fn cross_fitting(
+    d_main: f64,
+    d_branch: f64,
+    flow_ratio: f64,
+) -> Result<(f64, f64), String> {
+    if d_main <= 0.0 || d_branch <= 0.0 {
+        return Err("d_main and d_branch must be positive".into());
+    }
+    if !(0.0..=1.0).contains(&flow_ratio) {
+        return Err("flow_ratio must be in [0, 1]".into());
+    }
+    let area = (d_branch / d_main).powi(2);
+    let zeta_main = 0.12 + 0.3 * flow_ratio + 0.1 * area;
+    let zeta_branch = 0.5 + 0.8 * (1.0 - area) + 0.5 * flow_ratio;
+    Ok((zeta_main, zeta_branch))
+}
+
+/// Fire-damper housing/section loss coefficient (HVAC design guides, e.g.
+/// ASHRAE/SMACNA damper data). The open housing adds a small base loss; as the
+/// damper closes (`open_percentage` below ~95 %) a sharp quadratic penalty
+/// captures the blade/obstruction losses.
+pub fn fire_damper(open_percentage: f64) -> Result<f64, String> {
+    if !(0.0..=100.0).contains(&open_percentage) {
+        return Err("open_percentage must be in [0, 100]".into());
+    }
+    const BASE: f64 = 0.18; // typical fully-open fire-damper section zeta
+    if open_percentage >= 95.0 {
+        return Ok(BASE);
+    }
+    let closed_frac = 1.0 - open_percentage / 100.0;
+    Ok(BASE + closed_frac * closed_frac * 30.0)
+}
+
+/// Attenuator / silencer insertion loss — the pressure-loss coefficient of a
+/// duct silencer section as a function of the open (free-area) fraction of its
+/// perforated lining. An open silencer contributes a small base section loss;
+/// as the open fraction drops, the frontal-area restriction raises the loss.
+pub fn attenuator_open(open_fraction: f64) -> Result<f64, String> {
+    if !(0.0..=1.0).contains(&open_fraction) {
+        return Err("open_fraction must be in [0, 1]".into());
+    }
+    const BASE: f64 = 0.35; // typical fully-open silencer section zeta
+    if open_fraction >= 0.95 {
+        return Ok(BASE);
+    }
+    let closed_frac = 1.0 - open_fraction;
+    Ok(BASE + closed_frac * closed_frac * 8.0)
+}
+
+/// Alias for [`attenuator_open`].
+pub fn attenuator(open_fraction: f64) -> Result<f64, String> {
+    attenuator_open(open_fraction)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -199,5 +294,77 @@ mod tests {
     fn tee_branch_split() {
         let (zm, zb) = junction_tee_branch(0.3, 0.2, 0.2, 0.1).unwrap();
         assert!(zb > zm);
+    }
+
+    #[test]
+    fn taper_transition_reducer_expander_blend_closed_form() {
+        // Equal diameters -> no transition -> zero loss for both branches.
+        assert_eq!(taper_transition(0.3, 0.3, 30.0).unwrap(), 0.0);
+        // Reducer: deterministic closed form at angle_deg > 45.
+        let red = taper_transition(0.4, 0.2, 50.0).unwrap();
+        let expected = 1.0 * (0.05 + 0.5 * (1.0 - (0.2f64 / 0.4).powi(2)));
+        assert!((red - expected).abs() < 1e-12);
+        // Expander: Borda-Carnot at angle_deg > 45.
+        let exp = taper_transition(0.2, 0.4, 50.0).unwrap();
+        let expected_exp = 1.0 * (1.0 - 1.0 / (0.4f64 / 0.2).powi(2)).powi(2);
+        assert!((exp - expected_exp).abs() < 1e-12);
+    }
+
+    #[test]
+    fn taper_transition_gentler_angle_is_smoother() {
+        // All else equal, a smaller included angle reduces the loss.
+        let steep = taper_transition(0.2, 0.4, 50.0).unwrap();
+        let gentle = taper_transition(0.2, 0.4, 10.0).unwrap();
+        assert!(gentle < steep);
+    }
+
+    #[test]
+    fn cross_fitting_closed_form_and_monotone() {
+        let (zm, zb) = cross_fitting(0.3, 0.2, 0.4).unwrap();
+        let area = (0.2f64 / 0.3).powi(2);
+        assert!((zm - (0.12 + 0.3 * 0.4 + 0.1 * area)).abs() < 1e-12);
+        assert!((zb - (0.5 + 0.8 * (1.0 - area) + 0.5 * 0.4)).abs() < 1e-12);
+        // More diverted through the branch -> higher branch loss.
+        let (_, zb_hi) = cross_fitting(0.3, 0.2, 0.9).unwrap();
+        assert!(zb_hi > zb);
+    }
+
+    #[test]
+    fn cross_fitting_branch_costlier_than_main() {
+        let (zm, zb) = cross_fitting(0.3, 0.2, 0.5).unwrap();
+        assert!(zb > zm);
+    }
+
+    #[test]
+    fn fire_damper_fully_open_is_small_and_closes_steeper() {
+        assert!((fire_damper(100.0).unwrap() - 0.18).abs() < 1e-12);
+        assert!((fire_damper(95.0).unwrap() - 0.18).abs() < 1e-12);
+        let closed = fire_damper(0.0).unwrap();
+        assert!(closed > 20.0);
+        let half = fire_damper(50.0).unwrap();
+        assert!(half > fire_damper(95.0).unwrap());
+    }
+
+    #[test]
+    fn fire_damper_rejects_bad_open() {
+        assert!(fire_damper(-1.0).is_err());
+        assert!(fire_damper(101.0).is_err());
+    }
+
+    #[test]
+    fn attenuator_loses_more_as_it_closes() {
+        assert!((attenuator_open(1.0).unwrap() - 0.35).abs() < 1e-12);
+        assert!((attenuator_open(0.95).unwrap() - 0.35).abs() < 1e-12);
+        let half = attenuator_open(0.5).unwrap();
+        assert!(half > attenuator_open(1.0).unwrap());
+        let shut = attenuator_open(0.0).unwrap();
+        assert!(shut > half);
+        // alias is identical
+        assert_eq!(
+            attenuator(0.5).unwrap(),
+            attenuator_open(0.5).unwrap()
+        );
+        assert!(attenuator_open(1.5).is_err());
+        assert!(attenuator_open(-0.1).is_err());
     }
 }
