@@ -45,6 +45,7 @@
 //! assert!(dp_pa > 0.0);
 //! ```
 
+pub mod balancing;
 pub mod components;
 pub mod core;
 pub mod data;
@@ -61,6 +62,9 @@ pub mod io;
 
 // ---- top-level re-exports (mirrors `python/wenta/__init__.py`) ------------
 
+pub use balancing::{
+    balancing_zeta, balancing_zeta_batch, damper_open_percentage, required_zeta,
+};
 pub use components::base::{Component, Port, PortDirection};
 pub use components::duct::{FlexDuct, RigidDuct};
 pub use components::elbow::{ElbowRound, ANGLE_GRID, RD_GRID, ZETA_TABLE};
