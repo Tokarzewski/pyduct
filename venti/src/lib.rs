@@ -53,6 +53,7 @@ pub mod network;
 pub mod physics;
 pub mod results;
 pub mod sizing;
+pub mod sound;
 pub mod units;
 
 #[cfg(feature = "cli")]
@@ -93,6 +94,9 @@ pub use sizing::{
     pressure_drop_budget_rectangular, pressure_drop_budget_round, velocity_method,
     velocity_method_batch, velocity_method_rectangular, velocity_method_round, Shape,
     NOISE_LIMITS_M_S,
+};
+pub use sound::{
+    duct_pressure_level, nc_ok, nc_ok_target, regenerated_noise_round, NOISE_LIMITS_NC,
 };
 pub use units::{
     air_changes_per_hour, c_to_f, cfm_to_m3s, f_to_c, fpm_to_ms, ft_to_m, in_to_m, inwc_to_pa,
