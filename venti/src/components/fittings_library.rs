@@ -198,11 +198,7 @@ pub fn taper_transition(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f
 /// main/straight leg loss is modest and rises with the amount diverted, while
 /// the branch leg carries a larger loss that also penalises a small branch
 /// area relative to the main.
-pub fn cross_fitting(
-    d_main: f64,
-    d_branch: f64,
-    flow_ratio: f64,
-) -> Result<(f64, f64), String> {
+pub fn cross_fitting(d_main: f64, d_branch: f64, flow_ratio: f64) -> Result<(f64, f64), String> {
     if d_main <= 0.0 || d_branch <= 0.0 {
         return Err("d_main and d_branch must be positive".into());
     }
@@ -360,10 +356,7 @@ mod tests {
         let shut = attenuator_open(0.0).unwrap();
         assert!(shut > half);
         // alias is identical
-        assert_eq!(
-            attenuator(0.5).unwrap(),
-            attenuator_open(0.5).unwrap()
-        );
+        assert_eq!(attenuator(0.5).unwrap(), attenuator_open(0.5).unwrap());
         assert!(attenuator_open(1.5).is_err());
         assert!(attenuator_open(-0.1).is_err());
     }

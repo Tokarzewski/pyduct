@@ -62,17 +62,15 @@ pub mod io;
 
 // ---- top-level re-exports (mirrors `python/wenta/__init__.py`) ------------
 
-pub use balancing::{
-    balancing_zeta, balancing_zeta_batch, damper_open_percentage, required_zeta,
-};
+pub use balancing::{balancing_zeta, balancing_zeta_batch, damper_open_percentage, required_zeta};
 pub use components::base::{Component, Port, PortDirection};
 pub use components::duct::{FlexDuct, RigidDuct};
 pub use components::elbow::{ElbowRound, ANGLE_GRID, RD_GRID, ZETA_TABLE};
 pub use components::fitting::{Source, Tee, Terminal, TwoPortFitting};
 pub use components::fittings_library::{
-    attenuator, attenuator_open, cross_fitting, damper_butterfly, diffuser_ceiling,
-    expander_round, fire_damper, grille_return, junction_tee_branch, junction_tee_combine,
-    mitered_elbow, rectangular_elbow, reducer_round, taper_transition,
+    attenuator, attenuator_open, cross_fitting, damper_butterfly, diffuser_ceiling, expander_round,
+    fire_damper, grille_return, junction_tee_branch, junction_tee_combine, mitered_elbow,
+    rectangular_elbow, reducer_round, taper_transition,
 };
 pub use core::fluid::{air_at_altitude, Fluid, STANDARD_AIR};
 pub use core::geometry::{equivalent_round_diameter, CrossSection, Rectangular, Round};

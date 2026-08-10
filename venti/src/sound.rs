@@ -72,10 +72,7 @@ pub fn regenerated_noise_round(
         return Err(format!("density must be positive, got {rho}"));
     }
 
-    Ok(REGEN_C
-        + 10.0 * (rho / RHO_0).log10()
-        + 60.0 * velocity.log10()
-        - 20.0 * diameter.log10())
+    Ok(REGEN_C + 10.0 * (rho / RHO_0).log10() + 60.0 * velocity.log10() - 20.0 * diameter.log10())
 }
 
 // ---------------------------------------------------------------------------
@@ -202,7 +199,10 @@ mod tests {
         let v = 4.0;
         let small = regenerated_noise_round(v, 0.1, None).unwrap();
         let large = regenerated_noise_round(v, 0.5, None).unwrap();
-        assert!(large < small, "bigger duct must be quieter: {small} vs {large}");
+        assert!(
+            large < small,
+            "bigger duct must be quieter: {small} vs {large}"
+        );
         // 1/d² scaling => 0.5/0.1 = ratio 5 => −20·log10(5) ≈ −14 dB.
         assert!((large - small - (-20.0 * 5.0f64.log10())).abs() < 1e-9);
     }
