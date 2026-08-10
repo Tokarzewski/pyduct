@@ -536,14 +536,22 @@ pub extern "C" fn venti_elbow_round(bend_radius: f64, diameter: f64, angle_deg: 
 
 #[no_mangle]
 pub extern "C" fn venti_reducer_rectangular(
-    w_in: f64, h_in: f64, w_out: f64, h_out: f64, angle_deg: f64,
+    w_in: f64,
+    h_in: f64,
+    w_out: f64,
+    h_out: f64,
+    angle_deg: f64,
 ) -> f64 {
     reducer_rectangular(w_in, h_in, w_out, h_out, angle_deg).unwrap_or(f64::NAN)
 }
 
 #[no_mangle]
 pub extern "C" fn venti_expander_rectangular(
-    w_in: f64, h_in: f64, w_out: f64, h_out: f64, angle_deg: f64,
+    w_in: f64,
+    h_in: f64,
+    w_out: f64,
+    h_out: f64,
+    angle_deg: f64,
 ) -> f64 {
     expander_rectangular(w_in, h_in, w_out, h_out, angle_deg).unwrap_or(f64::NAN)
 }

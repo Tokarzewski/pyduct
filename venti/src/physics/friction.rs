@@ -20,6 +20,14 @@ pub fn relative_roughness(absolute_roughness: f64, hydraulic_diameter: f64) -> f
 /// Darcy friction factor (Swamee–Jain explicit approximation).
 ///
 /// Falls back to laminar `64 / Re` for Re < 2300.
+///
+/// # Examples
+/// ```
+/// use venti::physics::friction::friction_factor;
+/// let f = friction_factor(50_000.0, 0.0009);
+/// assert!((0.015..0.05).contains(&f));
+/// assert!((friction_factor(1_000.0, 0.001) - 0.064).abs() < 1e-12); // laminar
+/// ```
 #[inline]
 pub fn friction_factor(reynolds_number: f64, rel_roughness: f64) -> f64 {
     if reynolds_number < LAMINAR_RE_LIMIT {

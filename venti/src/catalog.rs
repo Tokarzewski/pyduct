@@ -15,7 +15,6 @@
 //! referred to, and its **source** — the three things a ζ value is meaningless
 //! without.
 
-
 /// Broad family of a fitting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "cli", derive(serde::Serialize, serde::Deserialize))]
@@ -77,7 +76,9 @@ pub struct ZetaCatalog {
 
 impl ZetaCatalog {
     pub fn new() -> Self {
-        ZetaCatalog { entries: Vec::new() }
+        ZetaCatalog {
+            entries: Vec::new(),
+        }
     }
 
     /// Number of entries.
@@ -132,8 +133,13 @@ impl ZetaCatalog {
 
 /// Build a compact entry.
 fn entry(
-    key: &str, name: &str, category: FittingCategory, zeta: f64,
-    reference_velocity: VelocityRef, source: &str, size_mm: Option<f64>,
+    key: &str,
+    name: &str,
+    category: FittingCategory,
+    zeta: f64,
+    reference_velocity: VelocityRef,
+    source: &str,
+    size_mm: Option<f64>,
 ) -> ZetaEntry {
     ZetaEntry {
         key: key.to_string(),
@@ -148,40 +154,232 @@ fn entry(
 
 /// The built-in reference catalogue — published constant ζ values for common
 /// fittings, each tagged with its source and reference velocity.
+///
+/// # Examples
+/// ```
+/// use venti::reference_catalog;
+/// let cat = reference_catalog();
+/// assert_eq!(cat.lookup("elbow.round.rd1.5"), Some(0.21));
+/// assert_eq!(cat.lookup("entrance.abrupt"), Some(0.50));
+/// ```
 pub fn reference_catalog() -> ZetaCatalog {
     use FittingCategory::*;
     use VelocityRef::*;
     ZetaCatalog::from_entries(vec![
         // ---- elbows ----
-        entry("elbow.round.rd1.5", "Round elbow 90°, R/D=1.5", Elbow, 0.21, Outlet, "Idelchik §6 / ASHRAE Fund.", Some(200.0)),
-        entry("elbow.round.rd1.0", "Round elbow 90°, R/D=1.0", Elbow, 0.30, Outlet, "Idelchik §6", Some(200.0)),
-        entry("elbow.rect.rw1.0", "Rectangular elbow 90°, R/W=1.0", Elbow, 0.22, Outlet, "SMACNA Duct Design", Some(300.0)),
-        entry("elbow.mitered.90", "Mitered elbow 90° (unvaned)", Elbow, 1.20, Outlet, "ASHRAE Fund.", None),
-        entry("elbow.mitered.45", "Mitered elbow 45° (unvaned)", Elbow, 0.44, Outlet, "ASHRAE Fund.", None),
+        entry(
+            "elbow.round.rd1.5",
+            "Round elbow 90°, R/D=1.5",
+            Elbow,
+            0.21,
+            Outlet,
+            "Idelchik §6 / ASHRAE Fund.",
+            Some(200.0),
+        ),
+        entry(
+            "elbow.round.rd1.0",
+            "Round elbow 90°, R/D=1.0",
+            Elbow,
+            0.30,
+            Outlet,
+            "Idelchik §6",
+            Some(200.0),
+        ),
+        entry(
+            "elbow.rect.rw1.0",
+            "Rectangular elbow 90°, R/W=1.0",
+            Elbow,
+            0.22,
+            Outlet,
+            "SMACNA Duct Design",
+            Some(300.0),
+        ),
+        entry(
+            "elbow.mitered.90",
+            "Mitered elbow 90° (unvaned)",
+            Elbow,
+            1.20,
+            Outlet,
+            "ASHRAE Fund.",
+            None,
+        ),
+        entry(
+            "elbow.mitered.45",
+            "Mitered elbow 45° (unvaned)",
+            Elbow,
+            0.44,
+            Outlet,
+            "ASHRAE Fund.",
+            None,
+        ),
         // ---- reducers / expanders / transitions ----
-        entry("reducer.smooth", "Smooth round reducer", Reducer, 0.08, Outlet, "ASHRAE Fund. F29", None),
-        entry("expander.smooth", "Smooth round expander", Expander, 0.15, Inlet, "ASHRAE Fund. F29", None),
-        entry("transition.equal", "Equal-area transition", Transition, 0.04, Outlet, "SMACNA Duct Design", None),
+        entry(
+            "reducer.smooth",
+            "Smooth round reducer",
+            Reducer,
+            0.08,
+            Outlet,
+            "ASHRAE Fund. F29",
+            None,
+        ),
+        entry(
+            "expander.smooth",
+            "Smooth round expander",
+            Expander,
+            0.15,
+            Inlet,
+            "ASHRAE Fund. F29",
+            None,
+        ),
+        entry(
+            "transition.equal",
+            "Equal-area transition",
+            Transition,
+            0.04,
+            Outlet,
+            "SMACNA Duct Design",
+            None,
+        ),
         // ---- tees ----
-        entry("tee.branch.typical", "Tee branch leg (typical)", Tee, 0.60, Branch, "ASHRAE Fund. F25", None),
-        entry("tee.straight.typical", "Tee straight-through leg", Tee, 0.10, Main, "ASHRAE Fund. F25", None),
+        entry(
+            "tee.branch.typical",
+            "Tee branch leg (typical)",
+            Tee,
+            0.60,
+            Branch,
+            "ASHRAE Fund. F25",
+            None,
+        ),
+        entry(
+            "tee.straight.typical",
+            "Tee straight-through leg",
+            Tee,
+            0.10,
+            Main,
+            "ASHRAE Fund. F25",
+            None,
+        ),
         // ---- dampers ----
-        entry("damper.butterfly.open", "Butterfly damper, fully open", Damper, 0.10, Outlet, "ASHRAE / SMACNA", None),
-        entry("damper.fire.open", "Fire damper, open", Damper, 0.18, Outlet, "ASHRAE / SMACNA", None),
-        entry("damper.volume.open", "Volume damper, fully open", Damper, 0.10, Outlet, "SMACNA", None),
+        entry(
+            "damper.butterfly.open",
+            "Butterfly damper, fully open",
+            Damper,
+            0.10,
+            Outlet,
+            "ASHRAE / SMACNA",
+            None,
+        ),
+        entry(
+            "damper.fire.open",
+            "Fire damper, open",
+            Damper,
+            0.18,
+            Outlet,
+            "ASHRAE / SMACNA",
+            None,
+        ),
+        entry(
+            "damper.volume.open",
+            "Volume damper, fully open",
+            Damper,
+            0.10,
+            Outlet,
+            "SMACNA",
+            None,
+        ),
         // ---- diffusers / grilles ----
-        entry("diffuser.ceiling", "Ceiling diffuser, face", Diffuser, 0.40, Outlet, "ASHRAE Fund. F25", None),
-        entry("diffuser.slot", "Linear slot diffuser", Diffuser, 0.30, Outlet, "Manufacturer data", None),
-        entry("grille.return", "Return grille", Grille, 0.25, Inlet, "ASHRAE Fund. F25", None),
+        entry(
+            "diffuser.ceiling",
+            "Ceiling diffuser, face",
+            Diffuser,
+            0.40,
+            Outlet,
+            "ASHRAE Fund. F25",
+            None,
+        ),
+        entry(
+            "diffuser.slot",
+            "Linear slot diffuser",
+            Diffuser,
+            0.30,
+            Outlet,
+            "Manufacturer data",
+            None,
+        ),
+        entry(
+            "grille.return",
+            "Return grille",
+            Grille,
+            0.25,
+            Inlet,
+            "ASHRAE Fund. F25",
+            None,
+        ),
         // ---- louvers / filters / silencers ----
-        entry("louver.open", "Weather louver, open", Louver, 0.25, Inlet, "ASHRAE Fund. F25", None),
-        entry("filter.panel.open", "Panel filter bank (clean)", Filter, 0.12, Inlet, "Filter mfr. data", None),
-        entry("silencer.open", "Duct silencer (open)", Silencer, 0.35, Outlet, "Silencer mfr. data", None),
+        entry(
+            "louver.open",
+            "Weather louver, open",
+            Louver,
+            0.25,
+            Inlet,
+            "ASHRAE Fund. F25",
+            None,
+        ),
+        entry(
+            "filter.panel.open",
+            "Panel filter bank (clean)",
+            Filter,
+            0.12,
+            Inlet,
+            "Filter mfr. data",
+            None,
+        ),
+        entry(
+            "silencer.open",
+            "Duct silencer (open)",
+            Silencer,
+            0.35,
+            Outlet,
+            "Silencer mfr. data",
+            None,
+        ),
         // ---- entrances / exits ----
-        entry("entrance.abrupt", "Abrupt duct entrance", Entrance, 0.50, Inlet, "Idelchik §4", None),
-        entry("entrance.rounded", "Rounded duct entrance", Entrance, 0.03, Inlet, "Idelchik §4", None),
-        entry("exit.abrupt", "Abrupt duct exit", Exit, 1.00, Inlet, "Borda–Carnot / Idelchik", None),
-        entry("exit.discharge", "Duct discharge to room", Exit, 1.00, Inlet, "ASHRAE Fund.", None),
+        entry(
+            "entrance.abrupt",
+            "Abrupt duct entrance",
+            Entrance,
+            0.50,
+            Inlet,
+            "Idelchik §4",
+            None,
+        ),
+        entry(
+            "entrance.rounded",
+            "Rounded duct entrance",
+            Entrance,
+            0.03,
+            Inlet,
+            "Idelchik §4",
+            None,
+        ),
+        entry(
+            "exit.abrupt",
+            "Abrupt duct exit",
+            Exit,
+            1.00,
+            Inlet,
+            "Borda–Carnot / Idelchik",
+            None,
+        ),
+        entry(
+            "exit.discharge",
+            "Duct discharge to room",
+            Exit,
+            1.00,
+            Inlet,
+            "ASHRAE Fund.",
+            None,
+        ),
     ])
 }
 
@@ -271,7 +469,8 @@ mod tests {
             r#"{"vendor":"V","fittings":[
               {"key":"elbow.round.rd1.0","name":"vendor elbow","category":"Elbow",
                "zeta":0.25,"reference_velocity":"Outlet","source":"V","size_mm":null}]}"#,
-        ).unwrap();
+        )
+        .unwrap();
         cat.merge(&vc.to_catalog());
         assert!((cat.lookup("elbow.round.rd1.0").unwrap() - 0.25).abs() < 1e-9);
     }

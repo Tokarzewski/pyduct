@@ -229,29 +229,49 @@ fn cmd_catalog(vendor: Option<&std::path::Path>, format: &str) -> Result<(), Str
     }
     match format {
         "json" => {
-            let rows: Vec<serde_json::Value> = cat.iter().map(|e| serde_json::json!({
-                "key": e.key, "name": e.name,
-                "category": format!("{:?}", e.category),
-                "zeta": e.zeta,
-                "reference_velocity": format!("{:?}", e.reference_velocity),
-                "source": e.source, "size_mm": e.size_mm,
-            })).collect();
-            println!("{}", serde_json::to_string_pretty(&rows).map_err(|e| e.to_string())?);
+            let rows: Vec<serde_json::Value> = cat
+                .iter()
+                .map(|e| {
+                    serde_json::json!({
+                        "key": e.key, "name": e.name,
+                        "category": format!("{:?}", e.category),
+                        "zeta": e.zeta,
+                        "reference_velocity": format!("{:?}", e.reference_velocity),
+                        "source": e.source, "size_mm": e.size_mm,
+                    })
+                })
+                .collect();
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&rows).map_err(|e| e.to_string())?
+            );
         }
         "csv" => {
             println!("key,category,zeta,reference_velocity,source,size_mm");
             for e in cat.iter() {
                 let sz = e.size_mm.map(|x| x.to_string()).unwrap_or_default();
-                println!("{},{:?},{},{:?},{},{}", e.key, e.category, e.zeta, e.reference_velocity, e.source, sz);
+                println!(
+                    "{},{:?},{},{:?},{},{}",
+                    e.key, e.category, e.zeta, e.reference_velocity, e.source, sz
+                );
             }
         }
         _ => {
-            println!("{:<28} {:<9} {:>6} {:<9} {:<18} {}", "key", "cat", "zeta", "ref", "source", "size");
+            println!(
+                "{:<28} {:<9} {:>6} {:<9} {:<18} size",
+                "key", "cat", "zeta", "ref", "source"
+            );
             for e in cat.iter() {
                 let sz = e.size_mm.map(|x| format!("{x} mm")).unwrap_or_default();
-                println!("{:<28} {:<9} {:>6.2} {:<9} {:<18} {}", e.key,
-                    format!("{:?}", e.category), e.zeta,
-                    format!("{:?}", e.reference_velocity), e.source, sz);
+                println!(
+                    "{:<28} {:<9} {:>6.2} {:<9} {:<18} {}",
+                    e.key,
+                    format!("{:?}", e.category),
+                    e.zeta,
+                    format!("{:?}", e.reference_velocity),
+                    e.source,
+                    sz
+                );
             }
             println!();
             println!("{} entries in database.", cat.len());

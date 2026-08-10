@@ -66,11 +66,9 @@ pub mod io;
 // ---- top-level re-exports (mirrors `python/wenta/__init__.py`) ------------
 
 pub use balancing::{balancing_zeta, balancing_zeta_batch, damper_open_percentage, required_zeta};
-pub use catalog::{
-    FittingCategory, VelocityRef, ZetaCatalog, ZetaEntry, reference_catalog,
-};
+pub use catalog::{reference_catalog, FittingCategory, VelocityRef, ZetaCatalog, ZetaEntry};
 #[cfg(feature = "cli")]
-pub use catalog::{VendorCatalog, vendor_catalog_from_file, vendor_catalog_from_json};
+pub use catalog::{vendor_catalog_from_file, vendor_catalog_from_json, VendorCatalog};
 pub use components::base::{Component, Port, PortDirection};
 pub use components::duct::{FlexDuct, RigidDuct};
 pub use components::elbow::{ElbowRound, ANGLE_GRID, RD_GRID, ZETA_TABLE};

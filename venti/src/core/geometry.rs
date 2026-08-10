@@ -64,6 +64,15 @@ pub struct Round {
 }
 
 impl Round {
+    /// Construct a round cross-section from a diameter [m].
+    ///
+    /// # Examples
+    /// ```
+    /// use venti::Round;
+    /// let r = Round::new(0.2).unwrap();
+    /// assert!((r.area - std::f64::consts::PI * 0.01).abs() < 1e-12);
+    /// assert_eq!(r.hydraulic_diameter, 0.2);
+    /// ```
     pub fn new(diameter: f64) -> Result<Self, &'static str> {
         if diameter <= 0.0 {
             return Err("diameter must be positive");

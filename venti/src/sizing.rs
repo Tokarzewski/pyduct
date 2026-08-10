@@ -225,6 +225,14 @@ pub fn noise_limit_method(
 ///
 /// Returns `(section, actual_velocity)`. If no standard size meets the
 /// target, the largest size is returned with its velocity.
+///
+/// # Examples
+/// ```
+/// use venti::velocity_method_round;
+/// let (section, v) = velocity_method_round(0.1, 4.0).unwrap();
+/// assert!(v <= 4.0); // chunk of the target velocity
+/// let _ = section;
+/// ```
 pub fn velocity_method_round(
     flowrate: f64,
     target_velocity: f64,
