@@ -55,6 +55,7 @@ pub mod physics;
 pub mod results;
 pub mod sizing;
 pub mod sound;
+pub mod standards;
 pub mod units;
 
 #[cfg(feature = "cli")]
@@ -85,6 +86,7 @@ pub use network::{
     ComponentEnum, Network, TAG_FITTING, TAG_FLEX, TAG_RIGID, TAG_SOURCE, TAG_TEE, TAG_TERMINAL,
 };
 pub use results::{extract_results, results_as_csv, results_summary, ComponentResult};
+pub use standards::{nearest_round_size_for, rect_sizes_mm, round_sizes_mm, Standard};
 
 #[cfg(feature = "cli")]
 pub use results::{report_json_string, results_as_json_rows};
