@@ -42,6 +42,13 @@ enum Commands {
     Info { file: PathBuf },
     /// Validate a network file structurally.
     Validate { file: PathBuf },
+    /// Load a network file and write it back out (wenta YAML/JSON round-trip).
+    Save {
+        file: PathBuf,
+        /// Output path (default: `<input>.saved.json`)
+        #[arg(long, short, default_value = "")]
+        out: String,
+    },
 }
 
 fn standard_fluid() -> Result<Fluid, &'static str> {
@@ -55,6 +62,7 @@ fn main() {
         Commands::Report { file, format } => cmd_report(&file, &format),
         Commands::Info { file } => cmd_info(&file),
         Commands::Validate { file } => cmd_validate(&file),
+        Commands::Save { file, out } => cmd_save(&file, &out),
     };
     if let Err(e) = result {
         eprintln!("error: {e}");
@@ -174,6 +182,31 @@ fn cmd_validate(file: &std::path::Path) -> Result<(), String> {
             println!("  - {p}");
         }
     }
+    Ok(())
+}
+
+fn cmd_save(file: &std::path::Path, out: &str) -> Result<(), String> {
+    let net = venti::load_network_from_path(file)?;
+    let out_path = if out.is_empty() {
+        PathBuf::from(format!("{}.saved.json", file.display()))
+    } else {
+        PathBuf::from(out)
+    };
+    venti::save_network_to_path(&net, &out_path)?;
+    let kind = if out_path
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase() == "json")
+        .unwrap_or(false)
+    {
+        "JSON"
+    } else {
+        "YAML"
+    };
+    println!(
+        "saved {}=\u{203a} {} ({kind})",
+        file.display(),
+        out_path.display()
+    );
     Ok(())
 }
 

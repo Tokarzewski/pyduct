@@ -86,7 +86,10 @@ pub use results::{extract_results, results_as_csv, results_summary, ComponentRes
 pub use results::{report_json_string, results_as_json_rows};
 
 #[cfg(feature = "cli")]
-pub use io::{load_network_from_file, load_network_from_path, load_network_from_str};
+pub use io::{
+    load_network_from_file, load_network_from_path, load_network_from_str, save_network_to_file,
+    save_network_to_json_string, save_network_to_path, save_network_to_string,
+};
 pub use sizing::{
     aspect_ratio_method, equal_friction_method, equal_friction_method_rectangular,
     equal_friction_method_round, noise_limit_method, pressure_drop_budget,

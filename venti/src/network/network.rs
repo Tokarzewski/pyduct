@@ -261,6 +261,35 @@ impl Network {
         self.edges.len()
     }
 
+    /// Connection edges in the serialized schema's `(source, target)` form.
+    ///
+    /// Each endpoint is qualified `"<component_id>.<port_name>"` so it can be
+    /// re-parsed unambiguously by the YAML/JSON loader (which accepts both the
+    /// bare component id and the `"<id>.<port>"` forms). Internal edges (a port
+    /// to/from its own component node) are filtered out, leaving only real
+    /// physical-airflow connections.
+    pub fn connections(&self) -> Vec<(String, String)> {
+        let mut out = Vec::new();
+        for (from, to) in &self.edges {
+            // A connection edge has BOTH endpoints as port nodes of distinct
+            // components. Internal edges are (port -> component) or
+            // (component -> port), i.e. at least one endpoint has no ':'.
+            let (sc, sp) = match from.split_once(':') {
+                Some(p) => p,
+                None => continue,
+            };
+            let (tc, tp) = match to.split_once(':') {
+                Some(p) => p,
+                None => continue,
+            };
+            if sc == tc {
+                continue;
+            }
+            out.push((format!("{sc}.{sp}"), format!("{tc}.{tp}")));
+        }
+        out
+    }
+
     /// Structural validation. Empty list means the network is healthy.
     pub fn validate(&self) -> Vec<String> {
         let mut problems = Vec::new();

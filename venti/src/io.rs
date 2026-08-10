@@ -19,33 +19,36 @@
 use std::collections::HashMap;
 use std::path::Path;
 
-use serde::Deserialize;
+use serde::{Deserialize, Serialize};
 
 use crate::components::duct::{FlexDuct, RigidDuct};
 use crate::components::fitting::{Source, Tee, Terminal, TwoPortFitting};
 use crate::core::geometry::{CrossSection, Rectangular, Round};
 use crate::network::{ComponentEnum, Network};
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct NetworkFile {
+    #[serde(skip_serializing_if = "Option::is_none")]
     name: Option<String>,
     components: HashMap<String, ComponentFile>,
     connections: Vec<ConnectionFile>,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 struct ConnectionFile {
     source: String,
     target: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Serialize, Deserialize)]
 #[serde(tag = "type", rename_all = "PascalCase")]
 enum ComponentFile {
     Source {
+        #[serde(skip_serializing_if = "Option::is_none")]
         name: Option<String>,
     },
     RigidDuct {
+        #[serde(skip_serializing_if = "Option::is_none")]
         name: Option<String>,
         cross_section: CrossSectionFile,
         length: f64,
@@ -53,6 +56,7 @@ enum ComponentFile {
         absolute_roughness: f64,
     },
     FlexDuct {
+        #[serde(skip_serializing_if = "Option::is_none")]
         name: Option<String>,
         diameter: f64,
         length: f64,
@@ -61,11 +65,13 @@ enum ComponentFile {
         stretch_percentage: f64,
     },
     TwoPortFitting {
+        #[serde(skip_serializing_if = "Option::is_none")]
         name: Option<String>,
         cross_section: CrossSectionFile,
         zeta: f64,
     },
     Tee {
+        #[serde(skip_serializing_if = "Option::is_none")]
         name: Option<String>,
         cross_section: CrossSectionFile,
         #[serde(default)]
@@ -74,24 +80,25 @@ enum ComponentFile {
         zeta_branch: f64,
     },
     Terminal {
+        #[serde(skip_serializing_if = "Option::is_none")]
         name: Option<String>,
         flowrate: f64,
         #[serde(default)]
         zeta: f64,
-        #[serde(default)]
+        #[serde(default, skip_serializing_if = "Option::is_none")]
         cross_section: Option<CrossSectionFile>,
     },
 }
 
-#[derive(Deserialize, Clone)]
+#[derive(Serialize, Deserialize, Clone)]
 struct CrossSectionFile {
     #[serde(rename = "shape")]
     shape: String,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     diameter: Option<f64>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     width: Option<f64>,
-    #[serde(default)]
+    #[serde(default, skip_serializing_if = "Option::is_none")]
     height: Option<f64>,
 }
 
@@ -233,4 +240,151 @@ pub fn load_network_from_path(path: &Path) -> Result<Network, String> {
 /// Convenience: load from a path-like `&str`.
 pub fn load_network_from_file(path: &str) -> Result<Network, String> {
     load_network_from_path(Path::new(path))
+}
+
+// ---------------------------------------------------------------------------
+// Save / serialize (SAVE support — round-trips the schema `load` reads)
+// ---------------------------------------------------------------------------
+
+/// Build a `round` cross-section whose area reconstructs to `area`.
+///
+/// Used for components that only carry an `area` (Terminal, TwoPortFitting,
+/// Tee) — their loader consumes only `cross_section.area()`, so a round section
+/// derived from the stored area round-trips exactly.
+fn cross_section_from_area(area: f64) -> CrossSectionFile {
+    let d = (4.0 * area / std::f64::consts::PI).sqrt();
+    CrossSectionFile {
+        shape: "round".into(),
+        diameter: Some(d),
+        width: None,
+        height: None,
+    }
+}
+
+/// Reconstruct a serializable cross-section from stored `area` and
+/// `hydraulic_diameter` so the loader reproduces both exactly.
+///
+/// A section whose area is consistent with `π (dh/2)²` is round (diameter =
+/// hydraulic diameter); otherwise it is rectangular, and `width`/`height` are
+/// recovered as the two roots of `x² - (2·area/dh)·x + area = 0` (derived from
+/// `w·h = area` and `D_h = 2wh/(w+h)`). Either branch rebuilds the same area
+/// and hydraulic diameter, preserving the RigidDuct round-trip.
+fn reconstruct_cross_section(area: f64, dh: f64) -> CrossSectionFile {
+    let round_area = std::f64::consts::PI * (dh / 2.0).powi(2);
+    let round = (area - round_area).abs() <= 1e-9 * area.max(round_area);
+    if round {
+        return CrossSectionFile {
+            shape: "round".into(),
+            diameter: Some(dh),
+            width: None,
+            height: None,
+        };
+    }
+    // Rectangular: solve w,h from A=wh and Dh=2wh/(w+h).
+    let sum = 2.0 * area / dh; // w + h
+    let disc = sum * sum - 4.0 * area;
+    if disc > 0.0 {
+        let s = disc.sqrt();
+        CrossSectionFile {
+            shape: "rectangular".into(),
+            diameter: None,
+            width: Some((sum + s) * 0.5),
+            height: Some((sum - s) * 0.5),
+        }
+    } else {
+        // Degenerate/defensive fallback: keep it round from area alone.
+        cross_section_from_area(area)
+    }
+}
+
+fn component_to_file(comp: &ComponentEnum) -> ComponentFile {
+    match comp {
+        ComponentEnum::Source(s) => ComponentFile::Source {
+            name: Some(s.name.clone()),
+        },
+        ComponentEnum::RigidDuct(d) => ComponentFile::RigidDuct {
+            name: Some(d.name.clone()),
+            cross_section: reconstruct_cross_section(d.area, d.hydraulic_diameter),
+            length: d.length,
+            absolute_roughness: d.absolute_roughness,
+        },
+        ComponentEnum::FlexDuct(fd) => ComponentFile::FlexDuct {
+            name: Some(fd.name.clone()),
+            diameter: fd.diameter,
+            length: fd.length,
+            pressure_drop_per_meter: fd.pressure_drop_per_meter,
+            stretch_percentage: fd.stretch_percentage,
+        },
+        ComponentEnum::TwoPortFitting(f) => ComponentFile::TwoPortFitting {
+            name: Some(f.name.clone()),
+            cross_section: cross_section_from_area(f.area),
+            zeta: f.zeta,
+        },
+        ComponentEnum::Tee(t) => ComponentFile::Tee {
+            name: Some(t.name.clone()),
+            cross_section: cross_section_from_area(t.area),
+            zeta_straight: t.zeta_straight,
+            zeta_branch: t.zeta_branch,
+        },
+        ComponentEnum::Terminal(t) => ComponentFile::Terminal {
+            name: Some(t.name.clone()),
+            flowrate: t.flowrate_demand,
+            zeta: t.zeta,
+            cross_section: if t.cross_section_area > 0.0 {
+                Some(cross_section_from_area(t.cross_section_area))
+            } else {
+                None
+            },
+        },
+    }
+}
+
+fn network_to_file(net: &Network) -> NetworkFile {
+    let mut components = HashMap::new();
+    for (cid, comp) in &net.components {
+        components.insert(cid.clone(), component_to_file(comp));
+    }
+    let connections = net
+        .connections()
+        .into_iter()
+        .map(|(source, target)| ConnectionFile { source, target })
+        .collect();
+    NetworkFile {
+        name: if net.name.is_empty() {
+            None
+        } else {
+            Some(net.name.clone())
+        },
+        components,
+        connections,
+    }
+}
+
+/// Serialize a network to a wenta YAML string.
+pub fn save_network_to_string(net: &Network) -> Result<String, String> {
+    serde_yaml::to_string(&network_to_file(net)).map_err(|e| format!("serialize YAML: {e}"))
+}
+
+/// Serialize a network to a wenta JSON string.
+pub fn save_network_to_json_string(net: &Network) -> Result<String, String> {
+    serde_json::to_string_pretty(&network_to_file(net)).map_err(|e| format!("serialize JSON: {e}"))
+}
+
+/// Write a network to a `.yaml` or `.json` file (chosen by extension).
+pub fn save_network_to_path(net: &Network, path: &Path) -> Result<(), String> {
+    let is_json = path
+        .extension()
+        .map(|e| e.to_string_lossy().to_lowercase() == "json")
+        .unwrap_or(false);
+    let text = if is_json {
+        save_network_to_json_string(net)?
+    } else {
+        save_network_to_string(net)?
+    };
+    std::fs::write(path, text).map_err(|e| format!("write {path:?}: {e}"))
+}
+
+/// Convenience: save to a path-like `&str`.
+pub fn save_network_to_file(net: &Network, path: &str) -> Result<(), String> {
+    save_network_to_path(net, Path::new(path))
 }
