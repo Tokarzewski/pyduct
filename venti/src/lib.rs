@@ -62,6 +62,7 @@ pub mod physics;
 pub mod re;
 pub mod results;
 pub mod room;
+pub mod settings;
 pub mod sizing;
 pub mod sound;
 pub mod standards;
@@ -122,6 +123,9 @@ pub use network::{
 pub use re::{corrected_zeta, elbow_round_loss, re_correction, size_correction, D_REF_M, RE_REF};
 pub use results::{extract_results, results_as_csv, results_summary, ComponentResult};
 pub use room::{room_ach, RoomBalance, RoomBalanceSet};
+#[cfg(feature = "cli")]
+pub use settings::{settings_from_json, settings_to_json};
+pub use settings::{ProjectSettings, Units};
 pub use standards::{nearest_round_size_for, rect_sizes_mm, round_sizes_mm, Standard};
 pub use topology::{trace, Polyline, Segment, TraceOptions, TracedSystem};
 
