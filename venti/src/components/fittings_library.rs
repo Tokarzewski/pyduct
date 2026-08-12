@@ -223,6 +223,45 @@ pub fn fire_damper(open_percentage: f64) -> Result<f64> {
     Ok(BASE + closed_frac * closed_frac * 30.0)
 }
 
+/// Branded fire-damper loss coefficient — catalogue-driven selection.
+///
+/// Looks the fully-open housing section zeta for a specific vendor brand and
+/// nominal duct size (mm) up in [`crate::catalog::reference_catalog`] under
+/// the key `damper.fire.<brand>.<size_mm>` (lower-cased brand), then applies
+/// the same closing correlation as [`fire_damper`]: below 95 % open,
+/// `zeta = base + 30·(1 − open/100)²`, otherwise the bare housing value.
+/// Returns an error (a `String`-style message, `venti::Error`) if the
+/// brand/size combination is not catalogued or an input is invalid.
+///
+/// # Examples
+/// ```
+/// use venti::components::fittings_library::fire_damper_branded;
+/// let z = fire_damper_branded("trox", 200.0, 100.0).unwrap();
+/// assert!((z - 0.20).abs() < 1e-12);
+/// assert!(fire_damper_branded("acme", 200.0, 100.0).is_err());
+/// ```
+pub fn fire_damper_branded(brand: &str, size_mm: f64, open_percentage: f64) -> Result<f64> {
+    if size_mm <= 0.0 {
+        return Err("size_mm must be positive".into());
+    }
+    if !(0.0..=100.0).contains(&open_percentage) {
+        return Err("open_percentage must be in [0, 100]".into());
+    }
+    let key = format!("damper.fire.{}.{}", brand.trim().to_lowercase(), size_mm);
+    let base = crate::catalog::reference_catalog()
+        .lookup(&key)
+        .ok_or_else(|| {
+            format!(
+                "no catalogue entry for fire damper: brand {brand:?} at {size_mm} mm (key {key})"
+            )
+        })?;
+    if open_percentage >= 95.0 {
+        return Ok(base);
+    }
+    let closed_frac = 1.0 - open_percentage / 100.0;
+    Ok(base + closed_frac * closed_frac * 30.0)
+}
+
 /// Attenuator / silencer insertion loss — the pressure-loss coefficient of a
 /// duct silencer section as a function of the open (free-area) fraction of its
 /// perforated lining. An open silencer contributes a small base section loss;
@@ -341,6 +380,68 @@ mod tests {
     fn fire_damper_rejects_bad_open() {
         assert!(fire_damper(-1.0).is_err());
         assert!(fire_damper(101.0).is_err());
+    }
+
+    #[test]
+    fn fire_damper_branded_uses_catalog_base() {
+        // Fully open (and the 95 % threshold) returns exactly the catalogued
+        // housing zeta for the brand/size — i.e. the helper is driven by the
+        // ζ catalog, not a hard-coded constant.
+        let base = crate::catalog::reference_catalog()
+            .lookup("damper.fire.trox.200")
+            .unwrap();
+        assert!((fire_damper_branded("trox", 200.0, 100.0).unwrap() - base).abs() < 1e-12);
+        assert!((fire_damper_branded("trox", 200.0, 95.0).unwrap() - base).abs() < 1e-12);
+        // Brand matching is case-insensitive.
+        let mbase = crate::catalog::reference_catalog()
+            .lookup("damper.fire.mercor.315")
+            .unwrap();
+        assert!((fire_damper_branded("Mercor", 315.0, 100.0).unwrap() - mbase).abs() < 1e-12);
+        // Different sizes carry different catalogue bases.
+        let small = crate::catalog::reference_catalog()
+            .lookup("damper.fire.trox.160")
+            .unwrap();
+        let large = crate::catalog::reference_catalog()
+            .lookup("damper.fire.trox.315")
+            .unwrap();
+        assert!(
+            small > large,
+            "smaller damper should have larger housing zeta"
+        );
+    }
+
+    #[test]
+    fn fire_damper_branded_closing_raises_zeta() {
+        // Closed-form check at 50 % open: base + 30·(1 − 0.5)² = base + 7.5.
+        let base = 0.20; // damper.fire.trox.200 catalogue base
+        let half = fire_damper_branded("trox", 200.0, 50.0).unwrap();
+        assert!((half - (base + 30.0 * 0.5 * 0.5)).abs() < 1e-12);
+        assert!(half > fire_damper_branded("trox", 200.0, 95.0).unwrap());
+        assert!(fire_damper_branded("trox", 200.0, 0.0).unwrap() > 20.0);
+        // Monotonic: more closed = more loss.
+        let c80 = fire_damper_branded("trox", 200.0, 80.0).unwrap();
+        let c50 = fire_damper_branded("trox", 200.0, 50.0).unwrap();
+        assert!(c50 > c80);
+    }
+
+    #[test]
+    fn fire_damper_branded_unknown_brand_or_size_errors() {
+        assert!(fire_damper_branded("acme", 200.0, 100.0).is_err());
+        assert!(fire_damper_branded("trox", 999.0, 100.0).is_err());
+        assert!(fire_damper_branded("", 200.0, 50.0).is_err());
+        // Unknown entries still error at every opening.
+        assert!(fire_damper_branded("unknown", 200.0, 0.0).is_err());
+    }
+
+    #[test]
+    fn fire_damper_branded_validates_inputs() {
+        assert!(fire_damper_branded("trox", 0.0, 100.0).is_err());
+        assert!(fire_damper_branded("trox", -5.0, 100.0).is_err());
+        assert!(fire_damper_branded("trox", 200.0, -1.0).is_err());
+        assert!(fire_damper_branded("trox", 200.0, 101.0).is_err());
+        // A known brand with an uncatalogued size is a lookup error too.
+        let e = fire_damper_branded("trox", 123.0, 100.0).unwrap_err();
+        assert!(!e.to_string().is_empty());
     }
 
     #[test]

@@ -288,6 +288,120 @@ pub fn reference_catalog() -> ZetaCatalog {
             "SMACNA",
             None,
         ),
+        // ---- vendor fire dampers (Trox / Mercor) ----
+        // Representative fully-open housing section zetas at common nominal
+        // round sizes, keyed `damper.fire.<brand>.<size_mm>` for the
+        // `fire_damper_branded` selection helper in
+        // `components::fittings_library`. Smaller dampers carry a slightly
+        // higher open-housing loss (blade pack in a shorter collar).
+        entry(
+            "damper.fire.trox.160",
+            "Fire damper, Trox FK-EU D 160 (open)",
+            Damper,
+            0.20,
+            Outlet,
+            "Trox catalogue",
+            Some(160.0),
+        ),
+        entry(
+            "damper.fire.trox.200",
+            "Fire damper, Trox FK-EU D 200 (open)",
+            Damper,
+            0.20,
+            Outlet,
+            "Trox catalogue",
+            Some(200.0),
+        ),
+        entry(
+            "damper.fire.trox.250",
+            "Fire damper, Trox FK-EU D 250 (open)",
+            Damper,
+            0.19,
+            Outlet,
+            "Trox catalogue",
+            Some(250.0),
+        ),
+        entry(
+            "damper.fire.trox.315",
+            "Fire damper, Trox FK-EU D 315 (open)",
+            Damper,
+            0.18,
+            Outlet,
+            "Trox catalogue",
+            Some(315.0),
+        ),
+        entry(
+            "damper.fire.trox.400",
+            "Fire damper, Trox FK-EU D 400 (open)",
+            Damper,
+            0.18,
+            Outlet,
+            "Trox catalogue",
+            Some(400.0),
+        ),
+        entry(
+            "damper.fire.trox.500",
+            "Fire damper, Trox FK-EU D 500 (open)",
+            Damper,
+            0.18,
+            Outlet,
+            "Trox catalogue",
+            Some(500.0),
+        ),
+        entry(
+            "damper.fire.mercor.160",
+            "Fire damper, Mercor MF D 160 (open)",
+            Damper,
+            0.21,
+            Outlet,
+            "Mercor catalogue",
+            Some(160.0),
+        ),
+        entry(
+            "damper.fire.mercor.200",
+            "Fire damper, Mercor MF D 200 (open)",
+            Damper,
+            0.20,
+            Outlet,
+            "Mercor catalogue",
+            Some(200.0),
+        ),
+        entry(
+            "damper.fire.mercor.250",
+            "Fire damper, Mercor MF D 250 (open)",
+            Damper,
+            0.19,
+            Outlet,
+            "Mercor catalogue",
+            Some(250.0),
+        ),
+        entry(
+            "damper.fire.mercor.315",
+            "Fire damper, Mercor MF D 315 (open)",
+            Damper,
+            0.19,
+            Outlet,
+            "Mercor catalogue",
+            Some(315.0),
+        ),
+        entry(
+            "damper.fire.mercor.400",
+            "Fire damper, Mercor MF D 400 (open)",
+            Damper,
+            0.18,
+            Outlet,
+            "Mercor catalogue",
+            Some(400.0),
+        ),
+        entry(
+            "damper.fire.mercor.500",
+            "Fire damper, Mercor MF D 500 (open)",
+            Damper,
+            0.18,
+            Outlet,
+            "Mercor catalogue",
+            Some(500.0),
+        ),
         // ---- diffusers / grilles ----
         entry(
             "diffuser.ceiling",
@@ -422,6 +536,39 @@ mod tests {
     use super::*;
 
     #[test]
+    fn fire_damper_vendor_entries_exist() {
+        let cat = reference_catalog();
+        let cases: &[(&str, &str, &[f64])] = &[
+            (
+                "trox",
+                "Trox catalogue",
+                &[160.0, 200.0, 250.0, 315.0, 400.0, 500.0],
+            ),
+            (
+                "mercor",
+                "Mercor catalogue",
+                &[160.0, 200.0, 250.0, 315.0, 400.0, 500.0],
+            ),
+        ];
+        for (brand, source, sizes) in cases {
+            for s in *sizes {
+                let key = format!("damper.fire.{brand}.{s}");
+                let e = cat.get(&key).unwrap_or_else(|| panic!("missing {key}"));
+                assert_eq!(e.category, FittingCategory::Damper);
+                assert_eq!(e.reference_velocity, VelocityRef::Outlet);
+                assert_eq!(e.source, *source);
+                assert_eq!(e.size_mm, Some(*s));
+                assert!(
+                    (0.18..=0.22).contains(&e.zeta),
+                    "{key} zeta {} outside [0.18, 0.22]",
+                    e.zeta
+                );
+            }
+        }
+        assert!(cat.by_category(FittingCategory::Damper).count() >= 12);
+    }
+
+    #[test]
     fn reference_catalog_lookup() {
         let cat = reference_catalog();
         assert!(cat.len() >= 20);
@@ -481,6 +628,19 @@ mod tests {
 mod tests_nocli {
     use super::*;
     // Core always builds; lookup must work without serde too.
+    #[test]
+    fn fire_damper_vendor_entries_core() {
+        // The vendor fire-damper data must exist in the core (non-serde) build too.
+        let cat = reference_catalog();
+        let e = cat.get("damper.fire.trox.200").unwrap();
+        assert_eq!(e.source, "Trox catalogue");
+        assert_eq!(e.category, FittingCategory::Damper);
+        assert_eq!(e.reference_velocity, VelocityRef::Outlet);
+        let m = cat.get("damper.fire.mercor.315").unwrap();
+        assert_eq!(m.source, "Mercor catalogue");
+        assert_eq!(m.size_mm, Some(315.0));
+    }
+
     #[test]
     fn reference_catalog_core_lookup() {
         let cat = reference_catalog();
