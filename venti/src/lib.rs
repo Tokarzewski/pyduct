@@ -50,6 +50,7 @@ pub mod catalog;
 pub mod components;
 pub mod core;
 pub mod data;
+pub mod electrical;
 pub mod error;
 pub mod ffi;
 pub mod insulation;
@@ -90,6 +91,7 @@ pub use data::standard_sizes::{
     STANDARD_RECTANGULAR_DUCT_SIZES, STANDARD_ROUND_BRANCH_SIZES, STANDARD_ROUND_DUCT_SIZES,
     STANDARD_ROUND_TRANSFORMATION_SIZES,
 };
+pub use electrical::{electrical_as_csv, ElectricalData, ElectricalSchedule};
 pub use error::{Error, Result};
 pub use network::{
     batch_compute, compute_pressure_drops, critical_path, critical_path_pressure_drop,
