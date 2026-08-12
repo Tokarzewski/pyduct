@@ -1,6 +1,7 @@
 //! Base types shared by all ductwork components.
 
 use crate::core::fluid::Fluid;
+use crate::Result;
 
 /// Direction of airflow through a port (physical convention).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -66,16 +67,17 @@ pub trait Component {
     ///
     /// Called by the solver after flowrates have been propagated. The
     /// flowrate on each port must already be set when this is called.
-    fn compute(&mut self, fluid: &Fluid) -> Result<(), String>;
+    fn compute(&mut self, fluid: &Fluid) -> Result<()>;
 
     /// Look up a port by name.
-    fn port(&self, name: &str) -> Result<&Port, String> {
+    fn port(&self, name: &str) -> Result<&Port> {
         self.ports().iter().find(|p| p.name == name).ok_or_else(|| {
             format!(
                 "{} has no port named {:?}",
                 std::any::type_name::<Self>(),
                 name
             )
+            .into()
         })
     }
 

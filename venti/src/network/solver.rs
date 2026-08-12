@@ -11,6 +11,7 @@
 //! the Mojo kernels exactly so the port can be diff-tested against the Python
 //! reference projections.
 
+use crate::Result;
 use std::collections::HashMap;
 
 use super::network::Network;
@@ -22,7 +23,7 @@ use crate::physics::friction::{friction_factor, relative_roughness, reynolds};
 ///
 /// Terminal demands are propagated upstream so each duct/fitting/source sees
 /// the total volumetric flow it must carry.
-pub fn propagate_flowrates(network: &mut Network) -> Result<(), String> {
+pub fn propagate_flowrates(network: &mut Network) -> Result<()> {
     let topo = network.topo_order()?;
     let preds = network.predecessors();
 
@@ -71,7 +72,7 @@ pub fn propagate_flowrates(network: &mut Network) -> Result<(), String> {
 }
 
 /// Compute every port's pressure drop for the network.
-pub fn compute_pressure_drops(network: &mut Network, fluid: &Fluid) -> Result<(), String> {
+pub fn compute_pressure_drops(network: &mut Network, fluid: &Fluid) -> Result<()> {
     let cids: Vec<String> = network.components.keys().cloned().collect();
     for cid in &cids {
         let comp = network
@@ -102,7 +103,7 @@ fn node_pressure_drops(network: &Network) -> HashMap<String, f64> {
 /// The critical path is the longest path (by total node `pressure_drop`) from
 /// any `Source` to any `Terminal`. A single-pass DP over the topological
 /// order — O(V + E).
-pub fn critical_path(network: &Network) -> Result<Vec<String>, String> {
+pub fn critical_path(network: &Network) -> Result<Vec<String>> {
     let topo = network.topo_order()?;
     let preds = network.predecessors();
     let weights = node_pressure_drops(network);
@@ -154,7 +155,7 @@ pub fn critical_path(network: &Network) -> Result<Vec<String>, String> {
 }
 
 /// Total pressure drop along the critical path [Pa].
-pub fn critical_path_pressure_drop(network: &Network) -> Result<f64, String> {
+pub fn critical_path_pressure_drop(network: &Network) -> Result<f64> {
     let topo = network.topo_order()?;
     let preds = network.predecessors();
     let weights = node_pressure_drops(network);
@@ -179,7 +180,7 @@ pub fn critical_path_pressure_drop(network: &Network) -> Result<f64, String> {
 }
 
 /// Run the full solver pipeline and return the critical-path pressure drop.
-pub fn solve(network: &mut Network, fluid: &Fluid) -> Result<f64, String> {
+pub fn solve(network: &mut Network, fluid: &Fluid) -> Result<f64> {
     propagate_flowrates(network)?;
     compute_pressure_drops(network, fluid)?;
     critical_path_pressure_drop(network)

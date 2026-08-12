@@ -11,6 +11,7 @@
 //! This module is **dependency-free** — pure `f64` math on standard Rust.
 
 use crate::core::fluid::STANDARD_AIR;
+use crate::Result;
 
 /// Reference air density used to normalise the density term of the
 /// regenerated-noise correlation (kg/m³, standard air at 20 °C).
@@ -56,20 +57,16 @@ const REGEN_C: f64 = 10.0;
 /// # Errors
 ///
 /// Returns an error string for non-positive velocity, diameter, or density.
-pub fn regenerated_noise_round(
-    velocity: f64,
-    diameter: f64,
-    density: Option<f64>,
-) -> Result<f64, String> {
+pub fn regenerated_noise_round(velocity: f64, diameter: f64, density: Option<f64>) -> Result<f64> {
     if velocity <= 0.0 {
-        return Err(format!("velocity must be positive, got {velocity}"));
+        return Err((format!("velocity must be positive, got {velocity}")).into());
     }
     if diameter <= 0.0 {
-        return Err(format!("diameter must be positive, got {diameter}"));
+        return Err((format!("diameter must be positive, got {diameter}")).into());
     }
     let rho = density.unwrap_or(RHO_0);
     if rho <= 0.0 {
-        return Err(format!("density must be positive, got {rho}"));
+        return Err((format!("density must be positive, got {rho}")).into());
     }
 
     Ok(REGEN_C + 10.0 * (rho / RHO_0).log10() + 60.0 * velocity.log10() - 20.0 * diameter.log10())
@@ -113,16 +110,17 @@ pub fn duct_pressure_level(
     sound_power_db: f64,
     room_surface_area: f64,
     absorption_coefficient: f64,
-) -> Result<f64, String> {
+) -> Result<f64> {
     if room_surface_area <= 0.0 {
-        return Err(format!(
-            "room_surface_area must be positive, got {room_surface_area}"
-        ));
+        return Err(
+            (format!("room_surface_area must be positive, got {room_surface_area}")).into(),
+        );
     }
     if !(absorption_coefficient > 0.0 && absorption_coefficient < 1.0) {
-        return Err(format!(
+        return Err((format!(
             "absorption_coefficient must be in (0, 1), got {absorption_coefficient}"
-        ));
+        ))
+        .into());
     }
 
     let room_term =
@@ -147,15 +145,15 @@ pub const NOISE_LIMITS_NC: &[(&str, f64)] = &[
     ("industrial", 60.0),
 ];
 
-fn nc_limit(space_type: &str) -> Result<f64, String> {
+fn nc_limit(space_type: &str) -> Result<f64> {
     for (k, v) in NOISE_LIMITS_NC {
         if *k == space_type {
             return Ok(*v);
         }
     }
-    Err(format!(
+    Err((format!(
         "unknown space_type {space_type:?}; expected one of studio|bedroom|office|classroom|retail|industrial"
-    ))
+    )).into())
 }
 
 /// Check a computed sound level against the NC target for `space_type`.
@@ -167,7 +165,7 @@ fn nc_limit(space_type: &str) -> Result<f64, String> {
 /// # Errors
 ///
 /// Returns an error string for an unknown `space_type`.
-pub fn nc_ok(space_type: &str, level_db: f64) -> Result<bool, String> {
+pub fn nc_ok(space_type: &str, level_db: f64) -> Result<bool> {
     let limit = nc_limit(space_type)?;
     Ok(level_db <= limit + 1e-9)
 }

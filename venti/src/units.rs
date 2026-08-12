@@ -1,5 +1,6 @@
 //! Unit converters between SI (venti native) and US customary units.
 
+use crate::Result;
 pub const CFM_TO_M3S: f64 = 0.0004719474432; // ft^3/min -> m^3/s
 pub const INWC_TO_PA: f64 = 249.0889; // inch H2O (4 C) -> Pa
 pub const FT_TO_M: f64 = 0.3048;
@@ -44,12 +45,12 @@ pub fn c_to_f(celsius: f64) -> f64 {
 }
 
 /// ACH = (flowrate × 3600) / room_volume.
-pub fn air_changes_per_hour(flowrate_m3s: f64, volume_m3: f64) -> Result<f64, &'static str> {
+pub fn air_changes_per_hour(flowrate_m3s: f64, volume_m3: f64) -> Result<f64> {
     if volume_m3 <= 0.0 {
-        return Err("volume_m3 must be positive");
+        return Err("volume_m3 must be positive".into());
     }
     if flowrate_m3s < 0.0 {
-        return Err("flowrate_m3s must be non-negative");
+        return Err("flowrate_m3s must be non-negative".into());
     }
     Ok(flowrate_m3s * 3600.0 / volume_m3)
 }

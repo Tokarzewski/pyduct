@@ -15,6 +15,7 @@
 //! referred to, and its **source** — the three things a ζ value is meaningless
 //! without.
 
+use crate::Result;
 /// Broad family of a fitting.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 #[cfg_attr(feature = "cli", derive(serde::Serialize, serde::Deserialize))]
@@ -405,13 +406,13 @@ impl VendorCatalog {
 
 /// Parse a vendor catalogue from a JSON string.
 #[cfg(feature = "cli")]
-pub fn vendor_catalog_from_json(json: &str) -> Result<VendorCatalog, String> {
-    serde_json::from_str(json).map_err(|e| format!("catalogue JSON: {e}"))
+pub fn vendor_catalog_from_json(json: &str) -> Result<VendorCatalog> {
+    Ok(serde_json::from_str(json).map_err(|e| format!("catalogue JSON: {e}"))?)
 }
 
 /// Load a vendor catalogue from a `.json` file.
 #[cfg(feature = "cli")]
-pub fn vendor_catalog_from_file(path: &str) -> Result<VendorCatalog, String> {
+pub fn vendor_catalog_from_file(path: &str) -> Result<VendorCatalog> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("read {path:?}: {e}"))?;
     vendor_catalog_from_json(&text)
 }

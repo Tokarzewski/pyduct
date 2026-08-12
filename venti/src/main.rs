@@ -5,6 +5,7 @@
 //! validates.
 
 use std::path::PathBuf;
+use venti::Result;
 
 use clap::{Parser, Subcommand};
 
@@ -61,7 +62,7 @@ enum Commands {
     },
 }
 
-fn standard_fluid() -> Result<Fluid, &'static str> {
+fn standard_fluid() -> Result<Fluid> {
     Fluid::new(1.204, 1.825e-5)
 }
 
@@ -81,7 +82,7 @@ fn main() {
     }
 }
 
-fn cmd_solve(file: &std::path::Path, format: &str) -> Result<(), String> {
+fn cmd_solve(file: &std::path::Path, format: &str) -> Result<()> {
     let mut net = venti::load_network_from_path(file)?;
     let dp = net.solve(Some(&standard_fluid()?))?;
 
@@ -152,7 +153,7 @@ fn cmd_solve(file: &std::path::Path, format: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn cmd_report(file: &std::path::Path, format: &str) -> Result<(), String> {
+fn cmd_report(file: &std::path::Path, format: &str) -> Result<()> {
     let mut net = venti::load_network_from_path(file)?;
     net.solve(Some(&standard_fluid()?))?;
 
@@ -168,7 +169,7 @@ fn cmd_report(file: &std::path::Path, format: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn cmd_info(file: &std::path::Path) -> Result<(), String> {
+fn cmd_info(file: &std::path::Path) -> Result<()> {
     let net = venti::load_network_from_path(file)?;
     let terminals = net.terminals().len();
     let sources = net.sources().len();
@@ -182,7 +183,7 @@ fn cmd_info(file: &std::path::Path) -> Result<(), String> {
     Ok(())
 }
 
-fn cmd_validate(file: &std::path::Path) -> Result<(), String> {
+fn cmd_validate(file: &std::path::Path) -> Result<()> {
     let net = venti::load_network_from_path(file)?;
     let problems = net.validate();
     if problems.is_empty() {
@@ -196,7 +197,7 @@ fn cmd_validate(file: &std::path::Path) -> Result<(), String> {
     Ok(())
 }
 
-fn cmd_save(file: &std::path::Path, out: &str) -> Result<(), String> {
+fn cmd_save(file: &std::path::Path, out: &str) -> Result<()> {
     let net = venti::load_network_from_path(file)?;
     let out_path = if out.is_empty() {
         PathBuf::from(format!("{}.saved.json", file.display()))
@@ -221,7 +222,7 @@ fn cmd_save(file: &std::path::Path, out: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn cmd_catalog(vendor: Option<&std::path::Path>, format: &str) -> Result<(), String> {
+fn cmd_catalog(vendor: Option<&std::path::Path>, format: &str) -> Result<()> {
     let mut cat = venti::reference_catalog();
     if let Some(vpath) = vendor {
         let vc = venti::vendor_catalog_from_file(vpath.to_str().ok_or("invalid vendor path")?)?;

@@ -16,6 +16,7 @@
 //!   - { source: duct, target: term }
 //! ```
 
+use crate::Result;
 use std::collections::HashMap;
 use std::path::Path;
 
@@ -112,7 +113,7 @@ fn default_zeta_branch() -> f64 {
     0.5
 }
 
-fn build_cross_section(cs: &CrossSectionFile) -> Result<CrossSection, String> {
+fn build_cross_section(cs: &CrossSectionFile) -> Result<CrossSection> {
     match cs.shape.as_str() {
         "round" => Ok(CrossSection::Round(Round::new(
             cs.diameter.ok_or("round cross_section needs diameter")?,
@@ -121,11 +122,11 @@ fn build_cross_section(cs: &CrossSectionFile) -> Result<CrossSection, String> {
             cs.width.ok_or("rectangular cross_section needs width")?,
             cs.height.ok_or("rectangular cross_section needs height")?,
         )?)),
-        other => Err(format!("unknown cross-section shape {other:?}")),
+        other => Err((format!("unknown cross-section shape {other:?}")).into()),
     }
 }
 
-fn build_component(c: ComponentFile) -> Result<ComponentEnum, String> {
+fn build_component(c: ComponentFile) -> Result<ComponentEnum> {
     let comp = match c {
         ComponentFile::Source { name } => {
             ComponentEnum::Source(Source::new(name.as_deref().unwrap_or("Source")))
@@ -205,12 +206,12 @@ fn build_component(c: ComponentFile) -> Result<ComponentEnum, String> {
 }
 
 /// Parse a network from a YAML or JSON string (format guessed by content).
-pub fn load_network_from_str(text: &str) -> Result<Network, String> {
+pub fn load_network_from_str(text: &str) -> Result<Network> {
     let nf: NetworkFile = serde_yaml::from_str(text).map_err(|e| format!("parse: {e}"))?;
     build_network(nf)
 }
 
-fn build_network(nf: NetworkFile) -> Result<Network, String> {
+fn build_network(nf: NetworkFile) -> Result<Network> {
     let mut net = Network::new(nf.name.as_deref().unwrap_or(""));
     for (cid, comp) in nf.components {
         net.add(&cid, build_component(comp)?)?;
@@ -222,7 +223,7 @@ fn build_network(nf: NetworkFile) -> Result<Network, String> {
 }
 
 /// Load a network from a `.yaml` or `.json` file (chosen by extension).
-pub fn load_network_from_path(path: &Path) -> Result<Network, String> {
+pub fn load_network_from_path(path: &Path) -> Result<Network> {
     let text = std::fs::read_to_string(path).map_err(|e| format!("read {path:?}: {e}"))?;
     let is_json = path
         .extension()
@@ -238,7 +239,7 @@ pub fn load_network_from_path(path: &Path) -> Result<Network, String> {
 }
 
 /// Convenience: load from a path-like `&str`.
-pub fn load_network_from_file(path: &str) -> Result<Network, String> {
+pub fn load_network_from_file(path: &str) -> Result<Network> {
     load_network_from_path(Path::new(path))
 }
 
@@ -361,17 +362,18 @@ fn network_to_file(net: &Network) -> NetworkFile {
 }
 
 /// Serialize a network to a wenta YAML string.
-pub fn save_network_to_string(net: &Network) -> Result<String, String> {
-    serde_yaml::to_string(&network_to_file(net)).map_err(|e| format!("serialize YAML: {e}"))
+pub fn save_network_to_string(net: &Network) -> Result<String> {
+    Ok(serde_yaml::to_string(&network_to_file(net)).map_err(|e| format!("serialize YAML: {e}"))?)
 }
 
 /// Serialize a network to a wenta JSON string.
-pub fn save_network_to_json_string(net: &Network) -> Result<String, String> {
-    serde_json::to_string_pretty(&network_to_file(net)).map_err(|e| format!("serialize JSON: {e}"))
+pub fn save_network_to_json_string(net: &Network) -> Result<String> {
+    Ok(serde_json::to_string_pretty(&network_to_file(net))
+        .map_err(|e| format!("serialize JSON: {e}"))?)
 }
 
 /// Write a network to a `.yaml` or `.json` file (chosen by extension).
-pub fn save_network_to_path(net: &Network, path: &Path) -> Result<(), String> {
+pub fn save_network_to_path(net: &Network, path: &Path) -> Result<()> {
     let is_json = path
         .extension()
         .map(|e| e.to_string_lossy().to_lowercase() == "json")
@@ -381,10 +383,10 @@ pub fn save_network_to_path(net: &Network, path: &Path) -> Result<(), String> {
     } else {
         save_network_to_string(net)?
     };
-    std::fs::write(path, text).map_err(|e| format!("write {path:?}: {e}"))
+    Ok(std::fs::write(path, text).map_err(|e| format!("write {path:?}: {e}"))?)
 }
 
 /// Convenience: save to a path-like `&str`.
-pub fn save_network_to_file(net: &Network, path: &str) -> Result<(), String> {
+pub fn save_network_to_file(net: &Network, path: &str) -> Result<()> {
     save_network_to_path(net, Path::new(path))
 }

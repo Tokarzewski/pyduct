@@ -4,6 +4,7 @@ use crate::core::fluid::Fluid;
 use crate::physics::flex::stretch_correction_factor;
 use crate::physics::friction::{friction_factor, relative_roughness, reynolds};
 use crate::physics::losses::straight_pressure_drop;
+use crate::Result;
 
 use super::base::{Component, Port, PortDirection};
 
@@ -30,9 +31,9 @@ impl RigidDuct {
         hydraulic_diameter: f64,
         length: f64,
         absolute_roughness: f64,
-    ) -> Result<Self, String> {
+    ) -> Result<Self> {
         if length <= 0.0 {
-            return Err(format!("length must be positive, got {length}"));
+            return Err((format!("length must be positive, got {length}")).into());
         }
         let eps = relative_roughness(absolute_roughness, hydraulic_diameter);
         Ok(RigidDuct {
@@ -61,7 +62,7 @@ impl Component for RigidDuct {
         &mut self.ports
     }
 
-    fn compute(&mut self, fluid: &Fluid) -> Result<(), String> {
+    fn compute(&mut self, fluid: &Fluid) -> Result<()> {
         let inlet_flow = self.ports[0]
             .flowrate
             .ok_or_else(|| format!("RigidDuct {:?}: inlet flowrate not set", self.name))?;
@@ -102,14 +103,15 @@ impl FlexDuct {
         length: f64,
         pressure_drop_per_meter: f64,
         stretch_percentage: f64,
-    ) -> Result<Self, String> {
+    ) -> Result<Self> {
         if diameter <= 0.0 || length <= 0.0 {
-            return Err("diameter and length must be positive".to_string());
+            return Err(("diameter and length must be positive".to_string()).into());
         }
         if !(0.0 < stretch_percentage && stretch_percentage <= 100.0) {
             return Err(format!(
                 "stretch_percentage must be in (0, 100], got {stretch_percentage}"
-            ));
+            )
+            .into());
         }
         let r = diameter * 0.5;
         let area = std::f64::consts::PI * r * r;
@@ -139,7 +141,7 @@ impl Component for FlexDuct {
         &mut self.ports
     }
 
-    fn compute(&mut self, fluid: &Fluid) -> Result<(), String> {
+    fn compute(&mut self, fluid: &Fluid) -> Result<()> {
         let inlet_flow = self.ports[0]
             .flowrate
             .ok_or_else(|| format!("FlexDuct {:?}: inlet flowrate not set", self.name))?;

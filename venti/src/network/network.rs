@@ -11,6 +11,7 @@
 //! * connection edges go from one component's `out` port to another
 //!   component's `in` port.
 
+use crate::Result;
 use std::collections::{HashMap, VecDeque};
 
 use super::solver;
@@ -100,9 +101,9 @@ impl Network {
     // ---- building the network --------------------------------------------
 
     /// Register a component in the network under `component_id`.
-    pub fn add(&mut self, component_id: &str, component: ComponentEnum) -> Result<(), String> {
+    pub fn add(&mut self, component_id: &str, component: ComponentEnum) -> Result<()> {
         if self.components.contains_key(component_id) {
-            return Err(format!("duplicate component id: {component_id:?}"));
+            return Err((format!("duplicate component id: {component_id:?}")).into());
         }
         let ports = component.as_component().ports().to_vec();
         self.components.insert(component_id.to_string(), component);
@@ -141,7 +142,7 @@ impl Network {
     /// Each endpoint is either `"<component_id>"` (the default port is used) or
     /// `"<component_id>.<port_name>"`. The source must resolve to an `out` port
     /// and the target to an `in` port.
-    pub fn connect(&mut self, source: &str, target: &str) -> Result<(), String> {
+    pub fn connect(&mut self, source: &str, target: &str) -> Result<()> {
         let (src_cid, src_port) = self.resolve(source, PortDirectionSimple::Out)?;
         let (dst_cid, dst_port) = self.resolve(target, PortDirectionSimple::In)?;
         self.edges.push((
@@ -185,7 +186,7 @@ impl Network {
     }
 
     /// Kahn's-algorithm topological order of graph nodes (a DAG).
-    pub fn topo_order(&self) -> Result<Vec<String>, String> {
+    pub fn topo_order(&self) -> Result<Vec<String>> {
         let nodes = self.node_ids();
         let succ = self.successors();
         let mut indegree: HashMap<String, usize> = nodes.iter().map(|n| (n.clone(), 0)).collect();
@@ -336,7 +337,7 @@ impl Network {
     }
 
     /// Run the full solver and return critical-path pressure drop [Pa].
-    pub fn solve(&mut self, fluid: Option<&Fluid>) -> Result<f64, String> {
+    pub fn solve(&mut self, fluid: Option<&Fluid>) -> Result<f64> {
         solver::solve(self, fluid.unwrap_or(&STANDARD_AIR))
     }
 
@@ -344,7 +345,7 @@ impl Network {
         &self,
         ref_: &str,
         expected_direction: PortDirectionSimple,
-    ) -> Result<(String, String), String> {
+    ) -> Result<(String, String)> {
         let (cid, pname) = match ref_.split_once('.') {
             Some((c, p)) => (c.to_string(), Some(p.to_string())),
             None => (ref_.to_string(), None),
@@ -363,10 +364,11 @@ impl Network {
         let port_name: String = if let Some(pn) = pname {
             let port = comp.port(&pn).map_err(|e| e.to_string())?;
             if port.direction != expected {
-                return Err(format!(
+                return Err((format!(
                     "port {cid}.{pn} is {:?}, expected {expected:?}",
                     port.direction
-                ));
+                ))
+                .into());
             }
             pn
         } else {
@@ -377,15 +379,15 @@ impl Network {
                 .collect();
             match matching.len() {
                 0 => {
-                    return Err(format!(
+                    return Err((format!(
                         "component {cid:?} has no {expected:?} ports"
-                    ))
+                    )).into())
                 }
                 1 => matching[0].name.clone(),
                 _ => {
-                    return Err(format!(
+                    return Err((format!(
                         "component {cid:?} has multiple {expected:?} ports; specify one with {cid:?} + '.<port_name>'"
-                    ))
+                    )).into())
                 }
             }
         };
@@ -404,7 +406,7 @@ pub fn simple_supply_network(
     flowrate: f64,
     duct_length: f64,
     duct_diameter: f64,
-) -> Result<Network, String> {
+) -> Result<Network> {
     use crate::core::geometry::Round;
     let mut net = Network::new("supply");
     net.add("ahu", ComponentEnum::Source(Source::new("AHU")))?;

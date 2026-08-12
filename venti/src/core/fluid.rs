@@ -1,5 +1,6 @@
 //! Fluid properties — density, dynamic & kinematic viscosity.
 
+use crate::Result;
 /// A working fluid (typically air).
 ///
 /// `density` [kg/m³], `dynamic_viscosity` [Pa·s]. Kinematic viscosity
@@ -12,12 +13,12 @@ pub struct Fluid {
 }
 
 impl Fluid {
-    pub fn new(density: f64, dynamic_viscosity: f64) -> Result<Self, &'static str> {
+    pub fn new(density: f64, dynamic_viscosity: f64) -> Result<Self> {
         if density <= 0.0 {
-            return Err("density must be positive");
+            return Err("density must be positive".into());
         }
         if dynamic_viscosity <= 0.0 {
-            return Err("dynamic_viscosity must be positive");
+            return Err("dynamic_viscosity must be positive".into());
         }
         Ok(Fluid {
             density,
@@ -46,9 +47,9 @@ pub const STANDARD_AIR: Fluid = Fluid {
 
 /// Dry-air properties at altitude [m] and temperature [°C] (ISA atmosphere +
 /// Sutherland viscosity).
-pub fn air_at_altitude(altitude_m: f64, temperature_c: f64) -> Result<Fluid, &'static str> {
+pub fn air_at_altitude(altitude_m: f64, temperature_c: f64) -> Result<Fluid> {
     if altitude_m < 0.0 {
-        return Err("altitude_m must be non-negative");
+        return Err("altitude_m must be non-negative".into());
     }
     let h = if altitude_m < 11000.0 {
         altitude_m

@@ -4,13 +4,9 @@
 //! `wenta.components.fittings_library`. Coefficients from ASHRAE Fundamentals
 //! and ductwork design guides (Hendiger, Idelchik).
 
+use crate::Result;
 /// Smooth-radius rectangular elbow (Idelchik §6) with aspect correction.
-pub fn rectangular_elbow(
-    width: f64,
-    height: f64,
-    bend_radius: f64,
-    angle_deg: f64,
-) -> Result<f64, String> {
+pub fn rectangular_elbow(width: f64, height: f64, bend_radius: f64, angle_deg: f64) -> Result<f64> {
     let smallest = width.min(height);
     if smallest <= 0.0 || bend_radius <= 0.0 {
         return Err("width, height and bend_radius must be positive".into());
@@ -30,7 +26,7 @@ pub fn rectangular_elbow(
 
 /// Round reducer loss coefficient (ASHRAE/Swamee–Jain style), referenced to
 /// the outlet velocity.
-pub fn reducer_round(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f64, String> {
+pub fn reducer_round(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f64> {
     if d_outlet > d_inlet {
         return Err("outlet diameter must be <= inlet".into());
     }
@@ -49,7 +45,7 @@ pub fn reducer_round(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f64,
 
 /// Round expander / diffuser loss coefficient (Borda–Carnot baseline),
 /// referenced to the inlet velocity.
-pub fn expander_round(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f64, String> {
+pub fn expander_round(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f64> {
     if d_inlet > d_outlet {
         return Err("inlet diameter must be <= outlet".into());
     }
@@ -76,7 +72,7 @@ pub fn junction_tee_branch(
     d_branch: f64,
     flowrate_main: f64,
     flowrate_branch: f64,
-) -> Result<(f64, f64), String> {
+) -> Result<(f64, f64)> {
     if flowrate_main < 0.0 || flowrate_branch < 0.0 {
         return Err("flowrates must be non-negative".into());
     }
@@ -102,7 +98,7 @@ pub fn junction_tee_combine(
     d_branch: f64,
     flowrate_main: f64,
     flowrate_branch: f64,
-) -> Result<(f64, f64), String> {
+) -> Result<(f64, f64)> {
     let total = flowrate_main + flowrate_branch;
     if total <= 0.0 {
         return Err("at least one flowrate must be positive".into());
@@ -120,7 +116,7 @@ pub fn junction_tee_combine(
 }
 
 /// Butterfly-damper loss coefficient (~0.1 fully open, rises steeply closed).
-pub fn damper_butterfly(open_percentage: f64) -> Result<f64, String> {
+pub fn damper_butterfly(open_percentage: f64) -> Result<f64> {
     if !(0.0..=100.0).contains(&open_percentage) {
         return Err("open_percentage must be in [0, 100]".into());
     }
@@ -132,7 +128,7 @@ pub fn damper_butterfly(open_percentage: f64) -> Result<f64, String> {
 }
 
 /// Ceiling-diffuser face-velocity loss coefficient.
-pub fn diffuser_ceiling(area_throw: f64) -> Result<f64, String> {
+pub fn diffuser_ceiling(area_throw: f64) -> Result<f64> {
     if area_throw <= 0.0 {
         return Err("area_throw must be positive".into());
     }
@@ -140,7 +136,7 @@ pub fn diffuser_ceiling(area_throw: f64) -> Result<f64, String> {
 }
 
 /// Return-grille face-velocity loss coefficient.
-pub fn grille_return(blockage_factor: f64) -> Result<f64, String> {
+pub fn grille_return(blockage_factor: f64) -> Result<f64> {
     if !(0.0..=1.0).contains(&blockage_factor) {
         return Err("blockage_factor must be in [0, 1]".into());
     }
@@ -148,7 +144,7 @@ pub fn grille_return(blockage_factor: f64) -> Result<f64, String> {
 }
 
 /// Sharp-corner mitered elbow loss coefficient; `vaned=True` cuts it to ~40 %.
-pub fn mitered_elbow(angle_deg: f64, vaned: bool) -> Result<f64, String> {
+pub fn mitered_elbow(angle_deg: f64, vaned: bool) -> Result<f64> {
     if angle_deg <= 0.0 || angle_deg > 180.0 {
         return Err("angle_deg must be in (0, 180]".into());
     }
@@ -163,7 +159,7 @@ pub fn mitered_elbow(angle_deg: f64, vaned: bool) -> Result<f64, String> {
 /// referenced to the outlet velocity). All loss is driven by the inlet/outlet
 /// area ratio and the included (cone) angle; smaller included angles give a
 /// longer, smoother transition and lower loss.
-pub fn taper_transition(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f64, String> {
+pub fn taper_transition(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f64> {
     if d_inlet <= 0.0 || d_outlet <= 0.0 {
         return Err("d_inlet and d_outlet must be positive".into());
     }
@@ -198,7 +194,7 @@ pub fn taper_transition(d_inlet: f64, d_outlet: f64, angle_deg: f64) -> Result<f
 /// main/straight leg loss is modest and rises with the amount diverted, while
 /// the branch leg carries a larger loss that also penalises a small branch
 /// area relative to the main.
-pub fn cross_fitting(d_main: f64, d_branch: f64, flow_ratio: f64) -> Result<(f64, f64), String> {
+pub fn cross_fitting(d_main: f64, d_branch: f64, flow_ratio: f64) -> Result<(f64, f64)> {
     if d_main <= 0.0 || d_branch <= 0.0 {
         return Err("d_main and d_branch must be positive".into());
     }
@@ -215,7 +211,7 @@ pub fn cross_fitting(d_main: f64, d_branch: f64, flow_ratio: f64) -> Result<(f64
 /// ASHRAE/SMACNA damper data). The open housing adds a small base loss; as the
 /// damper closes (`open_percentage` below ~95 %) a sharp quadratic penalty
 /// captures the blade/obstruction losses.
-pub fn fire_damper(open_percentage: f64) -> Result<f64, String> {
+pub fn fire_damper(open_percentage: f64) -> Result<f64> {
     if !(0.0..=100.0).contains(&open_percentage) {
         return Err("open_percentage must be in [0, 100]".into());
     }
@@ -231,7 +227,7 @@ pub fn fire_damper(open_percentage: f64) -> Result<f64, String> {
 /// duct silencer section as a function of the open (free-area) fraction of its
 /// perforated lining. An open silencer contributes a small base section loss;
 /// as the open fraction drops, the frontal-area restriction raises the loss.
-pub fn attenuator_open(open_fraction: f64) -> Result<f64, String> {
+pub fn attenuator_open(open_fraction: f64) -> Result<f64> {
     if !(0.0..=1.0).contains(&open_fraction) {
         return Err("open_fraction must be in [0, 1]".into());
     }
@@ -244,7 +240,7 @@ pub fn attenuator_open(open_fraction: f64) -> Result<f64, String> {
 }
 
 /// Alias for [`attenuator_open`].
-pub fn attenuator(open_fraction: f64) -> Result<f64, String> {
+pub fn attenuator(open_fraction: f64) -> Result<f64> {
     attenuator_open(open_fraction)
 }
 
@@ -367,7 +363,7 @@ mod tests {
 // ---------------------------------------------------------------------------
 // Additional loss-coefficient correlations spanning rectangular transitions,
 // round elbows, louvers, filters and round taps — all in the same
-// `Result<f64, String>` + validation style, with documented sources.
+// `Result<f64>` + validation style, with documented sources.
 
 /// Half-angle diffuser-performance factor (ASHRAE Fundamentals F29).
 ///
@@ -399,7 +395,7 @@ pub fn reducer_rectangular(
     w_out: f64,
     h_out: f64,
     angle_deg: f64,
-) -> Result<f64, String> {
+) -> Result<f64> {
     if w_in <= 0.0 || h_in <= 0.0 || w_out <= 0.0 || h_out <= 0.0 {
         return Err("widths and heights must be positive".into());
     }
@@ -423,7 +419,7 @@ pub fn expander_rectangular(
     w_out: f64,
     h_out: f64,
     angle_deg: f64,
-) -> Result<f64, String> {
+) -> Result<f64> {
     if w_in <= 0.0 || h_in <= 0.0 || w_out <= 0.0 || h_out <= 0.0 {
         return Err("widths and heights must be positive".into());
     }
@@ -442,7 +438,7 @@ pub fn expander_rectangular(
 /// when you need the full R/D vs angle table; this is a compact algebraic form.
 ///
 /// ``zeta = zeta_90 · (angle/90)`` with ``zeta_90 = clamp(0.21 / √(R/D)) ≤ 1.0``.
-pub fn elbow_round(bend_radius: f64, diameter: f64, angle_deg: f64) -> Result<f64, String> {
+pub fn elbow_round(bend_radius: f64, diameter: f64, angle_deg: f64) -> Result<f64> {
     if diameter <= 0.0 || bend_radius <= 0.0 {
         return Err("bend_radius and diameter must be positive".into());
     }
@@ -462,7 +458,7 @@ pub fn elbow_round(bend_radius: f64, diameter: f64, angle_deg: f64) -> Result<f6
 ///
 /// ``zeta = 0.25 + 4·(1 − open/100)³`` — low (~0.25) fully open, rising steeply
 /// as the blades close.
-pub fn louver_open(open_percentage: f64) -> Result<f64, String> {
+pub fn louver_open(open_percentage: f64) -> Result<f64> {
     if !(0.0..=100.0).contains(&open_percentage) {
         return Err("open_percentage must be in [0, 100]".into());
     }
@@ -475,7 +471,7 @@ pub fn louver_open(open_percentage: f64) -> Result<f64, String> {
 /// data). Loss rises quickly as the media clogs (free area falls).
 ///
 /// ``zeta = 0.12 / open_fraction²``
-pub fn filter_bank(open_fraction: f64) -> Result<f64, String> {
+pub fn filter_bank(open_fraction: f64) -> Result<f64> {
     if !(0.05..=1.0).contains(&open_fraction) {
         return Err("open_fraction must be in [0.05, 1]".into());
     }
@@ -487,7 +483,7 @@ pub fn filter_bank(open_fraction: f64) -> Result<f64, String> {
 /// the main flow diverted into the tap (0..1).
 ///
 /// ``zeta = 0.6 + 0.5·(1 − (d_tap/d_main)²) + 0.8·(1 − split)``
-pub fn round_tap_branch(d_main: f64, d_tap: f64, split_ratio: f64) -> Result<f64, String> {
+pub fn round_tap_branch(d_main: f64, d_tap: f64, split_ratio: f64) -> Result<f64> {
     if d_main <= 0.0 {
         return Err("d_main must be positive".into());
     }

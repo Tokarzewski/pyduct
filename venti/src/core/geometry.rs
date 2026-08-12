@@ -4,6 +4,7 @@
 //! diameter. Both are computed once at construction time and cached, so
 //! hot-path sizing loops avoid repeated `f64` math.
 
+use crate::Result;
 use std::f64::consts::PI;
 
 /// A duct cross-section: either a `Round` or a `Rectangular` shape.
@@ -73,9 +74,9 @@ impl Round {
     /// assert!((r.area - std::f64::consts::PI * 0.01).abs() < 1e-12);
     /// assert_eq!(r.hydraulic_diameter, 0.2);
     /// ```
-    pub fn new(diameter: f64) -> Result<Self, &'static str> {
+    pub fn new(diameter: f64) -> Result<Self> {
         if diameter <= 0.0 {
-            return Err("diameter must be positive");
+            return Err("diameter must be positive".into());
         }
         let r = diameter * 0.5;
         Ok(Round {
@@ -97,9 +98,9 @@ pub struct Rectangular {
 }
 
 impl Rectangular {
-    pub fn new(width: f64, height: f64) -> Result<Self, &'static str> {
+    pub fn new(width: f64, height: f64) -> Result<Self> {
         if width <= 0.0 || height <= 0.0 {
-            return Err("width and height must be positive");
+            return Err("width and height must be positive".into());
         }
         let area = width * height;
         // D_h = 4 A / P = 2 W H / (W + H)
@@ -118,9 +119,9 @@ impl Rectangular {
 /// ```text
 /// D_eq = 1.30 * (a*b)**0.625 / (a + b)**0.25     [m]
 /// ```
-pub fn equivalent_round_diameter(width: f64, height: f64) -> Result<f64, &'static str> {
+pub fn equivalent_round_diameter(width: f64, height: f64) -> Result<f64> {
     if width <= 0.0 || height <= 0.0 {
-        return Err("width and height must be positive");
+        return Err("width and height must be positive".into());
     }
     Ok(1.30 * (width * height).powf(0.625) / (width + height).powf(0.25))
 }

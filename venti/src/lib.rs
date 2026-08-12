@@ -50,6 +50,7 @@ pub mod catalog;
 pub mod components;
 pub mod core;
 pub mod data;
+pub mod error;
 pub mod ffi;
 pub mod network;
 pub mod physics;
@@ -87,6 +88,7 @@ pub use data::standard_sizes::{
     STANDARD_RECTANGULAR_DUCT_SIZES, STANDARD_ROUND_BRANCH_SIZES, STANDARD_ROUND_DUCT_SIZES,
     STANDARD_ROUND_TRANSFORMATION_SIZES,
 };
+pub use error::{Error, Result};
 pub use network::{
     batch_compute, compute_pressure_drops, critical_path, critical_path_pressure_drop,
     critical_path_sum, port_node_id, propagate_flowrates, simple_supply_network, solve,

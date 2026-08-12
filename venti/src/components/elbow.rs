@@ -10,6 +10,7 @@
 //! Source: Wentylacja i Klimatyzacja — Materiały pomocnicze do projektowania,
 //! Jacek Hendiger, Piotr Ziętek, Marta Chludzińska.
 
+use crate::Result;
 /// R/D grid points.
 pub const RD_GRID: [f64; 6] = [0.50, 0.75, 1.00, 1.50, 2.00, 2.50];
 /// Bend-angle grid points [deg].
@@ -33,27 +34,29 @@ pub struct ElbowRound {
 }
 
 impl ElbowRound {
-    pub fn new(bend_radius: f64, diameter: f64, angle: f64) -> Result<Self, String> {
+    pub fn new(bend_radius: f64, diameter: f64, angle: f64) -> Result<Self> {
         if diameter <= 0.0 {
-            return Err(format!("diameter must be positive, got {diameter}"));
+            return Err((format!("diameter must be positive, got {diameter}")).into());
         }
         if bend_radius <= 0.0 {
-            return Err(format!("bend_radius must be positive, got {bend_radius}"));
+            return Err((format!("bend_radius must be positive, got {bend_radius}")).into());
         }
         let rd = bend_radius / diameter;
         if !(RD_GRID[0] <= rd && rd <= RD_GRID[RD_GRID.len() - 1]) {
-            return Err(format!(
+            return Err((format!(
                 "R/D = {rd:.3} is outside the tabulated range [{}, {}]",
                 RD_GRID[0],
                 RD_GRID[RD_GRID.len() - 1]
-            ));
+            ))
+            .into());
         }
         if !(ANGLE_GRID[0] <= angle && angle <= ANGLE_GRID[ANGLE_GRID.len() - 1]) {
-            return Err(format!(
+            return Err((format!(
                 "angle = {angle} is outside the tabulated range [{}, {}]",
                 ANGLE_GRID[0],
                 ANGLE_GRID[ANGLE_GRID.len() - 1]
-            ));
+            ))
+            .into());
         }
         Ok(ElbowRound {
             bend_radius,

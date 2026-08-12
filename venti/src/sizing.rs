@@ -8,6 +8,7 @@ use crate::core::fluid::{Fluid, STANDARD_AIR};
 use crate::core::geometry::{CrossSection, Rectangular, Round};
 use crate::data::standard_sizes::{STANDARD_RECTANGULAR_DUCT_SIZES, STANDARD_ROUND_DUCT_SIZES};
 use crate::physics::friction::{friction_factor, relative_roughness, reynolds};
+use crate::Result;
 
 /// Duct cross-section shape selector for the generic sizing functions.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -28,15 +29,15 @@ pub const NOISE_LIMITS_M_S: &[(&str, f64)] = &[
     ("industrial", 7.5),
 ];
 
-fn noise_limit(space_type: &str) -> Result<f64, String> {
+fn noise_limit(space_type: &str) -> Result<f64> {
     for (k, v) in NOISE_LIMITS_M_S {
         if *k == space_type {
             return Ok(*v);
         }
     }
-    Err(format!(
+    Err((format!(
         "unknown space_type {space_type:?}; expected one of studio|bedroom|office|classroom|retail|industrial"
-    ))
+    )).into())
 }
 
 /// Generic velocity-method sizing for any shape.
@@ -48,14 +49,12 @@ pub fn velocity_method(
     target_velocity: f64,
     _absolute_roughness: f64,
     _fluid: &Fluid,
-) -> Result<(CrossSection, f64), String> {
+) -> Result<(CrossSection, f64)> {
     if flowrate <= 0.0 {
-        return Err(format!("flowrate must be positive, got {flowrate}"));
+        return Err((format!("flowrate must be positive, got {flowrate}")).into());
     }
     if target_velocity <= 0.0 {
-        return Err(format!(
-            "target_velocity must be positive, got {target_velocity}"
-        ));
+        return Err((format!("target_velocity must be positive, got {target_velocity}")).into());
     }
 
     // Velocity depends only on area, so a straight pass over the chosen
@@ -122,14 +121,15 @@ pub fn equal_friction_method(
     shape: Shape,
     absolute_roughness: f64,
     fluid: &Fluid,
-) -> Result<(CrossSection, f64, f64), String> {
+) -> Result<(CrossSection, f64, f64)> {
     if flowrate <= 0.0 {
-        return Err(format!("flowrate must be positive, got {flowrate}"));
+        return Err((format!("flowrate must be positive, got {flowrate}")).into());
     }
     if target_pressure_drop_per_meter <= 0.0 {
-        return Err(format!(
+        return Err((format!(
             "target_pressure_drop_per_meter must be positive, got {target_pressure_drop_per_meter}"
-        ));
+        ))
+        .into());
     }
     let fluid = if fluid.density > 0.0 {
         fluid
@@ -189,12 +189,12 @@ pub fn pressure_drop_budget(
     shape: Shape,
     absolute_roughness: f64,
     fluid: &Fluid,
-) -> Result<(CrossSection, f64, f64), String> {
+) -> Result<(CrossSection, f64, f64)> {
     if length <= 0.0 {
-        return Err(format!("length must be positive, got {length}"));
+        return Err((format!("length must be positive, got {length}")).into());
     }
     if budget_pa <= 0.0 {
-        return Err(format!("budget_pa must be positive, got {budget_pa}"));
+        return Err((format!("budget_pa must be positive, got {budget_pa}")).into());
     }
     equal_friction_method(
         flowrate,
@@ -212,7 +212,7 @@ pub fn noise_limit_method(
     shape: Shape,
     absolute_roughness: f64,
     fluid: &Fluid,
-) -> Result<(CrossSection, f64), String> {
+) -> Result<(CrossSection, f64)> {
     let target = noise_limit(space_type)?;
     velocity_method(flowrate, shape, target, absolute_roughness, fluid)
 }
@@ -233,15 +233,12 @@ pub fn noise_limit_method(
 /// assert!(v <= 4.0); // chunk of the target velocity
 /// let _ = section;
 /// ```
-pub fn velocity_method_round(
-    flowrate: f64,
-    target_velocity: f64,
-) -> Result<(CrossSection, f64), &'static str> {
+pub fn velocity_method_round(flowrate: f64, target_velocity: f64) -> Result<(CrossSection, f64)> {
     if flowrate <= 0.0 {
-        return Err("flowrate must be positive");
+        return Err("flowrate must be positive".into());
     }
     if target_velocity <= 0.0 {
-        return Err("target_velocity must be positive");
+        return Err("target_velocity must be positive".into());
     }
     let sizes = &STANDARD_ROUND_DUCT_SIZES;
     let n = sizes.len();
@@ -267,12 +264,12 @@ pub fn equal_friction_method_round(
     target_pressure_drop_per_meter: f64,
     absolute_roughness: f64,
     fluid: &Fluid,
-) -> Result<(CrossSection, f64, f64), &'static str> {
+) -> Result<(CrossSection, f64, f64)> {
     if flowrate <= 0.0 {
-        return Err("flowrate must be positive");
+        return Err("flowrate must be positive".into());
     }
     if target_pressure_drop_per_meter <= 0.0 {
-        return Err("target_pressure_drop_per_meter must be positive");
+        return Err("target_pressure_drop_per_meter must be positive".into());
     }
     let f = if fluid.density > 0.0 {
         fluid
@@ -313,12 +310,12 @@ pub fn pressure_drop_budget_round(
     budget_pa: f64,
     absolute_roughness: f64,
     fluid: &Fluid,
-) -> Result<(CrossSection, f64, f64), &'static str> {
+) -> Result<(CrossSection, f64, f64)> {
     if length <= 0.0 {
-        return Err("length must be positive");
+        return Err("length must be positive".into());
     }
     if budget_pa <= 0.0 {
-        return Err("budget_pa must be positive");
+        return Err("budget_pa must be positive".into());
     }
     equal_friction_method_round(flowrate, budget_pa / length, absolute_roughness, fluid)
 }
@@ -330,12 +327,12 @@ pub fn pressure_drop_budget_rectangular(
     budget_pa: f64,
     absolute_roughness: f64,
     fluid: &Fluid,
-) -> Result<(CrossSection, f64, f64), &'static str> {
+) -> Result<(CrossSection, f64, f64)> {
     if length <= 0.0 {
-        return Err("length must be positive");
+        return Err("length must be positive".into());
     }
     if budget_pa <= 0.0 {
-        return Err("budget_pa must be positive");
+        return Err("budget_pa must be positive".into());
     }
     equal_friction_method_rectangular(flowrate, budget_pa / length, absolute_roughness, fluid)
 }
@@ -344,12 +341,12 @@ pub fn pressure_drop_budget_rectangular(
 pub fn velocity_method_rectangular(
     flowrate: f64,
     target_velocity: f64,
-) -> Result<(CrossSection, f64), &'static str> {
+) -> Result<(CrossSection, f64)> {
     if flowrate <= 0.0 {
-        return Err("flowrate must be positive");
+        return Err("flowrate must be positive".into());
     }
     if target_velocity <= 0.0 {
-        return Err("target_velocity must be positive");
+        return Err("target_velocity must be positive".into());
     }
     let sizes = &STANDARD_RECTANGULAR_DUCT_SIZES;
     let n = sizes.len();
@@ -374,12 +371,12 @@ pub fn equal_friction_method_rectangular(
     target_pressure_drop_per_meter: f64,
     absolute_roughness: f64,
     fluid: &Fluid,
-) -> Result<(CrossSection, f64, f64), &'static str> {
+) -> Result<(CrossSection, f64, f64)> {
     if flowrate <= 0.0 {
-        return Err("flowrate must be positive");
+        return Err("flowrate must be positive".into());
     }
     if target_pressure_drop_per_meter <= 0.0 {
-        return Err("target_pressure_drop_per_meter must be positive");
+        return Err("target_pressure_drop_per_meter must be positive".into());
     }
     let f = if fluid.density > 0.0 {
         fluid
@@ -427,15 +424,15 @@ pub fn aspect_ratio_method(
     flowrate: f64,
     target_velocity: f64,
     aspect_ratio: f64,
-) -> Result<(CrossSection, f64), &'static str> {
+) -> Result<(CrossSection, f64)> {
     if flowrate <= 0.0 {
-        return Err("flowrate must be positive");
+        return Err("flowrate must be positive".into());
     }
     if target_velocity <= 0.0 {
-        return Err("target_velocity must be positive");
+        return Err("target_velocity must be positive".into());
     }
     if aspect_ratio < 1.0 {
-        return Err("aspect_ratio must be >= 1");
+        return Err("aspect_ratio must be >= 1".into());
     }
 
     // Gather qualifying (w, h) pairs, sort by area ascending.
@@ -450,7 +447,7 @@ pub fn aspect_ratio_method(
         }
     }
     if qualifying.is_empty() {
-        return Err("no standard rectangular size meets the aspect_ratio");
+        return Err("no standard rectangular size meets the aspect_ratio".into());
     }
     qualifying.sort_by(|a, b| a.area.partial_cmp(&b.area).unwrap());
 
@@ -474,7 +471,7 @@ pub fn aspect_ratio_method(
 pub fn velocity_method_batch<'a>(
     flowrates: impl IntoIterator<Item = &'a f64>,
     target_velocity: f64,
-) -> Result<(Vec<f64>, Vec<f64>), &'static str> {
+) -> Result<(Vec<f64>, Vec<f64>)> {
     let mut diameters = Vec::new();
     let mut velocities = Vec::new();
     for &q in flowrates {

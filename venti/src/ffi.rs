@@ -21,6 +21,7 @@
 // suppressed once for this whole module.
 #![allow(clippy::missing_safety_doc)]
 
+use crate::Result;
 use core::slice;
 
 use std::string::String;
@@ -832,7 +833,7 @@ unsafe fn str_from(ptr: *const u8, len: usize) -> String {
     String::from_utf8_lossy(slice::from_raw_parts(ptr, len)).into_owned()
 }
 
-fn component_from_ffi(ctype: i32, name: &str, p: &[f64]) -> Result<ComponentEnum, String> {
+fn component_from_ffi(ctype: i32, name: &str, p: &[f64]) -> Result<ComponentEnum> {
     let comp = match ctype {
         CTYPE_SOURCE => ComponentEnum::Source(crate::components::fitting::Source::new(name)),
         CTYPE_TERMINAL => {
@@ -853,7 +854,7 @@ fn component_from_ffi(ctype: i32, name: &str, p: &[f64]) -> Result<ComponentEnum
         CTYPE_TEE => {
             ComponentEnum::Tee(crate::components::fitting::Tee::new(name, p[0], p[1], p[2]))
         }
-        _ => return Err("unknown component type".to_string()),
+        _ => return Err(("unknown component type".to_string()).into()),
     };
     Ok(comp)
 }

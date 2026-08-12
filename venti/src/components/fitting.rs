@@ -2,6 +2,7 @@
 
 use crate::core::fluid::Fluid;
 use crate::physics::losses::local_pressure_drop;
+use crate::Result;
 
 use super::base::{Component, Port, PortDirection};
 
@@ -35,7 +36,7 @@ impl Component for Source {
         &mut self.ports
     }
 
-    fn compute(&mut self, _fluid: &Fluid) -> Result<(), String> {
+    fn compute(&mut self, _fluid: &Fluid) -> Result<()> {
         // A pure source contributes no pressure drop of its own.
         self.ports[0].velocity = 0.0;
         self.ports[0].pressure_drop = 0.0;
@@ -83,7 +84,7 @@ impl Component for Terminal {
         &mut self.ports
     }
 
-    fn compute(&mut self, fluid: &Fluid) -> Result<(), String> {
+    fn compute(&mut self, fluid: &Fluid) -> Result<()> {
         let port = &mut self.ports[0];
         let flow = port.flowrate.unwrap_or(0.0);
         if flow == 0.0 || self.cross_section_area <= 0.0 {
@@ -138,7 +139,7 @@ impl Component for TwoPortFitting {
         &mut self.ports
     }
 
-    fn compute(&mut self, fluid: &Fluid) -> Result<(), String> {
+    fn compute(&mut self, fluid: &Fluid) -> Result<()> {
         let inlet_flow = self.ports[0]
             .flowrate
             .ok_or_else(|| format!("TwoPortFitting {:?}: inlet flowrate not set", self.name))?;
@@ -194,7 +195,7 @@ impl Component for Tee {
         &mut self.ports
     }
 
-    fn compute(&mut self, fluid: &Fluid) -> Result<(), String> {
+    fn compute(&mut self, fluid: &Fluid) -> Result<()> {
         let straight_flow = self.ports[1]
             .flowrate
             .ok_or_else(|| format!("Tee {:?}: leg flowrates not set", self.name))?;

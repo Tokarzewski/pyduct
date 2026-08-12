@@ -16,6 +16,7 @@
 //! order (geometry-accurate alignment can be layered on later); connectivity —
 //! and therefore the solved pressure drops — is exact.
 
+use crate::Result;
 use std::collections::{HashMap, HashSet, VecDeque};
 
 use crate::components::duct::RigidDuct;
@@ -119,7 +120,7 @@ fn dist2(a: (f64, f64), b: (f64, f64)) -> f64 {
 }
 
 /// Trace 2D polylines into a `TracedSystem`.
-pub fn trace(polylines: &[Polyline], opts: &TraceOptions) -> Result<TracedSystem, String> {
+pub fn trace(polylines: &[Polyline], opts: &TraceOptions) -> Result<TracedSystem> {
     if polylines.is_empty() || polylines.iter().all(|p| p.points.len() < 2) {
         return Err("no usable polylines".into());
     }
@@ -184,10 +185,11 @@ pub fn trace(polylines: &[Polyline], opts: &TraceOptions) -> Result<TracedSystem
     // Reject unsupported geometry.
     for (i, v) in verts.iter().enumerate() {
         if v.degree >= 4 {
-            return Err(format!(
+            return Err((format!(
                 "vertex {i} has degree {}; only tees (degree 3) are supported",
                 v.degree
-            ));
+            ))
+            .into());
         }
     }
 
@@ -309,9 +311,10 @@ pub fn trace(polylines: &[Polyline], opts: &TraceOptions) -> Result<TracedSystem
     // Reject unreachable junctions (would indicate a loop / unsupported input).
     for (v, vert) in verts.iter().enumerate() {
         if vert.degree != 2 && !visited.contains(&Vid(v)) {
-            return Err(format!(
+            return Err((format!(
                 "junction vertex {v} is unreachable from the source (loop/unsupported)"
-            ));
+            ))
+            .into());
         }
     }
 
@@ -370,7 +373,7 @@ pub fn trace(polylines: &[Polyline], opts: &TraceOptions) -> Result<TracedSystem
 
         // --- upstream leg (what feeds this duct) ---
         if let Some(tid) = terminal_of.get(&up) {
-            return Err(format!("upstream end {tid} is a terminal (invalid tree)"));
+            return Err((format!("upstream end {tid} is a terminal (invalid tree)")).into());
         }
         if let Some(t) = tee_of.get(&up) {
             // this chain leaves the tee via one of its Out legs
