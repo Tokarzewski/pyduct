@@ -106,7 +106,7 @@ serialization) ship in the crate; see the issues for the active build-out.
 cargo build            # library + cli (server/clap)
 cargo test             # 47 unit tests + doctest
 cargo build --no-default-features --lib   # library only (no serde/clap)
-cargo build --features export        # + report export engine (xlsx) via rust_xlsxwriter
+cargo build --features export        # + report export engine (xlsx via rust_xlsxwriter, PDF via printpdf)
 ```
 
 ## Per-kernel benchmarks

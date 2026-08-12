@@ -105,7 +105,10 @@ pub use electrical::{electrical_as_csv, ElectricalData, ElectricalSchedule};
 
 pub use error::{Error, Result};
 #[cfg(feature = "export")]
-pub use export::{electrical_schedule_to_xlsx, schedule_to_xlsx_bytes};
+pub use export::{
+    electrical_schedule_to_pdf, electrical_schedule_to_xlsx, schedule_to_pdf_bytes,
+    schedule_to_xlsx_bytes,
+};
 pub use fabrication::{
     cutting_schedule, duct_surface_area_m2, duct_weight_kg, FabricationBreakout,
 };
