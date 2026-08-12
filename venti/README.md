@@ -226,6 +226,13 @@ produced by `cargo build --release --no-default-features --lib`, exposing the
 same `venti_*` symbols for P/Invoke from C# or `ctypes` from CPython — the
 WASM route avoids per-OS builds entirely.
 
+## FreeCAD workbench
+
+A minimal FreeCAD extension (`Mod/VentiDuct`) exposes the core as workbench
+commands (size / solve / insulation). The math runs through **venti.wasm +
+wasmtime** or the native **cdylib via ctypes**; `venti_core.py` is pure Python
+and unit-tested standalone. See `venti/freecad/Mod/VentiDuct/README.md`.
+
 ## Docs
 
 The plan for turning `venti` into a CAD ductwork-design plugin (copycating
