@@ -160,3 +160,16 @@ Integrated: **169 unit** + 2 io + 5 parity + 22 doctests; xlsx+PDF under `--feat
 | `venti/bom` | #29 (partial) | `venti::bom` — bill-of-materials: `build_bom`, `bom_as_csv`, totals over the solved network |
 
 Integrated: **196 unit** + 2 io + 5 parity + 30 doctests; clippy `-D` clean; `--features export,cli` clean; `--no-default-features` clean.
+
+---
+
+# Round 7 — Parallel-Agent Build Session (4 agents: analysis #35, marking #28, regression+guide #37, CLI bom/clash/settings)
+
+| Branch | Issue | Deliverable |
+|---|---|---|
+| `venti/analysis` | #35 | `venti::analysis` — per-branch report: flow/velocity/ΔP + regenerated noise (sound) + balancing-ζ (balancing) + critical-path summary |
+| `venti/marking` | #28 | `venti::marking` — branch numbering + ID marks (branch_no, kind, size_mm, flow) + CSV |
+| `venti/regress` | #37 | `tests/regression.rs` (8 golden design cases) + `docs/DESIGN_GUIDE.md` |
+| `venti/cli` | — | CLI: `venti bom`, `venti clash`, `venti settings` |
+
+Integrated: **209 unit** + 2 io + 5 parity + 8 regression + 33 doctests; clippy `-D` clean; WASM builds.
