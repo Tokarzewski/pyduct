@@ -60,6 +60,21 @@ enum Commands {
         #[arg(long, short, default_value = "")]
         out: String,
     },
+    /// Solve a network and print the bill of materials (total length/area + parts).
+    Bom {
+        file: PathBuf,
+        /// Output format: text | csv | json
+        #[arg(long, default_value = "text")]
+        format: String,
+    },
+    /// Detect clashes on a small fixture of two crossing duct centreline polylines.
+    Clash {},
+    /// Print the project default settings (ProjectSettings::default()).
+    Settings {
+        /// Output format: json | text
+        #[arg(long, default_value = "json")]
+        format: String,
+    },
 }
 
 fn standard_fluid() -> Result<Fluid> {
@@ -75,6 +90,9 @@ fn main() {
         Commands::Validate { file } => cmd_validate(&file),
         Commands::Catalog { vendor, format } => cmd_catalog(vendor.as_deref(), &format),
         Commands::Save { file, out } => cmd_save(&file, &out),
+        Commands::Bom { file, format } => cmd_bom(&file, &format),
+        Commands::Clash {} => cmd_clash(),
+        Commands::Settings { format } => cmd_settings(&format),
     };
     if let Err(e) = result {
         eprintln!("error: {e}");
@@ -276,6 +294,121 @@ fn cmd_catalog(vendor: Option<&std::path::Path>, format: &str) -> Result<()> {
             }
             println!();
             println!("{} entries in database.", cat.len());
+        }
+    }
+    Ok(())
+}
+
+fn cmd_bom(file: &std::path::Path, format: &str) -> Result<()> {
+    let mut net = venti::load_network_from_path(file)?;
+    net.solve(Some(&standard_fluid()?))?;
+
+    let items = venti::build_bom(&net)?;
+    let total_len = venti::total_length(&items);
+    let total_area = venti::total_area(&items);
+
+    match format {
+        "json" => {
+            let obj = serde_json::json!({
+                "name": net.name,
+                "total_length_m": total_len,
+                "total_area_m2": total_area,
+                "items": items.iter().map(|i| serde_json::json!({
+                    "component_id": i.component_id,
+                    "kind": i.kind,
+                    "length_m": i.length_m,
+                    "area_m2": i.area_m2,
+                })).collect::<Vec<_>>(),
+            });
+            println!(
+                "{}",
+                serde_json::to_string_pretty(&obj).map_err(|e| e.to_string())?
+            );
+        }
+        "csv" => {
+            println!("{}", venti::bom_as_csv(&items));
+            println!("total_length_m,{total_len}");
+            println!("total_area_m2,{total_area}");
+        }
+        _ => {
+            println!("{}", net.name);
+            println!(
+                "{:<16} {:<14} {:>12} {:>12}",
+                "component_id", "kind", "length [m]", "area [m2]"
+            );
+            for i in &items {
+                println!(
+                    "{:<16} {:<14} {:>12.3} {:>12.3}",
+                    i.component_id, i.kind, i.length_m, i.area_m2
+                );
+            }
+            println!();
+            println!("Total length: {total_len:.3} m");
+            println!("Total area:   {total_area:.3} m^2");
+        }
+    }
+    Ok(())
+}
+
+fn cmd_clash() -> Result<()> {
+    // Build a small fixture of TWO CROSSING duct centreline runs using
+    // venti::topology::trace. The trunk D0 runs along y = 0; a branch run D4
+    // drops from the upper junction and crosses the trunk at (2, 0). The extra
+    // polylines merely form the tees that keep the tree connected (trace only
+    // admits trees; a bare X would be a degree-4 junction and is rejected).
+    let polylines = vec![
+        venti::topology::Polyline::new(vec![(0.0, 0.0), (4.0, 0.0)]),
+        venti::topology::Polyline::new(vec![(4.0, 0.0), (2.0, 2.0)]),
+        venti::topology::Polyline::new(vec![(4.0, 0.0), (6.0, 2.0)]),
+        venti::topology::Polyline::new(vec![(2.0, 2.0), (-2.0, 2.0)]),
+        venti::topology::Polyline::new(vec![(2.0, -2.0), (2.0, 2.0)]),
+    ];
+    let sys = venti::topology::trace(&polylines, &venti::topology::TraceOptions::default())?;
+    let segments = sys.flatten();
+    let clearance_m = 0.05;
+    let clashes = venti::clash::find_clashes(&segments, clearance_m)?;
+
+    println!(
+        "Fixture: two crossing centreline runs (∅ 0.200 m), clearance {:.3} m",
+        clearance_m
+    );
+    for s in &segments {
+        println!(
+            "  {}  ({:.1},{:.1}) → ({:.1},{:.1})",
+            s.component_id, s.start.0, s.start.1, s.end.0, s.end.1
+        );
+    }
+    if clashes.is_empty() {
+        println!("No clashes within {:.3} m clearance.", clearance_m);
+    } else {
+        println!(
+            "{} clash(es) within {:.3} m clearance:",
+            clashes.len(),
+            clearance_m
+        );
+        for c in &clashes {
+            println!(
+                "  {} <-> {}   centreline distance {:.4} m",
+                c.a, c.b, c.distance_m
+            );
+        }
+    }
+    Ok(())
+}
+
+fn cmd_settings(format: &str) -> Result<()> {
+    let s = venti::ProjectSettings::default();
+    match format {
+        "json" => println!("{}", venti::settings_to_json(&s)?),
+        _ => {
+            println!("ProjectSettings (defaults)");
+            println!("  standard:              {:?}", s.standard);
+            println!("  default_diameter_mm:   {}", s.default_diameter_mm);
+            println!("  absolute_roughness_m:  {}", s.absolute_roughness_m);
+            println!("  target_velocity_ms:    {}", s.target_velocity_ms);
+            println!("  target_pa_per_m:       {}", s.target_pa_per_m);
+            println!("  noise_space:           {}", s.noise_space);
+            println!("  units:                 {:?}", s.units);
         }
     }
     Ok(())
