@@ -106,3 +106,18 @@ Rounded out the C-ABI too: `venti_elbow_round`, `venti_reducer_rectangular`,
 `venti_expander_rectangular`, `venti_louver_open`, `venti_filter_bank`,
 `venti_round_tap_branch`, `venti_named_zeta` — all present in `venti.wasm`.
 Suite: **96 unit** + 2 io + 5 parity + 1 doctest, clippy + fmt clean.
+
+---
+
+# Round 3 — Parallel-Agent Build Session (4 agents: room #44, fan #40, fire-dampers #42, electrical #41)
+
+Four parallel `pi` agents, each in its own worktree/branch, delivered new core modules (merged, 146 unit tests):
+
+| Branch | Issue | Deliverable |
+|---|---|---|
+| `venti/room` | #44 | `venti::room` — per-room supply/exhaust air balance (`RoomBalance`, `room_ach`, `RoomBalanceSet` + CSV) |
+| `venti/fan` | #40 | `venti::fan` — fan curves, interpolation, duty-point selection (`FanPoint`, `FanCurve`, `fan_power`, `pick_fan`) |
+| `venti/fdamp` | #42 | Fire-damper vendor library Trox/Mercor: `reference_catalog()` entries + `fire_damper_branded` + `examples/fire_dampers_trox_mercor.json` |
+| `venti/elect` | #41 | `venti::electrical` — equipment electrical data model + schedule + CSV (`ElectricalData`, `ElectricalSchedule`, `electrical_as_csv`) |
+
+All four: clippy `-D` clean, fmt clean, unit tests passing on the integrated `main`.
