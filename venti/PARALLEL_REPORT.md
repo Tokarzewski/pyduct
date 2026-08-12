@@ -147,3 +147,16 @@ All four: clippy `-D` clean, fmt clean, tests green (incl. `--features export` a
 | `venti/pdf` | #45 (finish) | `venti::export` PDF renderers (`schedule_to_pdf_bytes`, `electrical_schedule_to_pdf`) via printpdf, feature-gated; core stays dependency-free |
 
 Integrated: **169 unit** + 2 io + 5 parity + 22 doctests; xlsx+PDF under `--features export`; clippy `-D` clean; FreeCAD pytest 6 passed.
+
+---
+
+# Round 6 — Parallel-Agent Build Session (4 agents: clash #33, settings #32, solver robustness #34, BOM #29)
+
+| Branch | Issue | Deliverable |
+|---|---|---|
+| `venti/clash` | #33 | `venti::clash` — 2D segment-pair clash detection (`find_clashes` with clearance, `Clash`, `clashes_as_csv`) |
+| `venti/settings` | #32 | `venti::settings` — ProjectSettings defaults + validation + serde JSON persistence (feature-gated) |
+| `venti/robust` | #34 | Solver hardening: `Network::has_cycle()`, multi-source + large-network (2000-duct) + edge-case tests |
+| `venti/bom` | #29 (partial) | `venti::bom` — bill-of-materials: `build_bom`, `bom_as_csv`, totals over the solved network |
+
+Integrated: **196 unit** + 2 io + 5 parity + 30 doctests; clippy `-D` clean; `--features export,cli` clean; `--no-default-features` clean.
