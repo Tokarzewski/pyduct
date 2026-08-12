@@ -119,6 +119,18 @@ impl ZetaCatalog {
         self.entries.iter().filter(move |e| e.category == cat)
     }
 
+    /// All entries whose `source` contains `vendor_substring`, case-insensitively.
+    ///
+    /// Useful for filtering a merged catalogue down to one vendor's sheet
+    /// (e.g. `by_vendor("Lindab")` or `by_vendor("alnor")`).
+    pub fn by_vendor(&self, vendor_substring: &str) -> Vec<&ZetaEntry> {
+        let needle = vendor_substring.to_lowercase();
+        self.entries
+            .iter()
+            .filter(|e| e.source.to_lowercase().contains(&needle))
+            .collect()
+    }
+
     /// Merge in entries from another catalogue / vendor sheet.
     pub fn merge(&mut self, other: &ZetaCatalog) {
         for e in &other.entries {
@@ -495,6 +507,34 @@ pub fn reference_catalog() -> ZetaCatalog {
             "ASHRAE Fund.",
             None,
         ),
+        // ---- Lindab / Alnor placeholders (so by_vendor works on the built-in) ----
+        entry(
+            "lindab.elbow.round.rd1.0",
+            "Lindab round elbow 90°, R/D = 1.0",
+            Elbow,
+            0.30,
+            Outlet,
+            "Lindab",
+            Some(200.0),
+        ),
+        entry(
+            "lindab.damper.fire.200",
+            "Lindab fire damper, open, D 200",
+            Damper,
+            0.20,
+            Outlet,
+            "Lindab",
+            Some(200.0),
+        ),
+        entry(
+            "alnor.grille.return",
+            "Alnor return grille",
+            Grille,
+            0.31,
+            Inlet,
+            "Alnor",
+            None,
+        ),
     ])
 }
 
@@ -522,6 +562,13 @@ impl VendorCatalog {
 #[cfg(feature = "cli")]
 pub fn vendor_catalog_from_json(json: &str) -> Result<VendorCatalog> {
     Ok(serde_json::from_str(json).map_err(|e| format!("catalogue JSON: {e}"))?)
+}
+
+/// Parse a vendor catalogue from a JSON string and return the entries as a
+/// [`ZetaCatalog`]. Thin convenience wrapper over [`vendor_catalog_from_json`].
+#[cfg(feature = "cli")]
+pub fn from_vendor_json(json: &str) -> Result<ZetaCatalog> {
+    Ok(vendor_catalog_from_json(json)?.to_catalog())
 }
 
 /// Load a vendor catalogue from a `.json` file.
@@ -621,6 +668,67 @@ mod tests {
         .unwrap();
         cat.merge(&vc.to_catalog());
         assert!((cat.lookup("elbow.round.rd1.0").unwrap() - 0.25).abs() < 1e-9);
+    }
+
+    #[test]
+    fn by_vendor_filters_case_insensitive() {
+        let cat = reference_catalog();
+        // Case-insensitive on a built-in placeholder.
+        assert!(!cat.by_vendor("LINdab").is_empty());
+        assert!(!cat.by_vendor("lindab").is_empty());
+        assert!(!cat.by_vendor("alnor").is_empty());
+        // A source not present.
+        assert!(cat.by_vendor("nobody-here").is_empty());
+    }
+
+    #[test]
+    fn from_vendor_json_parses_sheet() {
+        let json = r#"{
+            "vendor": "Lindab-Alnor",
+            "fittings": [
+                {"key":"lindab.elbow.round.rd1.0","name":"e","category":"Elbow",
+                 "zeta":0.30,"reference_velocity":"Outlet","source":"Lindab","size_mm":200},
+                {"key":"alnor.grille.return","name":"g","category":"Grille",
+                 "zeta":0.31,"reference_velocity":"Inlet","source":"Alnor","size_mm":null}
+            ]
+        }"#;
+        let cat = from_vendor_json(json).unwrap();
+        assert_eq!(cat.len(), 2);
+        assert_eq!(cat.by_vendor("Lindab").len(), 1);
+        assert_eq!(cat.by_vendor("Alnor").len(), 1);
+        assert!((cat.lookup("lindab.elbow.round.rd1.0").unwrap() - 0.30).abs() < 1e-9);
+    }
+
+    #[test]
+    fn lindab_alnor_example_sheet_loads() {
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("examples")
+            .join("vendor_lindab_alnor.json");
+        let json = std::fs::read_to_string(&path).unwrap();
+        let cat = from_vendor_json(&json).unwrap();
+        assert!(cat.len() >= 8, "expected >=8 entries, got {}", cat.len());
+        assert!(!cat.by_vendor("Lindab").is_empty());
+        assert!(!cat.by_vendor("Alnor").is_empty());
+    }
+
+    #[test]
+    fn merge_lindab_alnor_into_reference() {
+        // Merged lookup: vendor sheet overrides / adds, then by_vendor slices it.
+        let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("examples")
+            .join("vendor_lindab_alnor.json");
+        let json = std::fs::read_to_string(&path).unwrap();
+        let vendor = from_vendor_json(&json).unwrap();
+        let mut cat = reference_catalog();
+        cat.merge(&vendor);
+        // Vendor entry visible through merged catalogue.
+        assert!(!cat.by_vendor("Lindab").is_empty());
+        assert!(!cat.by_vendor("alnor").is_empty());
+        // Distinct vendor buckets don't cross-contaminate by key.
+        let lindab_keys: Vec<_> = cat.by_vendor("Lindab").iter().map(|e| &e.key).collect();
+        assert!(lindab_keys.iter().all(|k| k.starts_with("lindab.")));
+        let alnor_keys: Vec<_> = cat.by_vendor("Alnor").iter().map(|e| &e.key).collect();
+        assert!(alnor_keys.iter().all(|k| k.starts_with("alnor.")));
     }
 }
 
