@@ -218,6 +218,41 @@ impl Network {
         Ok(order)
     }
 
+    /// Detect a cycle in the directed graph using Kahn's algorithm.
+    ///
+    /// Reuses the same indegree-count bookkeeping as `topo_order`: if fewer
+    /// graph nodes are exhausted by the topological sweep than there are
+    /// graph nodes, at least one cycle must remain. Returns `true` when the
+    /// graph contains a cycle, `false` for a DAG.
+    pub fn has_cycle(&self) -> bool {
+        let nodes = self.node_ids();
+        let succ = self.successors();
+        let mut indegree: HashMap<String, usize> = nodes.iter().map(|n| (n.clone(), 0)).collect();
+        for (_, to) in &self.edges {
+            *indegree.entry(to.clone()).or_default() += 1;
+        }
+
+        let mut queue: VecDeque<String> = nodes
+            .iter()
+            .filter(|n| indegree[*n] == 0)
+            .cloned()
+            .collect();
+        let mut visited = 0usize;
+        while let Some(n) = queue.pop_front() {
+            visited += 1;
+            if let Some(nexts) = succ.get(&n) {
+                for m in nexts {
+                    let d = indegree.get_mut(m).expect("node in graph");
+                    *d -= 1;
+                    if *d == 0 {
+                        queue.push_back(m.clone());
+                    }
+                }
+            }
+        }
+        visited != nodes.len()
+    }
+
     /// The terminal components of the network.
     pub fn terminals(&self) -> Vec<&Terminal> {
         self.components
