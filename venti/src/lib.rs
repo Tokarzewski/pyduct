@@ -53,6 +53,7 @@ pub mod data;
 pub mod development;
 pub mod electrical;
 pub mod error;
+pub mod fabrication;
 pub mod fan;
 pub mod ffi;
 pub mod insulation;
@@ -99,6 +100,9 @@ pub use development::{
 };
 pub use electrical::{electrical_as_csv, ElectricalData, ElectricalSchedule};
 pub use error::{Error, Result};
+pub use fabrication::{
+    cutting_schedule, duct_surface_area_m2, duct_weight_kg, FabricationBreakout,
+};
 pub use fan::margin_pa as margin;
 pub use fan::{fan_power, margin_pa, pick_fan, FanCurve, FanPoint};
 pub use network::{
