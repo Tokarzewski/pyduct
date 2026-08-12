@@ -60,6 +60,7 @@ pub mod fabrication;
 pub mod fan;
 pub mod ffi;
 pub mod insulation;
+pub mod marking;
 pub mod network;
 pub mod physics;
 pub mod re;
@@ -121,6 +122,7 @@ pub use fabrication::{
 };
 pub use fan::margin_pa as margin;
 pub use fan::{fan_power, margin_pa, pick_fan, FanCurve, FanPoint};
+pub use marking::{assign_branch_marks, marks_as_csv, Mark};
 pub use network::{
     batch_compute, compute_pressure_drops, critical_path, critical_path_pressure_drop,
     critical_path_sum, port_node_id, propagate_flowrates, simple_supply_network, solve,
