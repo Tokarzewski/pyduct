@@ -308,9 +308,128 @@ mod tests {
     use super::*;
     use crate::components::duct::RigidDuct;
     use crate::components::fitting::Terminal;
-    use crate::components::fitting::{Source, TwoPortFitting};
+    use crate::components::fitting::{Source, Tee, TwoPortFitting};
     use crate::core::geometry::Round;
     use crate::network::network::ComponentEnum as CE;
+
+    /// The volumetric flowrate carried by the outlet port of the component `id`.
+    fn out_flow(net: &Network, id: &str) -> f64 {
+        net.get(id)
+            .unwrap()
+            .as_component()
+            .ports()
+            .iter()
+            .find(|p| p.direction == crate::components::base::PortDirection::Out)
+            .and_then(|p| p.flowrate)
+            .unwrap()
+    }
+
+    /// Two disjoint `Source -> RigidDuct -> Terminal` chains sharing no ducting.
+    fn build_two_source_separate() -> Network {
+        let r = Round::new(0.2).unwrap();
+        let mut net = Network::new("two-source-separate");
+        net.add("s1", CE::Source(Source::new("S1"))).unwrap();
+        net.add("s2", CE::Source(Source::new("S2"))).unwrap();
+        net.add(
+            "d1",
+            CE::RigidDuct(RigidDuct::new("d1", r.area, r.hydraulic_diameter, 5.0, 0.0001).unwrap()),
+        )
+        .unwrap();
+        net.add(
+            "d2",
+            CE::RigidDuct(RigidDuct::new("d2", r.area, r.hydraulic_diameter, 5.0, 0.0001).unwrap()),
+        )
+        .unwrap();
+        net.add(
+            "t1",
+            CE::Terminal(Terminal::new("t1", 0.1, Some(r.area), 1.0)),
+        )
+        .unwrap();
+        net.add(
+            "t2",
+            CE::Terminal(Terminal::new("t2", 0.2, Some(r.area), 1.0)),
+        )
+        .unwrap();
+        net.connect("s1", "d1").unwrap();
+        net.connect("d1", "t1").unwrap();
+        net.connect("s2", "d2").unwrap();
+        net.connect("d2", "t2").unwrap();
+        net
+    }
+
+    /// Two sources that both feed a shared trunk duct which then splits to two
+    /// terminals through a tee: each source must carry the total downstream
+    /// demand of 0.1 + 0.2.
+    fn build_two_source_merged() -> Network {
+        let r = Round::new(0.2).unwrap();
+        let mut net = Network::new("two-source-merged");
+        net.add("s1", CE::Source(Source::new("S1"))).unwrap();
+        net.add("s2", CE::Source(Source::new("S2"))).unwrap();
+        net.add(
+            "d1",
+            CE::RigidDuct(RigidDuct::new("d1", r.area, r.hydraulic_diameter, 5.0, 0.0001).unwrap()),
+        )
+        .unwrap();
+        net.add(
+            "d2",
+            CE::RigidDuct(RigidDuct::new("d2", r.area, r.hydraulic_diameter, 5.0, 0.0001).unwrap()),
+        )
+        .unwrap();
+        net.add(
+            "common",
+            CE::RigidDuct(
+                RigidDuct::new("common", r.area, r.hydraulic_diameter, 5.0, 0.0001).unwrap(),
+            ),
+        )
+        .unwrap();
+        net.add("tee", CE::Tee(Tee::new("tee", r.area, 0.1, 0.2)))
+            .unwrap();
+        net.add(
+            "t1",
+            CE::Terminal(Terminal::new("t1", 0.1, Some(r.area), 1.0)),
+        )
+        .unwrap();
+        net.add(
+            "t2",
+            CE::Terminal(Terminal::new("t2", 0.2, Some(r.area), 1.0)),
+        )
+        .unwrap();
+        net.connect("s1", "d1").unwrap();
+        net.connect("s2", "d2").unwrap();
+        net.connect("d1", "common").unwrap();
+        net.connect("d2", "common").unwrap();
+        net.connect("common", "tee").unwrap();
+        net.connect("tee.straight", "t1").unwrap();
+        net.connect("tee.branch", "t2").unwrap();
+        net
+    }
+
+    /// A `Source -> RigidDuct -> RigidDuct -> ... -> Terminal` cyclic network.
+    fn build_cyclic() -> Network {
+        let r = Round::new(0.2).unwrap();
+        let mut net = Network::new("cyclic");
+        net.add("s", CE::Source(Source::new("AHU"))).unwrap();
+        for id in ["d0", "d1"] {
+            net.add(
+                id,
+                CE::RigidDuct(
+                    RigidDuct::new(id, r.area, r.hydraulic_diameter, 5.0, 0.0001).unwrap(),
+                ),
+            )
+            .unwrap();
+        }
+        net.add(
+            "t",
+            CE::Terminal(Terminal::new("t", 0.1, Some(r.area), 1.0)),
+        )
+        .unwrap();
+        net.connect("s", "d0").unwrap();
+        net.connect("d0", "d1").unwrap();
+        net.connect("d1", "t").unwrap();
+        // Close the loop d1.outlet -> d0.inlet, forming a cycle d0 <-> d1.
+        net.connect("d1", "d0").unwrap();
+        net
+    }
 
     fn build_chain(flowrate: f64) -> Network {
         let r = Round::new(0.2).unwrap();
@@ -398,5 +517,137 @@ mod tests {
         propagate_flowrates(&mut net).unwrap();
         let term = net.terminals()[0];
         assert!((term.ports()[0].flowrate.unwrap() - 0.1).abs() < 1e-12);
+    }
+
+    #[test]
+    fn multi_source_separate_demands_and_dp() {
+        // Two disjoint sources each feed their own terminal.
+        let mut net = build_two_source_separate();
+        propagate_flowrates(&mut net).unwrap();
+
+        // Each source carries exactly the demand of its own downstream terminal.
+        assert!(
+            (out_flow(&net, "s1") - 0.1).abs() < 1e-12,
+            "s1 = {}",
+            out_flow(&net, "s1")
+        );
+        assert!(
+            (out_flow(&net, "s2") - 0.2).abs() < 1e-12,
+            "s2 = {}",
+            out_flow(&net, "s2")
+        );
+
+        let mut net = build_two_source_separate();
+        let dp = net.solve(None).unwrap();
+        assert!(dp > 0.0, "dp = {dp}");
+    }
+
+    #[test]
+    fn multi_source_merged_total_demand_and_dp() {
+        // Two sources both feed a shared trunk that splits to two terminals.
+        let mut net = build_two_source_merged();
+        propagate_flowrates(&mut net).unwrap();
+
+        // Both sources must carry the total of all downstream terminals.
+        let total = 0.1 + 0.2;
+        assert!(
+            (out_flow(&net, "s1") - total).abs() < 1e-12,
+            "s1 = {}",
+            out_flow(&net, "s1")
+        );
+        assert!(
+            (out_flow(&net, "s2") - total).abs() < 1e-12,
+            "s2 = {}",
+            out_flow(&net, "s2")
+        );
+
+        // Each terminal still sees its own demand at its inlet.
+        let mut net = build_two_source_merged();
+        net.solve(None).unwrap();
+        let t1_flow = net.terminals()[0].ports()[0].flowrate.unwrap();
+        let t2_flow = net.terminals()[1].ports()[0].flowrate.unwrap();
+        let (a, b) = if t1_flow < t2_flow {
+            (t1_flow, t2_flow)
+        } else {
+            (t2_flow, t1_flow)
+        };
+        assert!((a - 0.1).abs() < 1e-12 && (b - 0.2).abs() < 1e-12);
+
+        let mut net = build_two_source_merged();
+        let dp = net.solve(None).unwrap();
+        assert!(dp > 0.0, "dp = {dp}");
+    }
+
+    #[test]
+    fn cycle_detection_and_solve_error() {
+        let mut net = build_cyclic();
+        assert!(
+            net.has_cycle(),
+            "cyclic network must report has_cycle()==true"
+        );
+
+        let err = net
+            .topo_order()
+            .expect_err("topo_order must reject a cycle");
+        let msg = err.to_string();
+        assert!(
+            msg.contains("cycle"),
+            "error must be descriptive, got: {msg}"
+        );
+
+        let err = net.solve(None).expect_err("solve must reject a cycle");
+        assert!(err.to_string().contains("cycle"));
+    }
+
+    #[test]
+    fn large_chain_solves_fast() {
+        let r = Round::new(0.2).unwrap();
+        let mut net = Network::new("large");
+        net.add("src", CE::Source(Source::new("AHU"))).unwrap();
+        let n = 2000usize;
+        for i in 0..n {
+            let id = format!("d{i}");
+            net.add(
+                &id,
+                CE::RigidDuct(
+                    RigidDuct::new(&id, r.area, r.hydraulic_diameter, 1.0, 0.0001).unwrap(),
+                ),
+            )
+            .unwrap();
+        }
+        net.add(
+            "term",
+            CE::Terminal(Terminal::new("term", 0.1, Some(r.area), 1.0)),
+        )
+        .unwrap();
+        net.connect("src", "d0").unwrap();
+        for i in 0..(n - 1) {
+            net.connect(&format!("d{i}"), &format!("d{}", i + 1))
+                .unwrap();
+        }
+        net.connect(&format!("d{}", n - 1), "term").unwrap();
+
+        let dp = net.solve(None).unwrap();
+        assert!(dp > 0.0, "dp = {dp}");
+    }
+
+    #[test]
+    fn empty_network_edge_cases_do_not_panic() {
+        // Only a Source (no terminals): no demand to propagate, dp is 0.
+        let r = Round::new(0.2).unwrap();
+        let mut net = Network::new("source-only");
+        net.add("s", CE::Source(Source::new("AHU"))).unwrap();
+        // Must complete without panicking (Err or a numeric dp is both fine).
+        net.solve(None).expect("source-only solve must not panic");
+
+        // Only a Terminal (no source): the demand is isolated to one node, no
+        // pressure-drop path exists upstream. Must complete without panicking.
+        let mut net = Network::new("terminal-only");
+        net.add(
+            "t",
+            CE::Terminal(Terminal::new("t", 0.1, Some(r.area), 1.0)),
+        )
+        .unwrap();
+        net.solve(None).expect("terminal-only solve must not panic");
     }
 }
