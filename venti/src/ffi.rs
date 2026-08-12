@@ -528,6 +528,22 @@ pub extern "C" fn venti_damper_open_percentage(zeta: f64) -> f64 {
     damper_open_percentage(zeta)
 }
 
+// ---- Re/size-corrected fitting losses (venti::re) --------------------------
+
+/// Re- and size-corrected smooth round-elbow loss coefficient (NAN on bad input).
+#[no_mangle]
+pub extern "C" fn venti_elbow_round_loss(
+    bend_radius: f64,
+    diameter: f64,
+    angle_deg: f64,
+    velocity: f64,
+    density: f64,
+    dynamic_viscosity: f64,
+) -> f64 {
+    crate::re::elbow_round_loss(bend_radius, diameter, angle_deg, velocity, density, dynamic_viscosity)
+        .unwrap_or(f64::NAN)
+}
+
 // ---- expanded fitting library (round-trip into the WASM core) -------------
 
 #[no_mangle]

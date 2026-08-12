@@ -54,6 +54,7 @@ pub mod error;
 pub mod ffi;
 pub mod network;
 pub mod physics;
+pub mod re;
 pub mod results;
 pub mod sizing;
 pub mod sound;
@@ -94,6 +95,7 @@ pub use network::{
     critical_path_sum, port_node_id, propagate_flowrates, simple_supply_network, solve,
     ComponentEnum, Network, TAG_FITTING, TAG_FLEX, TAG_RIGID, TAG_SOURCE, TAG_TEE, TAG_TERMINAL,
 };
+pub use re::{corrected_zeta, elbow_round_loss, re_correction, size_correction, D_REF_M, RE_REF};
 pub use results::{extract_results, results_as_csv, results_summary, ComponentResult};
 pub use standards::{nearest_round_size_for, rect_sizes_mm, round_sizes_mm, Standard};
 pub use topology::{trace, Polyline, Segment, TraceOptions, TracedSystem};

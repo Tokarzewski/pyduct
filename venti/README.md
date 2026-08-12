@@ -42,6 +42,7 @@ venti/
 | Sizing (velocity/EF/budget/NC/aspect) | ✅ | ✅ | ✅ |
 | Fittings library (correls)      | ✅ | ✅ | ✅ |
 | ζ database / vendor catalog (FR-19) | partial | — | ✅ (reference + serde vendor JSON) |
+| Re/size-corrected fitting ζ | — | — | ✅ (`venti::re`: round elbow + generic corrections) |
 | Component classes (Source/Terminal/Duct/Flex/Fitting/Tee) | ✅ | ✅ | ✅ |
 | Round elbow (spline)          | ✅ (scipy) | — | ✅ (bilinear) |
 | Network graph model + solver  | ✅ (NetworkX) | partial | ✅ (self-contained) |
