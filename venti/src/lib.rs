@@ -51,6 +51,7 @@ pub mod components;
 pub mod core;
 pub mod data;
 pub mod error;
+pub mod fan;
 pub mod ffi;
 pub mod insulation;
 pub mod network;
@@ -91,6 +92,8 @@ pub use data::standard_sizes::{
     STANDARD_ROUND_TRANSFORMATION_SIZES,
 };
 pub use error::{Error, Result};
+pub use fan::margin_pa as margin;
+pub use fan::{fan_power, margin_pa, pick_fan, FanCurve, FanPoint};
 pub use network::{
     batch_compute, compute_pressure_drops, critical_path, critical_path_pressure_drop,
     critical_path_sum, port_node_id, propagate_flowrates, simple_supply_network, solve,
