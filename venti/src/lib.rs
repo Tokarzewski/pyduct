@@ -46,6 +46,7 @@
 //! ```
 
 pub mod balancing;
+pub mod bom;
 pub mod catalog;
 pub mod clash;
 pub mod components;
@@ -79,6 +80,7 @@ pub mod export;
 // ---- top-level re-exports (mirrors `python/wenta/__init__.py`) ------------
 
 pub use balancing::{balancing_zeta, balancing_zeta_batch, damper_open_percentage, required_zeta};
+pub use bom::{bom_as_csv, build_bom, total_area, total_length, BomItem};
 pub use catalog::{reference_catalog, FittingCategory, VelocityRef, ZetaCatalog, ZetaEntry};
 #[cfg(feature = "cli")]
 pub use catalog::{vendor_catalog_from_file, vendor_catalog_from_json, VendorCatalog};
