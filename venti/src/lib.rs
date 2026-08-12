@@ -47,6 +47,7 @@
 
 pub mod balancing;
 pub mod catalog;
+pub mod clash;
 pub mod components;
 pub mod core;
 pub mod data;
@@ -80,6 +81,7 @@ pub use balancing::{balancing_zeta, balancing_zeta_batch, damper_open_percentage
 pub use catalog::{reference_catalog, FittingCategory, VelocityRef, ZetaCatalog, ZetaEntry};
 #[cfg(feature = "cli")]
 pub use catalog::{vendor_catalog_from_file, vendor_catalog_from_json, VendorCatalog};
+pub use clash::{clash_count, clashes_as_csv, find_clashes, Clash};
 pub use components::base::{Component, Port, PortDirection};
 pub use components::duct::{FlexDuct, RigidDuct};
 pub use components::elbow::{ElbowRound, ANGLE_GRID, RD_GRID, ZETA_TABLE};
