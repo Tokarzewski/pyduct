@@ -540,8 +540,15 @@ pub extern "C" fn venti_elbow_round_loss(
     density: f64,
     dynamic_viscosity: f64,
 ) -> f64 {
-    crate::re::elbow_round_loss(bend_radius, diameter, angle_deg, velocity, density, dynamic_viscosity)
-        .unwrap_or(f64::NAN)
+    crate::re::elbow_round_loss(
+        bend_radius,
+        diameter,
+        angle_deg,
+        velocity,
+        density,
+        dynamic_viscosity,
+    )
+    .unwrap_or(f64::NAN)
 }
 
 // ---- expanded fitting library (round-trip into the WASM core) -------------

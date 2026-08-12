@@ -52,6 +52,7 @@ pub mod core;
 pub mod data;
 pub mod error;
 pub mod ffi;
+pub mod insulation;
 pub mod network;
 pub mod physics;
 pub mod re;
