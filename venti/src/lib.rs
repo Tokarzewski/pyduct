@@ -69,6 +69,9 @@ pub mod units;
 #[cfg(feature = "cli")]
 pub mod io;
 
+#[cfg(feature = "export")]
+pub mod export;
+
 // ---- top-level re-exports (mirrors `python/wenta/__init__.py`) ------------
 
 pub use balancing::{balancing_zeta, balancing_zeta_batch, damper_open_percentage, required_zeta};
@@ -94,7 +97,10 @@ pub use data::standard_sizes::{
     STANDARD_ROUND_TRANSFORMATION_SIZES,
 };
 pub use electrical::{electrical_as_csv, ElectricalData, ElectricalSchedule};
+
 pub use error::{Error, Result};
+#[cfg(feature = "export")]
+pub use export::{electrical_schedule_to_xlsx, schedule_to_xlsx_bytes};
 pub use fan::margin_pa as margin;
 pub use fan::{fan_power, margin_pa, pick_fan, FanCurve, FanPoint};
 pub use network::{
