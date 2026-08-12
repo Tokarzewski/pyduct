@@ -50,6 +50,7 @@ pub mod catalog;
 pub mod components;
 pub mod core;
 pub mod data;
+pub mod development;
 pub mod electrical;
 pub mod error;
 pub mod fan;
@@ -92,6 +93,9 @@ pub use data::standard_sizes::{
     nearest_round_size, standard_rectangular_sections, standard_round_sections,
     STANDARD_RECTANGULAR_DUCT_SIZES, STANDARD_ROUND_BRANCH_SIZES, STANDARD_ROUND_DUCT_SIZES,
     STANDARD_ROUND_TRANSFORMATION_SIZES,
+};
+pub use development::{
+    reducer_cone_development, round_duct_development, round_elbow_development, FlatPiece,
 };
 pub use electrical::{electrical_as_csv, ElectricalData, ElectricalSchedule};
 pub use error::{Error, Result};
