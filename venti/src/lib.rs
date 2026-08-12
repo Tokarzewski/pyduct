@@ -45,6 +45,7 @@
 //! assert!(dp_pa > 0.0);
 //! ```
 
+pub mod analysis;
 pub mod balancing;
 pub mod bom;
 pub mod catalog;
@@ -79,6 +80,7 @@ pub mod export;
 
 // ---- top-level re-exports (mirrors `python/wenta/__init__.py`) ------------
 
+pub use analysis::{analyze, AnalysisSummary, BranchInfo};
 pub use balancing::{balancing_zeta, balancing_zeta_batch, damper_open_percentage, required_zeta};
 pub use bom::{bom_as_csv, build_bom, total_area, total_length, BomItem};
 pub use catalog::{reference_catalog, FittingCategory, VelocityRef, ZetaCatalog, ZetaEntry};
