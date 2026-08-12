@@ -121,3 +121,18 @@ Four parallel `pi` agents, each in its own worktree/branch, delivered new core m
 | `venti/elect` | #41 | `venti::electrical` — equipment electrical data model + schedule + CSV (`ElectricalData`, `ElectricalSchedule`, `electrical_as_csv`) |
 
 All four: clippy `-D` clean, fmt clean, unit tests passing on the integrated `main`.
+
+---
+
+# Round 4 — Parallel-Agent Build Session (4 agents: development #43, fabrication #30, Lindab/Alnor #31, xlsx export #45)
+
+Four parallel `pi` agents delivered (merged; integrated suite now **196 tests**):
+
+| Branch | Issue | Deliverable |
+|---|---|---|
+| `venti/dev` | #43 | `venti::development` — sheet-metal flat patterns: `round_duct_development`, `round_elbow_development` (segmented strip), `reducer_cone_development` (trapezoid) |
+| `venti/fab` | #30 | `venti::fabrication` — `duct_surface_area_m2`, `duct_weight_kg`, `FabricationBreakout`, `cutting_schedule` |
+| `venti/lib` | #31 | Vendor catalogue: `examples/vendor_lindab_alnor.json` (8+ entries) + `ZetaCatalog::by_vendor` + `from_vendor_json` |
+| `venti/xlsx` | #45 | `venti::export` (feature `export`, `rust_xlsxwriter`): `schedule_to_xlsx_bytes`, `electrical_schedule_to_xlsx`; core stays dependency-free; PDF is a documented follow-up |
+
+All four: clippy `-D` clean, fmt clean, tests green (incl. `--features export` and `--no-default-features`).

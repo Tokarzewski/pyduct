@@ -104,12 +104,11 @@ pub use development::{
 pub use electrical::{electrical_as_csv, ElectricalData, ElectricalSchedule};
 
 pub use error::{Error, Result};
-pub use development::{FlatPiece, reducer_cone_development, round_duct_development, round_elbow_development};
+#[cfg(feature = "export")]
+pub use export::{electrical_schedule_to_xlsx, schedule_to_xlsx_bytes};
 pub use fabrication::{
     cutting_schedule, duct_surface_area_m2, duct_weight_kg, FabricationBreakout,
 };
-#[cfg(feature = "export")]
-pub use export::{electrical_schedule_to_xlsx, schedule_to_xlsx_bytes};
 pub use fan::margin_pa as margin;
 pub use fan::{fan_power, margin_pa, pick_fan, FanCurve, FanPoint};
 pub use network::{
