@@ -50,6 +50,7 @@ pub mod catalog;
 pub mod components;
 pub mod core;
 pub mod data;
+pub mod electrical;
 pub mod error;
 pub mod fan;
 pub mod ffi;
@@ -92,6 +93,7 @@ pub use data::standard_sizes::{
     STANDARD_RECTANGULAR_DUCT_SIZES, STANDARD_ROUND_BRANCH_SIZES, STANDARD_ROUND_DUCT_SIZES,
     STANDARD_ROUND_TRANSFORMATION_SIZES,
 };
+pub use electrical::{electrical_as_csv, ElectricalData, ElectricalSchedule};
 pub use error::{Error, Result};
 pub use fan::margin_pa as margin;
 pub use fan::{fan_power, margin_pa, pick_fan, FanCurve, FanPoint};
