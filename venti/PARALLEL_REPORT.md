@@ -136,3 +136,14 @@ Four parallel `pi` agents delivered (merged; integrated suite now **196 tests**)
 | `venti/xlsx` | #45 | `venti::export` (feature `export`, `rust_xlsxwriter`): `schedule_to_xlsx_bytes`, `electrical_schedule_to_xlsx`; core stays dependency-free; PDF is a documented follow-up |
 
 All four: clippy `-D` clean, fmt clean, tests green (incl. `--features export` and `--no-default-features`).
+
+---
+
+# Round 5 — Parallel-Agent Build Session (2 agents: FreeCAD trace, PDF export)
+
+| Branch | Issue | Deliverable |
+|---|---|---|
+| `venti/trace` | (FreeCAD) | `venti_topology_trace` C-ABI export (sketch polylines → network handle) + `venti_core.trace_network` (wasm+ctypes) + `VentiTrace` FreeCAD command + pytest (6 pass) |
+| `venti/pdf` | #45 (finish) | `venti::export` PDF renderers (`schedule_to_pdf_bytes`, `electrical_schedule_to_pdf`) via printpdf, feature-gated; core stays dependency-free |
+
+Integrated: **169 unit** + 2 io + 5 parity + 22 doctests; xlsx+PDF under `--features export`; clippy `-D` clean; FreeCAD pytest 6 passed.
