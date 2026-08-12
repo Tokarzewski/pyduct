@@ -18,7 +18,7 @@ class VentiDuctWorkbench(FreeCADGui.Workbench):
     def Initialize(self):
         from PySide2 import QtCore  # noqa: F401
         install_commands()
-        cmds = ["VentiSize", "VentiSolve", "VentiInsulation"]
+        cmds = ["VentiSize", "VentiSolve", "VentiInsulation", "VentiTrace"]
         self.appendMenu("&Ductwork", cmds)
         self.appendToolbar("VentiDuct", cmds)
 

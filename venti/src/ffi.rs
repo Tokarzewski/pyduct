@@ -460,6 +460,60 @@ pub unsafe extern "C" fn venti_batch_compute(
     0
 }
 
+// ---- topology -------------------------------------------------------------
+
+/// Trace 2D duct centreline polylines into a `venti::Network` via the
+/// host-agnostic topology module and register it in the handle registry.
+///
+/// `points` is a flat array of `2 * n_points` f64s — (x, y) pairs in metres.
+/// `poly_lens` has `n_polys` entries, each the number of points in that
+/// polyline; `sum(poly_lens) == n_points`. The network is traced with
+/// `TraceOptions::default()` (0.2 m round ducts, no terminal flowrates).
+/// Returns the new network's handle (free with `venti_network_free`), or -1
+/// on invalid input / unsupported geometry.
+#[no_mangle]
+pub unsafe extern "C" fn venti_topology_trace(
+    points: *const f64,
+    n_points: i32,
+    poly_lens: *const i32,
+    n_polys: i32,
+) -> i32 {
+    let n_points = n_points.max(0) as usize;
+    let n_polys = n_polys.max(0) as usize;
+    if n_points == 0 || n_polys == 0 || points.is_null() || poly_lens.is_null() {
+        return -1;
+    }
+    let pts = unsafe { slice::from_raw_parts(points, n_points * 2) };
+    let lens = unsafe { slice::from_raw_parts(poly_lens, n_polys) };
+
+    // The polyline lengths must account for every point.
+    let total: usize = lens.iter().map(|&l| l.max(0) as usize).sum();
+    if total != n_points {
+        return -1;
+    }
+
+    let mut polylines: Vec<crate::topology::Polyline> = Vec::new();
+    let mut off = 0usize;
+    for &l in lens {
+        let n = l.max(0) as usize;
+        let pl = (0..n)
+            .map(|k| (pts[off + 2 * k], pts[off + 2 * k + 1]))
+            .collect::<Vec<_>>();
+        off += 2 * n;
+        polylines.push(crate::topology::Polyline::new(pl));
+    }
+
+    match crate::topology::trace(&polylines, &Default::default()) {
+        Ok(sys) => {
+            let mut reg = registry().lock().unwrap();
+            let handle = reg.len();
+            reg.push(Some(sys.network));
+            handle as i32
+        }
+        Err(_) => -1,
+    }
+}
+
 // ---- sound / acoustics ----------------------------------------------------
 
 /// Regenerated (airflow) sound-power level of a straight round duct [dB re
@@ -1048,6 +1102,51 @@ mod tests {
             h
         };
         let _ = h;
+    }
+
+    #[test]
+    fn topology_trace_tee_registers_and_solves() {
+        unsafe {
+            // A tee: a trunk polyline passing through the junction at (2, 0)
+            // plus a branch polyline sharing it as an endpoint (metres). The
+            // shared junction appears once per polyline in the flat array.
+            let pts = [0.0, 0.0, 2.0, 0.0, 4.0, 0.0, 2.0, 0.0, 2.0, -2.0];
+            let lens = [3i32, 2];
+            let h = venti_topology_trace(pts.as_ptr(), 5, lens.as_ptr(), 2);
+            assert!(h >= 0, "trace failed, handle = {h}");
+            // source + tee + 2 ducts + 2 terminals = 6 (asserted >= 4).
+            assert!(venti_network_component_count(h) >= 4);
+            // A zero-flow trace still solves to a finite non-negative DP.
+            let dp = venti_network_solve(h, 1.204, 1.825e-5);
+            assert!(dp.is_finite() && dp >= 0.0, "dp = {dp}");
+            assert_eq!(venti_network_free(h), 0);
+            assert_eq!(venti_network_component_count(h), -1); // freed
+        }
+    }
+
+    #[test]
+    fn topology_trace_rejects_bad_input() {
+        unsafe {
+            // Null pointers -> -1.
+            assert_eq!(
+                venti_topology_trace(core::ptr::null(), 2, core::ptr::null(), 1),
+                -1
+            );
+            // poly_lens not summing to n_points -> -1.
+            let pts = [0.0, 0.0, 5.0, 0.0];
+            let lens = [1i32, 1]; // sum 2 != n_points 3
+            assert_eq!(venti_topology_trace(pts.as_ptr(), 3, lens.as_ptr(), 2), -1);
+            // unsupported geometry (4-way cross) -> -1.
+            let cross = [
+                -2.0, 0.0, 0.0, 0.0, 2.0, 0.0, // (-2,0) -> (0,0) -> (2,0)
+                0.0, -2.0, 0.0, 0.0, 0.0, 2.0, // (0,-2) -> (0,0) -> (0,2)
+            ];
+            let cross_lens = [3i32, 3];
+            assert_eq!(
+                venti_topology_trace(cross.as_ptr(), 6, cross_lens.as_ptr(), 2),
+                -1
+            );
+        }
     }
 
     #[test]

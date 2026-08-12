@@ -60,6 +60,88 @@ class VentiCore:
     def close(self):
         pass
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.close()
+
+    # ---- topology tracing (venti_topology_trace) ----
+    def trace_network(self, segments):
+        """Trace 2D duct centreline polylines into a venti network.
+
+        `segments` is a list of polylines, each a list of (x, y) tuples in
+        metres (e.g. extracted from a CAD sketch). Returns a `TraceResult`
+        handle for the traced network (source + ducts + tees + terminals).
+        """
+        poly_lens = [len(s) for s in segments]
+        flat = []
+        for seg in segments:
+            for x, y in seg:
+                flat.append(float(x))
+                flat.append(float(y))
+        handle = self._trace(flat, poly_lens)
+        return TraceResult(self, handle)
+
+    def _trace(self, flat, poly_lens):
+        raise NotImplementedError
+
+    def network_component_count(self, handle):
+        raise NotImplementedError
+
+    def network_solve(self, handle, density=1.204, viscosity=1.825e-5):
+        raise NotImplementedError
+
+    def network_free(self, handle):
+        raise NotImplementedError
+
+    def results_count(self, handle):
+        raise NotImplementedError
+
+
+# ---------------------------------------------------------------------------
+# TraceResult — handle to a traced network (see VentiCore.trace_network)
+# ---------------------------------------------------------------------------
+
+class TraceResult:
+    """Handle to a traced venti network, backed by the C-ABI handle registry.
+
+    Call :meth:`free` (or use as a context manager) to release the handle.
+    """
+
+    def __init__(self, core, handle):
+        self._core = core
+        self._handle = handle
+        self._freed = False
+
+    @property
+    def handle(self):
+        return self._handle
+
+    def component_count(self):
+        """Number of components (source + ducts + tees + terminals)."""
+        return self._core.network_component_count(self._handle)
+
+    def solve(self, density=1.204, viscosity=1.825e-5):
+        """Solve the traced network; return the critical-path ΔP [Pa]."""
+        return self._core.network_solve(self._handle, density, viscosity)
+
+    def results_count(self):
+        """Number of result rows (one per component), or -1 on bad handle."""
+        return self._core.results_count(self._handle)
+
+    def free(self):
+        """Release the underlying network handle (idempotent)."""
+        if not self._freed:
+            self._core.network_free(self._handle)
+            self._freed = True
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        self.free()
+
 
 # ---------------------------------------------------------------------------
 # WASM backend (wasmtime)
@@ -194,6 +276,39 @@ class WasmCore(VentiCore):
         finally:
             self._free(ptr, 3 * 8)
 
+    # ---- topology tracing ----
+    def _trace(self, flat, poly_lens):
+        n_points = len(flat) // 2
+        n_polys = len(poly_lens)
+        nbytes = n_points * 2 * 8
+        pbytes = n_polys * 4
+        ptr = self._alloc(nbytes)
+        plens_ptr = self._alloc(pbytes)
+        try:
+            self._mem_write(ptr, struct.pack(f"{n_points * 2}d", *flat))
+            self._mem_write(plens_ptr, struct.pack(f"{n_polys}i", *poly_lens))
+            h = self._call("venti_topology_trace", ptr, n_points,
+                           plens_ptr, n_polys)
+            if h < 0:
+                raise ValueError(
+                    "venti_topology_trace failed (invalid/unsupported geometry)")
+            return h
+        finally:
+            self._free(ptr, nbytes)
+            self._free(plens_ptr, pbytes)
+
+    def network_component_count(self, handle):
+        return self._call("venti_network_component_count", handle)
+
+    def network_solve(self, handle, density=1.204, viscosity=1.825e-5):
+        return self._call("venti_network_solve", handle, density, viscosity)
+
+    def network_free(self, handle):
+        return self._call("venti_network_free", handle)
+
+    def results_count(self, handle):
+        return self._call("venti_results_count", handle)
+
     def close(self):
         try:
             self._store.close()
@@ -250,6 +365,25 @@ class NativeCore(VentiCore):
                              ctypes.POINTER(ctypes.c_double),
                              ctypes.POINTER(ctypes.c_double)]
 
+        # topology trace + network handle API
+        self._tt = self._lib.venti_topology_trace
+        self._tt.restype = ctypes.c_int
+        self._tt.argtypes = [ctypes.POINTER(ctypes.c_double), ctypes.c_int,
+                             ctypes.POINTER(ctypes.c_int), ctypes.c_int]
+        self._network_component_count = self._lib.venti_network_component_count
+        self._network_component_count.restype = ctypes.c_int
+        self._network_component_count.argtypes = [ctypes.c_int]
+        self._network_free = self._lib.venti_network_free
+        self._network_free.restype = ctypes.c_int
+        self._network_free.argtypes = [ctypes.c_int]
+        self._results_count = self._lib.venti_results_count
+        self._results_count.restype = ctypes.c_int
+        self._results_count.argtypes = [ctypes.c_int]
+        self._network_solve = self._lib.venti_network_solve
+        self._network_solve.restype = ctypes.c_double
+        self._network_solve.argtypes = [ctypes.c_int, ctypes.c_double,
+                                        ctypes.c_double]
+
     def friction_factor(self, re, rel_roughness):
         return self._f["friction_factor"](re, rel_roughness)
 
@@ -300,6 +434,36 @@ class NativeCore(VentiCore):
                     ctypes.byref(d), ctypes.byref(v), ctypes.byref(dp)) != 0:
             raise ValueError("venti sizing failed")
         return d.value, v.value, dp.value
+
+    # ---- topology tracing ----
+    def _trace(self, flat, poly_lens):
+        n_points = len(flat) // 2
+        n_polys = len(poly_lens)
+        if flat:
+            pts = (ctypes.c_double * len(flat))(*flat)
+        else:
+            pts = (ctypes.c_double * 1)()
+        if poly_lens:
+            lens = (ctypes.c_int * n_polys)(*poly_lens)
+        else:
+            lens = (ctypes.c_int * 1)()
+        h = self._tt(pts, n_points, lens, n_polys)
+        if h < 0:
+            raise ValueError(
+                "venti_topology_trace failed (invalid/unsupported geometry)")
+        return h
+
+    def network_component_count(self, handle):
+        return self._network_component_count(handle)
+
+    def network_solve(self, handle, density=1.204, viscosity=1.825e-5):
+        return self._network_solve(handle, density, viscosity)
+
+    def network_free(self, handle):
+        return self._network_free(handle)
+
+    def results_count(self, handle):
+        return self._results_count(handle)
 
 
 # ---------------------------------------------------------------------------
@@ -370,4 +534,8 @@ if __name__ == "__main__":
     print("velocity_method_round(0.1,4.0) -> D =", round(d, 4), "v =", round(v, 4))
     print("elbow_round_loss =", round(core.elbow_round_loss(0.2, 0.2, 90.0, 4.0), 4))
     print("insulation_condensation =", round(core.insulation_condensation(8.0, 15.8, 24.0, 0.035, 0.2), 4), "m")
+    res = core.trace_network([[(0.0, 0.0), (5.0, 0.0)]])
+    print("trace_network(2-pt run) -> components =", res.component_count(),
+          "dp =", round(res.solve(), 4), "Pa")
+    res.free()
     core.close()

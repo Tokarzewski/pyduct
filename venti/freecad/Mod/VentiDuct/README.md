@@ -17,7 +17,7 @@ The math lives in the Rust core, reached through **either**:
 Mod/VentiDuct/
 ├── __init__.py        # package + re-exports (importable without FreeCAD)
 ├── InitGui.py         # workbench registration (FreeCAD GUI)
-├── commands.py        # VentiSize / VentiSolve / VentiInsulation commands
+├── commands.py        # VentiSize / VentiSolve / VentiInsulation / VentiTrace
 ├── venti_core.py      # backends: WasmCore (wasmtime) / NativeCore (ctypes) / CLI
 ├── bin/               # staged artifacts (gitignored): venti.wasm, libventi.so
 └── stage_artifacts.*  # copies the built artifacts into bin/
@@ -54,6 +54,25 @@ Mod/VentiDuct/
   reports the critical-path static pressure.
 - **Insulation thickness (condensation)** — required duct insulation thickness
   for a cold-air duct (EN ISO 12241-style cylindrical model).
+- **Trace sketch to duct network** — traces the selected object's edges
+  (sketch / Shape edges) into a `venti` duct network via the host-agnostic
+  topology module (`venti_topology_trace`): each edge becomes a polyline of
+  (x, y) points, the polylines are coalesced into a network
+  (Source / RigidDuct / Tee / Terminal), and the command prints the component
+  count and critical-path ΔP to the console. The geometry-to-polyline
+  conversion is a defensive skeleton (Line edges use their endpoints, curved
+  edges are discretized when the API offers it); select an object with edges
+  first, then run the command.
+
+  The same tracing is available headless through `venti_core`:
+
+  ```python
+  from venti_core import get_core
+  with get_core() as core:
+      res = core.trace_network([[(0.0, 0.0), (5.0, 0.0)]])
+      print(res.component_count(), res.solve())  # 3, 0.0 Pa
+      res.free()
+  ```
 
 ## Backend selection
 

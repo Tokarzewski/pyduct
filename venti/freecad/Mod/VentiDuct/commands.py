@@ -28,6 +28,89 @@ def _param(name, default):
         return default
 
 
+# ---- VentiTrace: sketch -> duct network ------------------------------------
+# Skeleton: reads the current selection's edges, flattens them into (x, y)
+# polylines in metres, traces them into a venti network (venti_topology_trace)
+# and reports the component count + critical-path ΔP. Everything is defensive:
+# no FreeCAD geometry knowledge beyond Shape/Edges + discretize().
+
+
+def _shape_edges(obj):
+    """Return the list of edges of an object (Shape.Edges or Sketch.Geometry)."""
+    shape = getattr(obj, "Shape", None)
+    if shape is not None:
+        edges = getattr(shape, "Edges", None)
+        if edges:
+            return list(edges)
+    return list(getattr(obj, "Geometry", None) or [])
+
+
+def _edge_to_polyline(edge, samples=16):
+    """Convert one CAD edge to a polyline of (x, y) points [m].
+
+    Part edges are discretized (lines -> 2 points, curves/BSplines -> samples);
+    sketch geometry objects fall back to StartPoint/EndPoint.
+    """
+    pts = []
+    try:
+        if hasattr(edge, "discretize"):
+            pts = [(p.x, p.y) for p in edge.discretize(samples)]
+        elif hasattr(edge, "StartPoint") and hasattr(edge, "EndPoint"):
+            s, e = edge.StartPoint, edge.EndPoint
+            pts = [(s.x, s.y), (e.x, e.y)]
+        else:
+            for vert in (getattr(edge, "Vertexes", None) or []):
+                p = vert.Point
+                pts.append((p.x, p.y))
+    except Exception:
+        return []
+    return pts
+
+
+def _selected_polylines():
+    """Collect (x, y) polylines [m] from the current FreeCAD selection."""
+    import FreeCADGui  # noqa: F401
+    polylines = []
+    for obj in FreeCADGui.Selection.getSelection():
+        for edge in _shape_edges(obj):
+            poly = _edge_to_polyline(edge)
+            if len(poly) >= 2:
+                polylines.append(poly)
+    return polylines
+
+
+class VentiTrace:
+    """Trace the selected sketch/edges into a venti duct network and solve it.
+
+    Skeleton: converts each selected edge (Line/BSpline approx) into a
+    polyline of (x, y) points, calls core.trace_network, and prints the
+    component count and critical-path ΔP to the console.
+    """
+
+    def GetResources(self):
+        return {"Pixmap": "", "MenuText": "Trace sketch to duct network",
+                "ToolTip": "Trace selected sketch edges into a duct network and solve the critical path"}
+
+    def Activated(self):
+        try:
+            segments = _selected_polylines()
+            if not segments:
+                _log("venti: trace: select a sketch or object with edges first")
+                return
+            with get_core() as core:
+                res = core.trace_network(segments)
+                n = res.component_count()
+                dp = res.solve()
+                res.free()
+            _log("venti: traced {} polyline(s) -> {} components, critical-path ΔP = {:.2f} Pa"
+                 .format(len(segments), n, dp))
+        except Exception as exc:
+            _log("venti: trace failed: {}".format(exc))
+
+    def IsActive(self):
+        return True
+
+
 class VentiSize:
     """Size a round duct by the velocity method and report D + velocity."""
 
@@ -101,3 +184,4 @@ def install_commands():
     FreeCADGui.addCommand("VentiSize", VentiSize())
     FreeCADGui.addCommand("VentiSolve", VentiSolve())
     FreeCADGui.addCommand("VentiInsulation", VentiInsulation())
+    FreeCADGui.addCommand("VentiTrace", VentiTrace())

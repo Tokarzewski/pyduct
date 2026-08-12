@@ -39,3 +39,46 @@ def test_insulation_condensation_positive():
         assert t is not None and t > 0.0
     finally:
         core.close()
+
+
+def test_trace_straight_run():
+    core = _core()
+    try:
+        res = core.trace_network([[(0.0, 0.0), (5.0, 0.0)]])
+        try:
+            # source + duct + terminal
+            assert res.component_count() == 3
+            assert res.solve() >= 0.0
+        finally:
+            res.free()
+    finally:
+        core.close()
+
+
+def test_trace_tee_split():
+    core = _core()
+    try:
+        # two polylines sharing the junction at (2, 0): a trunk passing
+        # through it plus a branch -> source + tee + 2 ducts + 2 terminals.
+        res = core.trace_network([[(0.0, 0.0), (2.0, 0.0), (4.0, 0.0)],
+                                  [(2.0, 0.0), (2.0, 2.0)]])
+        try:
+            assert res.component_count() >= 6
+            assert res.solve() >= 0.0
+        finally:
+            res.free()
+    finally:
+        core.close()
+
+
+def test_trace_rejects_unsupported_geometry():
+    core = _core()
+    try:
+        # 4-way cross (degree-4 junction) is rejected -> -1 -> ValueError.
+        with pytest.raises(ValueError):
+            core.trace_network([
+                [(-2.0, 0.0), (0.0, 0.0), (2.0, 0.0)],
+                [(0.0, -2.0), (0.0, 0.0), (0.0, 2.0)],
+            ])
+    finally:
+        core.close()
