@@ -1,55 +1,88 @@
 # venti
 
-**Ductwork design library** — sizing, pressure-drop, fitting losses, and
-network solving — written in **Rust**. This is the Rust port of the **wenta**
-Python reference and the **wentamojo** Mojo port that live in the `pyduct`
-repository.
+**Ductwork design library** — sizing, pressure-drop, fitting losses, thermal
+insulation, fan selection, room air balance, network solving, clash detection,
+schedules (BOM) and report export — written in **Rust**, dependency-free at the
+core. It is the Rust port of the **wenta** Python reference (and the
+**wentamojo** Mojo port) in the `pyduct` repository, and it now goes well
+beyond the reference with an HVAC-engineering feature set.
 
-The crate mirrors the reference module layout so the three implementations
-can be diff-tested against each other over a shared corpus of inputs.
+The core is embeddable three ways: as a Rust crate, as a **WASM core**
+(`venti.wasm`, one cross-platform artifact), or as a native **`cdylib`**
+(`libventi.so`/`venti.dll`), all exposing the same C ABI. A **FreeCAD
+workbench** and a **ZWCAD .NET plugin** scaffold consume it.
+
+## Module map
 
 ```
-venti/
-├── src/
-│   ├── core/       geometry (Round / Rectangular) + fluid properties
-│   ├── physics/    friction, losses, flex-duct corrections
-│   ├── data/       EN 1505/1506 standard sizes
-│   ├── units.rs    unit converters + air-changes-per-hour
-│   ├── sizing.rs   velocity / EF / budget / noise / aspect-ratio sizing
-│   ├── components/ ducts, fittings, terminals, round elbow + fittings
-│   ├── catalog/    ζ database (FR-19): reference + vendor merge, serde JSON
-│   ├── network/    graph model + solver (critical-path DP, batch kernel)
-│   ├── topology/   M3 core: trace polylines → Network, flatten → draw segments
-│   ├── ffi.rs      C-ABI exports (the WASM / cdylib symbol surface)
-│   └── main.rs     CLI (`venti solve|info|validate <network.[yaml|json]>`)
-├── host/           language-example hosts (Node->WASM, Python ctypes->cdylib)
-├── scripts/        build-wasm.sh
-├── examples/
-│   └── network_yaml.yaml   (the same 3-zone example wenta ships)
-└── tests/…  (47 unit tests + doctest; all green)
+src/
+├── core/          geometry (Round / Rectangular), Fluid, air_at_altitude
+├── physics/       friction (Swamee–Jain + Colebrook), losses, flex-duct
+├── data/          EN 1505/1506 sizes + sections + branch/transformation tables
+├── standards.rs   selectable Standard (EN / ASHRAE / DIN) size tables
+├── sizing.rs      velocity / EF / budget / noise / aspect-ratio (round+rect, batch)
+├── units.rs       unit converters + air-changes-per-hour
+├── components/    Source, Terminal, RigidDuct, FlexDuct, TwoPortFitting, Tee,
+│                  ElbowRound + 23 fitting correlations (round/rect, device)
+├── catalog.rs     ζ database (FR-19): reference catalog + vendor JSON merge
+├── re.rs          Reynolds & size corrections for fitting ζ
+├── network/       graph model + solver (flow propagation, ΔP, critical path,
+│                  batch kernel, has_cycle, multi-source, large networks)
+├── topology.rs    trace 2D polylines → Network (tees), flatten → segments
+├── insulation.rs  duct insulation thickness (condensation, heat-loss) + materials
+├── fan.rs         fan curves + duty-point selection + power
+├── room.rs        per-room supply/exhaust balance + ACH
+├── electrical.rs  equipment electrical data model + schedule
+├── sound.rs       regenerated noise + room equation + NC compliance
+├── balancing.rs   damper ζ / open-% for system balancing
+├── analysis.rs    per-branch report (flow, velocity, ΔP, noise, balancing ζ)
+├── marking.rs     branch numbering + ID marks
+├── bom.rs         bill of materials (lengths, areas, totals)
+├── clash.rs       duct segment clash detection (clearance)
+├── development.rs sheet-metal flat patterns (ducts, elbows, reducer cones)
+├── fabrication.rs surface area, weight, cutting schedule
+├── settings.rs    ProjectSettings + JSON persistence
+├── results.rs     per-component results / schedule / CSV / JSON
+├── io.rs          network load/save (wenta YAML/JSON, feature-gated)
+├── export.rs      xlsx + PDF report export (feature-gated)
+├── ffi.rs         C-ABI exports (the WASM / cdylib symbol surface)
+├── error.rs       unified venti::Error / venti::Result
+├── bin/bench.rs   per-kernel benchmarks
+└── main.rs        CLI (solve / report / info / validate / save / catalog /
+                   bom / clash / settings)
 ```
 
 ## Coverage vs. the reference
 
-| Module                        | Python `wenta` | Mojo `wentamojo` | Rust `venti` |
-|-------------------------------|:---:|:---:|:---:|
-| Cross-section geometry        | ✅ | ✅ | ✅ |
-| Fluid + altitude correction   | ✅ | ✅ | ✅ |
-| Friction & losses             | ✅ | ✅ | ✅ |
-| Flex-duct correction          | ✅ | ✅ | ✅ |
-| Unit converters               | ✅ | ✅ | ✅ |
-| EN standard sizes             | ✅ | ✅ | ✅ |
-| Sizing (velocity/EF/budget/NC/aspect) | ✅ | ✅ | ✅ |
-| Fittings library (correls)      | ✅ | ✅ | ✅ |
-| ζ database / vendor catalog (FR-19) | partial | — | ✅ (reference + serde vendor JSON) |
-| Re/size-corrected fitting ζ | — | — | ✅ (`venti::re`: round elbow + generic corrections) |
-| Component classes (Source/Terminal/Duct/Flex/Fitting/Tee) | ✅ | ✅ | ✅ |
-| Round elbow (spline)          | ✅ (scipy) | — | ✅ (bilinear) |
-| Network graph model + solver  | ✅ (NetworkX) | partial | ✅ (self-contained) |
-| Geometry topology (trace/flatten) | partial | — | ✅ (host-agnostic, M3 core) |
-| Critical-path DP kernel       | ✅ | ✅ | ✅ |
-| Batch pressure-drop kernel    | ✅ | ✅ | ✅ |
-| Pydantic schemas + visualisation | ✅ | — | — (CLI tables) |
+| Capability | `venti` | Notes |
+|---|---|---|
+| Cross-section geometry, fluids, friction, losses | ✅ | |
+| Sizing (velocity/EF/budget/NC/aspect), round+rect, batch | ✅ | |
+| EN/ASHRAE/DIN standard tables | ✅ | `standards.rs` |
+| Fittings — 23 correlations + round-elbow table | ✅ | round/rect, tees, dampers, louvers, filters, silencers |
+| ζ database + vendor catalog (FR-19) | ✅ | serde JSON, merge by key (Lindab/Alnor, Trox/Mercor) |
+| Re/size-corrected fitting ζ | ✅ | `re.rs` |
+| Network graph + solver (critical path, cycles, multi-source) | ✅ | self-contained, robust |
+| Topology: trace polylines → network, flatten → draw | ✅ | M3 core |
+| Thermal insulation | ✅ | condensation + heat-loss, materials, selection |
+| Fan selection & curves | ✅ | duty-point, power |
+| Room air balance + ACH | ✅ | |
+| Electrical data + schedule | ✅ | |
+| Sound (regenerated noise, NC) | ✅ | |
+| Balancing (damper ζ / open-%) | ✅ | |
+| Per-branch analysis report | ✅ | |
+| Branch marking | ✅ | |
+| BOM / schedules | ✅ | |
+| Clash detection | ✅ | |
+| Sheet-metal developments | ✅ | |
+| Fabrication breakout / weight | ✅ | |
+| Results + CSV/JSON | ✅ | |
+| Network I/O (YAML/JSON) | ✅ | `io.rs` (feature-gated) |
+| Report export (xlsx + PDF) | ✅ | `export.rs` (feature-gated) |
+| Settings persistence | ✅ | `settings.rs` (serde) |
+| WASM core + native cdylib + C ABI | ✅ | 50+ `venti_*` exports |
+| FreeCAD workbench | ✅ | `freecad/Mod/VentiDuct` |
+| ZWCAD .NET plugin | ✅ scaffold | `plugin/` (builds on Windows + ZWCAD SDK) |
 
 ## Use as a library
 
@@ -57,11 +90,11 @@ venti/
 use venti::{Network, ComponentEnum, Source, RigidDuct, Terminal, Round, velocity_method_round};
 
 // Size a round duct for 0.1 m^3/s at a target velocity of 4 m/s.
-let (section, v) = velocity_method_round(0.1, 4.0).unwrap();
+let (section, v) = velocity_method_round(0.1, 4.0)?;
 assert!(v <= 4.0);
 
-// Or solve a small network end to end.
-let r = Round::new(0.2).unwrap();
+// Solve a small network end to end.
+let r = Round::new(0.2)?;
 let mut net = Network::new("example");
 net.add("ahu",  ComponentEnum::Source(Source::new("AHU")))?;
 net.add("duct", ComponentEnum::RigidDuct(RigidDuct::new(
@@ -73,211 +106,144 @@ net.add("term", ComponentEnum::Terminal(Terminal::new(
 net.connect("ahu", "duct")?;
 net.connect("duct", "term")?;
 let dp_pa = net.solve(None)?;
-# Ok::<(), Box<dyn std::error::Error>>(())
+assert!(dp_pa > 0.0);
 ```
+
+Every fallible function returns `venti::Result<T>` = `Result<T, venti::Error>`
+(a `Message(String)`), convertible from `&str`/`String` with `.into()`.
 
 ## CLI
 
 ```bash
-venti solve   examples/network_yaml.yaml            # text table (default)
-venti solve   examples/network_yaml.yaml --format markdown
-venti solve   examples/network_yaml.yaml --format json
-venti solve   examples/network_yaml.yaml --format csv
-venti info    examples/network_yaml.yaml            # structural summary, no solve
+venti solve   examples/network_yaml.yaml [--format text|markdown|json|csv]
+venti report  examples/network_yaml.yaml [--format text|json|csv]   # per-component schedule
+venti info    examples/network_yaml.yaml            # structural summary
 venti validate examples/network_yaml.yaml           # structural check
-venti catalog                              # dump the ζ database (text/csv/json)
-venti catalog --vendor examples/vendor_catalog.json  # merge a vendor catalogue
-venti report  examples/network_yaml.yaml           # per-component schedule table
-venti report  examples/network_yaml.yaml --format json|csv
+venti save    examples/network_yaml.yaml [--out out.json]   # round-trip serialize
+venti catalog [--vendor examples/vendor_lindab_alnor.json]  # ζ database (text/csv/json)
+venti bom     examples/network_yaml.yaml           # bill of materials + totals
+venti clash                                     # clash-detection demo fixture
+venti settings                                  # default ProjectSettings (json/text)
 ```
 
 Accepts YAML or JSON input in the same `wenta` network format.
 
-## Roadmap
+## Feature flags
 
-The plan to turn `venti` into a CAD ductwork-design plugin is tracked **as
-GitHub issues** on `ModelTok/pyduct` (milestones **M1–M6**, `p0`–`p3` + phase
-labels). `venti::results` (schedule engine) and `venti::io` (network
-serialization) ship in the crate; see the issues for the active build-out.
+```toml
+default = ["cli"]          # CLI + network I/O (serde/clap)
+cli                       # serde, serde_json, serde_yaml, clap, catalog I/O
+export                    # xlsx (rust_xlsxwriter) + PDF (printpdf) report export
+```
+
+The **core is always dependency-free** — `cargo build --no-default-features
+--lib` builds the library with zero third-party crates.
 
 ## Development
 
 ```bash
-cargo build            # library + cli (server/clap)
-cargo test             # 47 unit tests + doctest
-cargo build --no-default-features --lib   # library only (no serde/clap)
-cargo build --features export        # + report export engine (xlsx via rust_xlsxwriter, PDF via printpdf)
+cargo build                       # library + CLI
+cargo test                        # unit + io + parity + regression + doctests
+cargo build --no-default-features --lib    # core only (dependency-free)
+cargo build --features export      # + xlsx/PDF export
+cargo clippy --all-targets --all-features -- -D warnings
+cargo fmt --all -- --check
+cargo run --release --bin bench    # per-kernel benchmark table
 ```
-
-## Per-kernel benchmarks
-
-`venti` ships a dependency-free benchmark binary (no criterion — just
-`std::time::Instant` + `std::hint::black_box`) that times each kernel over many
-iterations and prints a (kernel, n, total_ms, per_call_s, calls_per_sec) table.
-
-```bash
-cargo run --release --bin bench
-# or, if you have `just` (see the repo-root justfile):
-just bench
-```
-
-Example output (single machine, `--release`, varies by hardware):
-
-```
-== venti (Rust) == kernel micro-benchmarks
-kernel                                        n     total_ms     per_call_s    calls_per_sec
-friction_factor                         1000000       57.546       5.755e-8       17377452.6
-reynolds                                1000000        1.208       1.208e-9      827567258.5
-local_pressure_drop                     1000000        0.968      9.677e-10     1033378113.1
-straight_pressure_drop                  1000000        1.533       1.533e-9      652225949.3
-velocity_method_round                     50000        0.422       8.435e-9      118559267.8
-equal_friction_method_round               50000       26.343       5.269e-7        1898059.3
-aspect_ratio_method                       50000       27.169       5.434e-7        1840337.7
-velocity_method_batch (200 ducts)          1000        1.409       1.409e-6         709632.0
-network build+solve (3-zone)               1000       43.965       4.397e-5          22745.1
-```
-
-For reference, the Python/Mojo numbers below are from the existing
-`wentamojo/benchmarks/bench_suite.mojo` table in the `pyduct` README (same
-hardware class, Mojo 26.2); they are **not** measured by this crate:
-
-| Kernel                          | n         | Mojo     | Python  | Speedup |
-|---------------------------------|-----------|----------|---------|---------|
-| `friction_factor`               | 1 000 000 |  49 ms   |  653 ms | **13×** |
-| `local_pressure_drop`           | 1 000 000 | 1.6 ms   |  726 ms | **441×**|
-| `velocity_method_round`         |    50 000 | 2.8 ms   |   81 ms | **29×** |
-| `velocity_method_rectangular`   |    50 000 | 7.1 ms   |  112 ms | **16×** |
-| `equal_friction_method_round`   |    50 000 |  35 ms   |  652 ms | **19×** |
-| `aspect_ratio_method`           |    50 000 |  29 ms   |  562 ms | **20×** |
-| `rectangular_elbow`             |   100 000 | 6.0 ms   |   94 ms | **16×** |
-| `velocity_method_batch` (×200)  |  1 000 ×  |  10 ms   |  409 ms | **40×** |
-
-Use these only as a rough relative sense of where the native core sits; rerun
-`cargo run --release --bin bench` on your own machine for venti's actual
-numbers.
 
 ## Embed as a WebAssembly core
 
-`venti` compiles to a small (~86 KB) self-contained **WASM core** exposing a
-clean C ABI — the same functions you call from Rust, now callable from any
-host that embeds a WASM runtime (Node, Python `wasmtime`, .NET `Wasmtime`,
-C++'s wasmtime C API, a browser, or a WASM-capable CAD scripting host).
+`venti` compiles to a small self-contained **WASM core** exposing a clean C ABI
+(the same functions as the Rust crate), callable from any host that embeds a
+WASM runtime — Node, Python `wasmtime`, .NET `Wasmtime`, a browser, or a
+WASM-capable CAD scripting host.
 
 ```bash
 rustup target add wasm32-wasip1
 ./scripts/build-wasm.sh --release
-# -> target/wasm32-wasip1/release/venti.wasm  (exports memory + 28 `venti_*` fns)
+# -> target/wasm32-wasip1/release/venti.wasm  (exports 50+ `venti_*` fns + memory)
 ```
 
-The `.wasm` exports only the `venti_*` extern-C functions plus `memory`, all
-with plain f64/i32 signatures. Multi-value results use caller-allocated `*mut
-f64` out-params (WASM can't return multi-word structs by value). Every
-fallible function returns an `i32` status (`0` = ok).
-
-Key entries (full list in `src/ffi.rs`):
+The `.wasm` exports only the `venti_*` extern-C functions plus `memory`, with
+plain f64/i32 signatures. Multi-value results use caller-allocated `*mut f64`
+out-params; fallible functions return an `i32` status (`0` = ok). Highlights:
 
 ```text
 venti_friction_factor(re, eps) -> f64
 venti_velocity_method_round(flowrate, target, &diam_m, &v) -> i32
 venti_equal_friction_method_round(flowrate, target, eps, rho, mu, …) -> i32
+venti_elbow_round_loss(R, d, angle, v, rho, mu) -> f64          # Re/size-corrected
 venti_batch_compute(types, n, params, port_idx, flows, p, rho, nu, &v, &dp) -> i32
 venti_critical_path_sum(dp, n, pred_counts, pred_offsets, pred_flat) -> f64
+venti_topology_trace(points, n, poly_lens, n_polys) -> handle   # sketch → network
+venti_network_create/add/connect/solve/results_row/free        # handle-based API
+venti_alloc(len) / venti_free(ptr, len)                        # host buffers in WASM heap
 ```
 
-The `.wasm` also ships a **handle-based network API** so a host can build a
-network, solve it, and read per-component results without any Rust code:
+Ready-to-run hosts: `host/wasm_node_example.js` (Node → WASM) and
+`host/cdylib_python_example.py` (CPython ctypes → native cdylib) — both
+produce identical numbers.
 
-```text
-venti_network_create(name, len) -> handle         # non-negative handle
-venti_network_add(handle, id, id_len, name, name_len, type, params[6]) -> status
-venti_network_connect(handle, src, src_len, tgt, tgt_len) -> status
-venti_network_solve(handle, density, dynamic_viscosity) -> critical-path ΔP
-venti_network_component_count(handle) -> i32
-venti_network_validate(handle, &problem_count) -> status
-venti_results_count(handle) -> rows (one per component)
-venti_results_row(handle, idx, &q_in, &q_set, &v_in, &v_set, &dp) -> status
-venti_results_field_string(handle, idx, field, buf, cap, &len) -> status
-venti_network_free(handle) -> status
-venti_alloc(len) -> ptr      # safely allocate host buffers in the WASM heap
-venti_free(ptr, len)
-```
-
-Component `type` tags match the solver (`0` Source, `1` Terminal, `2` RigidDuct,
-`3` FlexDuct, `4` TwoPortFitting, `5` Tee) with a 6-`f64` param array per type
-(see `src/ffi.rs`). `host/wasm_node_example.js` builds, solves, and reads a
-network end-to-end this way.
-
-Example host call from Node:
-
-```js
-const { instance } = await WebAssembly.instantiate(readFileSync("venti.wasm"), {
-  wasi_snapshot_preview1: new (require("node:wasi").WASI)({ version: "preview1" }).wasiImport,
-});
-instance.exports.venti_friction_factor(50000, 0.0009)   // ~0.02364
-```
-
-Ready-to-run host examples live in `host/`: `wasm_node_example.js` (Node →
-WASM) and `cdylib_python_example.py` (CPython `ctypes` → host `.so`). Both
-work end-to-end and produce identical numbers (`friction_factor = 0.02365`,
-`velocity_method_round(0.1, 4.0) -> D = 0.2 m, v = 3.18 m/s`).
-
-Alternative embeddable artifact: the **host `cdylib`** (`.so`/`.dll`/`.dylib`)
-produced by `cargo build --release --no-default-features --lib`, exposing the
-same `venti_*` symbols for P/Invoke from C# or `ctypes` from CPython — the
-WASM route avoids per-OS builds entirely.
+Alternative artifact: the **host `cdylib`** (`.so`/`.dll`/`.dylib`) via
+`cargo build --release --no-default-features --lib`, for P/Invoke / `ctypes` /
+`dlopen` when you don't want a WASM runtime (see "Why is this a `cdylib`?").
 
 ## FreeCAD workbench
 
-A minimal FreeCAD extension (`Mod/VentiDuct`) exposes the core as workbench
-commands (size / solve / insulation). The math runs through **venti.wasm +
-wasmtime** or the native **cdylib via ctypes**; `venti_core.py` is pure Python
-and unit-tested standalone. See `venti/freecad/Mod/VentiDuct/README.md`.
+`freecad/Mod/VentiDuct/` exposes the core as workbench commands (size / solve /
+insulation / **trace a sketch into a duct network**). The math runs through
+`venti.wasm` + `wasmtime` or the native cdylib via `ctypes`; `venti_core.py` is
+pure Python and unit-tested standalone (`python3 -m pytest`). See
+`freecad/Mod/VentiDuct/README.md`.
+
+## ZWCAD / AutoCAD plugin scaffold
+
+`plugin/` is a C# `.NET` scaffold (net48) that references the ZWCAD managed API
+(`ZwSoft.ZwCAD.*`) and loads `venti.wasm` (Wasmtime) or P/Invokes the cdylib
+behind a host-agnostic `IVentiCore` facade (native + wasm backends). Commands:
+`VENTI`, `VENTI_SIZE`, `VENTI_SOLVE`. Builds on a Windows machine with the ZWCAD
+SDK — see `plugin/README.md`. A testable, ZWCAD-independent `Venti.Core`
+(netstandard2.0) carries the bindings + headless xunit tests.
 
 ## Docs
 
-The plan for turning `venti` into a CAD ductwork-design plugin (copycating
-CADvent / VentPack / Wentyle) is tracked **as GitHub issues** on
-`ModelTok/pyduct`: milestones **M1 – M6** map to the roadmap phases and each
-issue has goal + acceptance criteria + priority (`p0`–`p3`) + phase labels.
-The library source itself is the source of truth for behaviour.
+- `docs/DESIGN_GUIDE.md` — how to build/solve a network, size ducts, use
+  fittings, insulation, fan selection, room balance, clash, BOM, export.
+- `docs/ZETA-SOURCES.md` — curated sources of duct-fitting loss coefficients
+  (ASHRAE, SMACNA, Idelchik, CIBSE) and the ζ data conventions.
+- `tests/regression.rs` — 8 golden design cases guarding stability.
+- `tests/parity.rs` — golden reference values + optional Python-oracle
+  differential (`VENTI_PYTHON_ORACLE`).
+- `PARALLEL_REPORT.md` — records of the parallel-agent build sessions (Rounds
+  1–7) that grew the feature set.
+- The CAD-plugin plan/roadmap is tracked **as GitHub issues** on
+  `ModelTok/pyduct` (milestones M1–M6, priorities `p0`–`p3`, phase labels).
 
 ## Why is this a `cdylib`?
 
-The crate sets `crate-type = ["rlib", "cdylib"]`, so the same source builds
-two shapes:
+`crate-type = ["rlib", "cdylib"]` builds the same source two ways:
 
 | `crate-type` | Artifact | Purpose |
 |---|---|---|
-| `rlib` | `.rlib` | A Rust-only static archive, consumed by **other Rust crates** (`cargo test`, `use venti::…`). Not loadable outside Rust. |
-| `cdylib` | `.so` / `.dll` / `.dylib` / `.wasm` | A **C-compatible shared library** exposing the `extern "C"` symbols via the C ABI — loadable from C, C++, Python, C#, Node, mobile, etc. |
+| `rlib` | `.rlib` | Rust-only, for other Rust crates (`cargo test`, `use venti::…`) |
+| `cdylib` | `.so` / `.dll` / `.dylib` / `.wasm` | C-compatible shared lib exposing the `extern "C"` symbols — callable from C, C++, Python, C#, Node, etc. |
 
-A `cdylib` exports **only** the `#[no_mangle] extern "C"` functions (the 28
-`venti_*` entries in `src/ffi.rs`), with plain `f64`/`i32`/pointer arguments.
-Because those use the C calling convention, any language that can call C code
-can call them: `[DllImport]` in C#, `ctypes` in Python, `dlopen`/link in
-C/C++. This is the whole point for `venti`: it exists to be embedded into
-other-language hosts (e.g. a C# ZWCAD plugin), and a `.rlib` could *only* be
-consumed by Rust.
-
-On the `wasm32-wasip1` target the same `cdylib` becomes a `*.wasm` instead of
-a `.so` — identical C-ABI symbols, but a single portable artifact that runs on
-any OS/CPU via a WASM runtime (no per-mac/linux/windows or per-architecture
-builds). So:
-
-- **host `cdylib`** (`.so`/`.dll`/`.dylib`) — one build per OS, 
-  P/Invoke / `ctypes`.
-- **WASM `cdylib`** (`venti.wasm`) — one build total, embed from anything
-  that has a WASM runtime.
+A `cdylib` exports **only** the `#[no_mangle] extern "C"` functions, with the C
+calling convention, so any language that can call C can use them. On
+`wasm32-wasip1` the same `cdylib` becomes a `*.wasm` — identical symbols but a
+single cross-platform artifact (no per-OS/arch builds).
 
 ## Notes & intentional differences from the reference
 
-- **Round elbow**: the Python reference uses scipy's `RectBivariateSpline`
-  over its zeta table. To stay dependency-free `venti` uses **bilinear**
-  interpolation over the same table — exact at table vertices, within a few
-  percent between them. Swap in a cubic if you need spline parity.
-- **Network graph**: the Python uses NetworkX; `venti` ships a tiny
-  self-contained adjacency graph (the topology convention is identical), so
-  `critical_path` and the batch/sum kernels are drop-in parity targets.
+- **Round elbow**: Python uses scipy `RectBivariateSpline` over its ζ table;
+  `venti` uses bilinear interpolation (exact at vertices, within a few percent
+  between). `re.rs` adds Re/size corrections beyond the reference.
+- **Network graph**: Python uses NetworkX; `venti` ships a self-contained
+  adjacency graph with the same topology convention, so the solver kernels are
+  drop-in parity targets.
+- **Vendor ζ data** (Lindab/Alnor, Trox/Mercor) is representative reference
+  data for design-tool estimates; production values should come from the
+  vendors' official catalogues (the FR-19 JSON schema supports that).
 
 ## License
 
