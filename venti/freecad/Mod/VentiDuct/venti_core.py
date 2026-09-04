@@ -9,12 +9,11 @@
 # Backend selection: $VENTI_BACKEND in {"wasm","native","cli"} overrides;
 # otherwise try wasmtime, then ctypes.
 
+import contextlib
 import ctypes
-import json
 import os
 import struct
 import subprocess
-import sys
 from pathlib import Path
 
 _HERE = Path(__file__).resolve().parent
@@ -189,10 +188,8 @@ class WasmCore(VentiCore):
 
     def _free(self, ptr, nbytes):
         if "venti_free" in self._exports:
-            try:
+            with contextlib.suppress(Exception):
                 self._call("venti_free", ptr, nbytes)
-            except Exception:
-                pass
 
     def _mem(self):
         return self._exports["memory"]
@@ -429,7 +426,9 @@ class NativeCore(VentiCore):
     def equal_friction_method_round(self, flowrate, target_pa_per_m=1.0,
                                     roughness=0.0001, density=1.204,
                                     viscosity=1.825e-5):
-        d = ctypes.c_double(); v = ctypes.c_double(); dp = ctypes.c_double()
+        d = ctypes.c_double()
+        v = ctypes.c_double()
+        dp = ctypes.c_double()
         if self._ef(flowrate, target_pa_per_m, roughness, density, viscosity,
                     ctypes.byref(d), ctypes.byref(v), ctypes.byref(dp)) != 0:
             raise ValueError("venti sizing failed")
@@ -439,14 +438,8 @@ class NativeCore(VentiCore):
     def _trace(self, flat, poly_lens):
         n_points = len(flat) // 2
         n_polys = len(poly_lens)
-        if flat:
-            pts = (ctypes.c_double * len(flat))(*flat)
-        else:
-            pts = (ctypes.c_double * 1)()
-        if poly_lens:
-            lens = (ctypes.c_int * n_polys)(*poly_lens)
-        else:
-            lens = (ctypes.c_int * 1)()
+        pts = (ctypes.c_double * len(flat))(*flat) if flat else (ctypes.c_double * 1)()
+        lens = (ctypes.c_int * n_polys)(*poly_lens) if poly_lens else (ctypes.c_int * 1)()
         h = self._tt(pts, n_points, lens, n_polys)
         if h < 0:
             raise ValueError(
@@ -492,7 +485,7 @@ def get_core(backend=None):
         except Exception as exc:
             raise RuntimeError(
                 "no venti backend available (need venti.wasm + wasmtime, or "
-                "libventi.so/dll): %s" % exc
+                f"libventi.so/dll): {exc}"
             ) from exc
 
 

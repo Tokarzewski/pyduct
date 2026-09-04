@@ -2,7 +2,6 @@
 # Run: pytest test_venti_core.py   (skips if no backend / wasmtime absent)
 
 import pytest
-
 from venti_core import get_core
 
 

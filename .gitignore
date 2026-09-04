@@ -141,3 +141,6 @@ dmypy.json
 # Claude Code local state
 .claude/
 vendor/
+
+# C# / ZWCAD build outputs (Wenta.Core, WentaZwcad, Wenta.CUIX)
+bin/

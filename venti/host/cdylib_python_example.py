@@ -40,7 +40,8 @@ def main():
     print(f"local_pressure_drop(1,4,1.204) = {lib.venti_local_pressure_drop(1.0, 4.0, 1.204):.3f}")
     print(f"standard_air_density = {lib.venti_standard_air_density()}")
 
-    d = ctypes.c_double(); v = ctypes.c_double()
+    d = ctypes.c_double()
+    v = ctypes.c_double()
     st = lib.venti_velocity_method_round(0.1, 4.0, ctypes.byref(d), ctypes.byref(v))
     print(f"velocity_method_round(0.1,4.0) -> status {st} | D = {d.value:.4f} m | v = {v.value:.4f} m/s")
 
@@ -79,12 +80,14 @@ def main():
         ("term", "Terminal",   1, (3.1416e-2, 1.0, 0.1, 0, 0, 0)),
     ]
     for cid, cname, ctype, prms in comps:
-        ip_, il = s(cid); cm_, cl = s(cname)
+        ip_, il = s(cid)
+        cm_, cl = s(cname)
         parr = (ctypes.c_double * 6)(*prms)
         rc = lib.venti_network_add(net, ip_, il, cm_, cl, ctype, parr)
         assert rc == 0, f"add {cid} rc={rc}"
     for a, b in [("ahu", "duct"), ("duct", "fit"), ("fit", "term")]:
-        ap_, al = s(a); bp_, bl = s(b)
+        ap_, al = s(a)
+        bp_, bl = s(b)
         rc = lib.venti_network_connect(net, ap_, al, bp_, bl)
         assert rc == 0, f"connect {a}->{b} rc={rc}"
 
@@ -94,8 +97,10 @@ def main():
     nrows = lib.venti_results_count(net)
     print(f"results rows: {nrows}")
     for i in range(nrows):
-        fin = ctypes.c_double(); fset = ctypes.c_int()
-        vin = ctypes.c_double(); vset = ctypes.c_int()
+        fin = ctypes.c_double()
+        fset = ctypes.c_int()
+        vin = ctypes.c_double()
+        vset = ctypes.c_int()
         dp_ = ctypes.c_double()
         lib.venti_results_row(net, i, ctypes.byref(fin), ctypes.byref(fset),
                               ctypes.byref(vin), ctypes.byref(vset), ctypes.byref(dp_))

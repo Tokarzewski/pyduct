@@ -33,8 +33,24 @@ mojo-suite:
     uv run mojo run wentamojo/benchmarks/bench_suite.mojo
 
 # Everything — both sides, both kinds of Mojo tests
-test-all: check mojo-test mojo-parity
+test-all: check mojo-test mojo-parity csharp-parity
     @echo "All tests passed."
+
+# C# side — build Wenta.Core + parity runner and replay the vectors
+# (551 assertions: sizing, solver, fittings, spline, units, catalog, bom, balancing, room).
+csharp-parity:
+    cmd /c csharp\\build.cmd
+    csharp\\bin\\Wenta.Core.Tests.exe
+
+# Regenerate the C# parity vectors from the wentamojo formula source
+# (needs tools/.venv with scipy: uv pip install --python csharp/tools/.venv/Scripts/python.exe scipy numpy).
+csharp-vectors:
+    csharp\\tools\\.venv\\Scripts\\python.exe csharp\\tools\\gen_vectors.py
+
+# Build the ZWCAD plugin (wenta C# core compiled in; run csharp-parity first).
+zwcad-build:
+    cmd /c zwcad-plugin\\build.cmd
+    python zwcad-plugin\\make_cuix.py zwcad-plugin\\bin
 
 update:
     uv sync --upgrade

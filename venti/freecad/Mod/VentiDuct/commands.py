@@ -102,10 +102,10 @@ class VentiTrace:
                 n = res.component_count()
                 dp = res.solve()
                 res.free()
-            _log("venti: traced {} polyline(s) -> {} components, critical-path ΔP = {:.2f} Pa"
-                 .format(len(segments), n, dp))
+            _log(f"venti: traced {len(segments)} polyline(s) -> {n} components, critical-path ΔP = {dp:.2f} Pa"
+                 )
         except Exception as exc:
-            _log("venti: trace failed: {}".format(exc))
+            _log(f"venti: trace failed: {exc}")
 
     def IsActive(self):
         return True
@@ -123,8 +123,8 @@ class VentiSize:
         target = float(_param("target_velocity", "4.0"))
         with get_core() as core:
             d, v = core.velocity_method_round(flowrate, target)
-        _log("venti: sized duct D = {:.0f} mm at v = {:.2f} m/s (Q = {} m3/s)"
-             .format(d * 1000, v, flowrate))
+        _log(f"venti: sized duct D = {d * 1000:.0f} mm at v = {v:.2f} m/s (Q = {flowrate} m3/s)"
+             )
 
     def IsActive(self):
         return True
@@ -150,7 +150,7 @@ class VentiSolve:
             dp_fit = 0.5 * rho * v * v * 0.5
             dp_term = 1.0 * rho * v * v * 0.5
             total = dp_duct + dp_fit + dp_term
-        _log("venti: v = {:.2f} m/s  ΔP = {:.2f} Pa (critical path)".format(v, total))
+        _log(f"venti: v = {v:.2f} m/s  ΔP = {total:.2f} Pa (critical path)")
 
     def IsActive(self):
         return True
@@ -171,8 +171,8 @@ class VentiInsulation:
         d_m = float(_param("duct_diameter_m", "0.2"))
         with get_core() as core:
             t = core.insulation_condensation(air_c, dew_c, amb_c, lam, d_m)
-        _log("venti: required insulation thickness = {:.0f} mm (λ = {} W/mK)"
-             .format((t or 0) * 1000, lam))
+        _log(f"venti: required insulation thickness = {(t or 0) * 1000:.0f} mm (λ = {lam} W/mK)"
+             )
 
     def IsActive(self):
         return True
