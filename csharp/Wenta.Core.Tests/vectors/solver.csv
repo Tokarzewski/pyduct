@@ -1,0 +1,3 @@
+id;op;expected_dp;expected_flow;aux1;aux2;error
+net_readme;net_readme;;14.13473757973617;0.1;14.13473757973617;
+net_tee;net_tee;;7.629497821799035;0.1;0.06;0.04

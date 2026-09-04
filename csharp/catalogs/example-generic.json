@@ -1,0 +1,47 @@
+{
+  "name": "example-generic-rect",
+  "version": 1,
+  "fittings": [
+    {
+      "id": "rect-elbow-r1.5",
+      "type": "rect_elbow",
+      "size_min_mm": [100, 100],
+      "size_max_mm": [1200, 2000],
+      "zeta": 0.17,
+      "source": "Hendiger tab. 4.2, R = 1.5·W (example entry)",
+      "knr": "KNR 2-08 03xx (configure per edition)"
+    },
+    {
+      "id": "rect-elbow-r1.0",
+      "type": "rect_elbow",
+      "size_min_mm": [100, 100],
+      "size_max_mm": [1200, 2000],
+      "zeta": 0.21,
+      "source": "Hendiger tab. 4.2, R = 1.0·W (example entry)",
+      "knr": "KNR 2-08 03xx (configure per edition)"
+    },
+    {
+      "id": "round-elbow-r1.0",
+      "type": "round_elbow",
+      "zeta": 0.24,
+      "source": "Hendiger tab. 4.3, R/D = 1.0 (example entry)",
+      "knr": "KNR 2-08 03xx (configure per edition)"
+    },
+    {
+      "id": "tee-branch-typical",
+      "type": "tee",
+      "zeta": 0.45,
+      "source": "generic branch tee (example entry)",
+      "knr": "KNR 2-08 03xx (configure per edition)"
+    },
+    {
+      "id": "vav-box",
+      "type": "damper",
+      "size_min_mm": [100],
+      "size_max_mm": [630],
+      "zeta": 0.35,
+      "source": "generic VAV box fully open (example entry)",
+      "knr": "KNR 2-08 04xx (configure per edition)"
+    }
+  ]
+}
