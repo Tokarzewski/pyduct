@@ -186,7 +186,7 @@ namespace WentaZwcad.Tools
         private static string Lf(string s) { return s.Replace("\r\n", "\n"); }
 
         private const string HeaderCui = @"<?xml version=""1.0""?>
-<CustSection xmlns:xsi=""http:
+<CustSection xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
   <FileVersion MajorVersion=""0"" MinorVersion=""6"" IncrementalVersion=""1"" UserVersion=""1"" />
   <Header>
     <CommonConfiguration>
@@ -198,7 +198,7 @@ namespace WentaZwcad.Tools
 </CustSection>";
 
         private const string MenuGroupCui = @"<?xml version=""1.0""?>
-<MenuGroup xmlns:xsd=""http:
+<MenuGroup xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" Name=""Wenta"" DisplayName=""Wenta"">
   <MacroGroup Name=""WentaMacros"">
     <MenuMacro UID=""WENTA_DUCT"">
       <Macro type=""Any"">
@@ -255,7 +255,7 @@ namespace WentaZwcad.Tools
 
         private const string RibbonRootCui = @"<?xml version=""1.0""?>
 <RibbonRoot>
-  <RibbonPanelSourceCollection xmlns:xsi=""http:
+  <RibbonPanelSourceCollection xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
     <RibbonPanelSource UID=""WENTA_RBPS"" Text=""Wenta"" HiddenInEditor=""false"" KeyTip=""WE"">
       <ModifiedRev MajorVersion=""0"" MinorVersion=""0"" UserVersion=""0"" />
       <Alias>ID_WentaPanel</Alias>
