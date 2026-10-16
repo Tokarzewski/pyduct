@@ -8,14 +8,8 @@ using ZwSoft.ZwCAD.Windows;
 
 namespace WentaZwcad
 {
-    /// <summary>
-    /// Plugin entry point. The palette is no longer auto-opened at startup —
-    /// the ribbon (Wenta.CUIX) is the primary UI; run WENTAPANEL to open the
-    /// sizing palette on demand.
-    /// </summary>
     public class Plugin : IExtensionApplication
     {
-        // stable GUID so ZWCAD remembers dock position / visibility
         private static readonly Guid SetId =
             new Guid("7C2E7FE9-6D2A-4A5B-9E1C-2F8B4D3A5C60");
 

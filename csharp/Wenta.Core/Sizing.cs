@@ -3,19 +3,15 @@ using System.Collections.Generic;
 
 namespace Wenta
 {
-    /// <summary>Duct sizing methods. Port of `wenta.sizing`: velocity,
-    /// equal-friction, pressure-drop budget, noise (NC) limit, aspect-ratio.
-    /// All methods return the smallest EN-standard section meeting target.</summary>
     public static class Sizing
     {
         public const string ShapeRound = "round";
         public const string ShapeRectangular = "rectangular";
 
-        /// <summary>ASHRAE-style maximum air velocity by space type [m/s].</summary>
         public static readonly Dictionary<string, double> NoiseLimitsMs =
             new Dictionary<string, double>
         {
-            { "studio", 2.5 },     // recording / broadcast
+            { "studio", 2.5 },
             { "bedroom", 3.0 },
             { "office", 4.0 },
             { "classroom", 4.5 },
@@ -27,7 +23,7 @@ namespace Wenta
         {
             public CrossSection Section;
             public double Velocity;
-            public double PressureDropPerMeter; // equal-friction / budget only
+            public double PressureDropPerMeter;
         }
 
         private static CrossSection[] SectionsFor(string shape)
@@ -37,8 +33,6 @@ namespace Wenta
             throw new WentaException("unknown shape '" + shape + "'");
         }
 
-        /// <summary>Return (section, value) for the smallest section whose
-        /// evaluated value is ≤ target; fall back to the largest section.</summary>
         private static void SmallestMeeting(CrossSection[] sections,
             Func<CrossSection, double> evaluator, double target,
             out CrossSection section, out double value)
@@ -57,7 +51,6 @@ namespace Wenta
             value = lastValue;
         }
 
-        /// <summary>Size a duct so velocity ≤ target_velocity (default 4 m/s).</summary>
         public static SizingResult VelocityMethod(double flowrate, string shape = ShapeRound,
             double targetVelocity = 4.0)
         {
@@ -72,7 +65,6 @@ namespace Wenta
             return new SizingResult { Section = s, Velocity = v };
         }
 
-        /// <summary>Size a duct so linear pressure drop ≤ target (default 1 Pa/m).</summary>
         public static SizingResult EqualFrictionMethod(double flowrate,
             double targetPressureDropPerMeter = 1.0, string shape = ShapeRound,
             double absoluteRoughness = 0.0001, Fluid fluid = null)
@@ -107,7 +99,6 @@ namespace Wenta
             };
         }
 
-        /// <summary>Size a duct so total drop across length ≤ budget_pa.</summary>
         public static SizingResult PressureDropBudget(double flowrate, double length,
             double budgetPa, string shape = ShapeRound,
             double absoluteRoughness = 0.0001, Fluid fluid = null)
@@ -120,8 +111,6 @@ namespace Wenta
                 absoluteRoughness, fluid);
         }
 
-        /// <summary>Size a duct for the maximum velocity allowed by the
-        /// space type's noise criterion (NC).</summary>
         public static SizingResult NoiseLimitMethod(double flowrate, string spaceType,
             string shape = ShapeRound, double absoluteRoughness = 0.0001,
             Fluid fluid = null)
@@ -131,8 +120,6 @@ namespace Wenta
             return VelocityMethod(flowrate, shape, NoiseLimitsMs[spaceType]);
         }
 
-        /// <summary>Size a rectangular duct for a target velocity at a given
-        /// aspect ratio. Iterates flattest-first candidates.</summary>
         public static SizingResult AspectRatioMethod(double flowrate,
             double targetVelocity = 4.0, double aspectRatio = 2.0)
         {
@@ -146,7 +133,6 @@ namespace Wenta
             var candidates = new List<Rectangular>();
             foreach (Rectangular s in StandardSizes.RectangularSections())
             {
-                // integer-millimetre comparison: avoids 0.3/0.1 = 2.999... fp traps
                 double maxMm = Math.Round(Math.Max(s.Width, s.Height) * 1000.0);
                 double minMm = Math.Round(Math.Min(s.Width, s.Height) * 1000.0);
                 if (maxMm / minMm >= aspectRatio)

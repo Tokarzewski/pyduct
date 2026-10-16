@@ -3,10 +3,8 @@ using System.Collections.Generic;
 
 namespace Wenta
 {
-    /// <summary>Standard EN duct sizes (mm). Port of `wenta.data.standard_sizes`.</summary>
     public static class StandardSizes
     {
-        /// <summary>EN 1505:2001 rectangular ducts (width × height, mm).</summary>
         public static readonly int[][] RectangularDuctSizes =
         {
             new[] {100, 200}, new[] {150, 200}, new[] {200, 200}, new[] {100, 250}, new[] {150, 250},
@@ -26,7 +24,6 @@ namespace Wenta
             new[] {600, 2000}, new[] {800, 2000}, new[] {1000, 2000}, new[] {1200, 2000},
         };
 
-        /// <summary>EN 1506:2007 round ducts (nominal diameter, mm).</summary>
         public static readonly int[] RoundDuctSizes =
         {
             63, 80, 100, 125, 150, 160, 200, 250, 300, 315, 355, 400,
@@ -60,20 +57,11 @@ namespace Wenta
             return _rectSections;
         }
 
-        /// <summary>Nearest EN 1506 nominal diameter [mm]. With roundUp=true
-        /// (default) picks the smallest standard size ≥ diameter_mm; otherwise
-        /// the closest standard size in either direction (ties favour the
-        /// higher size — this method's long-standing, parity-tested
-        /// behaviour).</summary>
         public static int NearestRoundSize(double diameterMm, bool roundUp = true)
         {
             return NearestInTable(RoundDuctSizes, diameterMm, roundUp, tieFavorsLower: false);
         }
 
-        /// <summary>Shared "nearest value in a small sorted table" scan used by
-        /// both <see cref="NearestRoundSize"/> and
-        /// <see cref="Standards.NearestRoundSizeFor"/>. <paramref name="tieFavorsLower"/>
-        /// lets each caller keep its own (already-tested) tie-breaking rule.</summary>
         internal static int NearestInTable(int[] sizes, double value, bool roundUp, bool tieFavorsLower)
         {
             int first = sizes[0];

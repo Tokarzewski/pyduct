@@ -7,112 +7,36 @@ using System.Text;
 
 namespace Wenta
 {
-    /// <summary>Options for <see cref="IfcExport"/>.</summary>
     public sealed class IfcExportOptions
     {
-        /// <summary>IfcProject.Name (also seeds the project GlobalId).</summary>
         public string ProjectName = "Wenta";
-        /// <summary>IfcSite.Name.</summary>
         public string SiteName = "Site";
-        /// <summary>IfcBuilding.Name.</summary>
         public string BuildingName = "Building";
-        /// <summary>IfcBuildingStorey.Name.</summary>
         public string StoreyName = "Level 0";
-        /// <summary>Storey elevation [m] (IfcBuildingStorey.Elevation and the
-        /// storey placement's Z, relative to the building).</summary>
         public double ElevationM = 0.0;
-        /// <summary>Duct centreline height above the storey [m]. Absolute
-        /// centreline Z = ElevationM + DuctCentreHeightM.</summary>
         public double DuctCentreHeightM = 3.0;
-        /// <summary>FILE_NAME author (header only).</summary>
         public string Author = "";
-        /// <summary>FILE_NAME organization (header only).</summary>
         public string Organisation = "";
-        /// <summary>FILE_NAME name used by <see cref="IfcExport.ToIfc"/>;
-        /// <see cref="IfcExport.Save"/> uses the target file name instead.</summary>
         public string FileName = "wenta.ifc";
     }
 
-    /// <summary>IFC4 export of a <see cref="TracedSystem"/> as an ISO 10303-21
-    /// STEP Physical File (issue #61, library half; the CAD command is plugin
-    /// work). Dependency-free: hand-written SPF text, no IFC toolkit.
-    ///
-    /// Emitted structure (one instance per line, sequential <c>#n=</c> ids):
-    /// <list type="bullet">
-    /// <item>HEADER: FILE_DESCRIPTION 'ViewDefinition [ReferenceView_V1.2]',
-    /// FILE_NAME (name, local timestamp, author, organisation), FILE_SCHEMA IFC4.</item>
-    /// <item>IfcProject with IfcUnitAssignment (metre, m², m³, second, radian,
-    /// derived m³/s) and a 3D 'Model' IfcGeometricRepresentationContext plus a
-    /// 'Body' sub-context.</item>
-    /// <item>IfcSite → IfcBuilding → IfcBuildingStorey (IfcRelAggregates). The
-    /// storey placement is at Z = <see cref="IfcExportOptions.ElevationM"/>;
-    /// every product is placed relative to the storey.</item>
-    /// <item>Per chain, one IfcDuctSegment (RIGIDSEGMENT) per straight leg
-    /// between consecutive chain points, legs ordered upstream → downstream:
-    /// IfcLocalPlacement at the leg start with the local Z axis along the
-    /// leg, IfcExtrudedAreaSolid of an IfcCircleProfileDef (radius D/2)
-    /// extruded by the leg length ('Body'/'SweptSolid'). Name =
-    /// "&lt;chainId&gt;-&lt;legIndex&gt;", Tag = chain id.</item>
-    /// <item>Per <see cref="Tee"/> an IfcDuctFitting (JUNCTION); per
-    /// <see cref="Terminal"/> an IfcAirTerminal (DIFFUSER); per
-    /// <see cref="Source"/> an IfcBuildingElementProxy named "Source". Each
-    /// is a short vertical cylinder centred on the component's vertex
-    /// (the issue only asks for segments/fittings/terminals; the source is
-    /// kept as a neutral proxy rather than guessing an AHU/fan class).</item>
-    /// <item>All products contained in the storey via
-    /// IfcRelContainedInSpatialStructure.</item>
-    /// <item>One IfcPropertySet "Pset_Wenta" per product: FlowRate
-    /// (IfcVolumetricFlowRateMeasure, m³/s), Diameter
-    /// (IfcPositiveLengthMeasure) and, for segments, Length (leg length).</item>
-    /// </list>
-    ///
-    /// Component positions are not stored on the network, so they are
-    /// recovered from the chain endpoints plus network connectivity (see
-    /// <see cref="ComponentPositions"/>): coincident chain endpoints
-    /// (within 1e-6 m) form a vertex; a vertex with three chain ends is a
-    /// tee, one with a single end is the source or a terminal; the mapping
-    /// is fixed by walking the tree from any tee/end chain.
-    ///
-    /// Flowrates: <see cref="Solver.PropagateFlowrates"/> is always run on
-    /// <c>system.Network</c> before export (fluid-independent and idempotent;
-    /// it does not touch pressure drops), so callers need not solve first.
-    ///
-    /// GlobalIds are the standard 22-character IFC base-64 compression of a
-    /// GUID whose 16 bytes are the MD5 of "wenta:&lt;key&gt;" (MD5 is used as a
-    /// stable hash, not for security), so re-exporting the same system gives
-    /// byte-identical output apart from the FILE_NAME timestamp.
-    ///
-    /// Numbers use the invariant culture and always contain a decimal point
-    /// (STEP real syntax); strings double apostrophes and backslashes and
-    /// encode non-ASCII as \X2\…\X0\; lines end in "\n".</summary>
     public static class IfcExport
     {
         private static readonly CultureInfo Inv = CultureInfo.InvariantCulture;
         private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
 
-        /// <summary>Chain endpoints closer than this [m] are the same vertex.</summary>
         public const double VertexToleranceM = 1e-6;
 
         private const string IfcBase64 =
             "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_$";
 
-        // ---- public API ------------------------------------------------------
 
-        /// <summary>Render <paramref name="system"/> as IFC4 SPF text. See the
-        /// class summary for the structure. Runs
-        /// <see cref="Solver.PropagateFlowrates"/> on the network.</summary>
-        /// <exception cref="WentaException">null system/network/chains, a chain
-        /// with fewer than two points or a non-positive diameter, a
-        /// non-finite option value, or a network whose graph has a cycle.</exception>
         public static string ToIfc(TracedSystem system, IfcExportOptions opts = null)
         {
             if (opts == null) opts = new IfcExportOptions();
             return Build(system, opts, opts.FileName);
         }
 
-        /// <summary>Write <see cref="ToIfc"/> output to <paramref name="path"/>
-        /// (UTF-8 without BOM; the content is pure ASCII). FILE_NAME carries
-        /// the file name of <paramref name="path"/>.</summary>
         public static void Save(TracedSystem system, string path, IfcExportOptions opts = null)
         {
             if (string.IsNullOrEmpty(path))
@@ -121,10 +45,6 @@ namespace Wenta
             File.WriteAllText(path, Build(system, opts, Path.GetFileName(path)), Utf8NoBom);
         }
 
-        /// <summary>2D position of every Source / Tee / Terminal component of
-        /// <c>system.Network</c> that could be located from the chain
-        /// endpoints (see class summary). Components that are not adjacent to
-        /// any chain are absent from the result.</summary>
         public static Dictionary<string, Point2> ComponentPositions(TracedSystem system)
         {
             CheckSystem(system);
@@ -135,8 +55,6 @@ namespace Wenta
             return result;
         }
 
-        /// <summary>Deterministic IFC GlobalId for <paramref name="key"/>:
-        /// <see cref="CompressGuid"/> of a GUID built from MD5("wenta:" + key).</summary>
         public static string DeterministicGlobalId(string key)
         {
             using (MD5 md5 = MD5.Create())
@@ -146,14 +64,9 @@ namespace Wenta
             }
         }
 
-        /// <summary>Standard IFC GUID compression: the 16 GUID bytes in RFC
-        /// 4122 / IFC field order (Data1, Data2, Data3 big-endian, then Data4)
-        /// encoded base-64 with the IFC alphabet <c>0-9A-Za-z_$</c>: the first
-        /// byte as 2 characters, then five 3-byte groups as 4 characters each
-        /// (22 characters, first character always '0'..'3').</summary>
         public static string CompressGuid(Guid guid)
         {
-            byte[] le = guid.ToByteArray(); // Data1..Data3 little-endian
+            byte[] le = guid.ToByteArray();
             byte[] b = new byte[16];
             b[0] = le[3]; b[1] = le[2]; b[2] = le[1]; b[3] = le[0];
             b[4] = le[5]; b[5] = le[4];
@@ -171,9 +84,6 @@ namespace Wenta
             return new string(outc);
         }
 
-        /// <summary>Inverse of <see cref="CompressGuid"/>.</summary>
-        /// <exception cref="WentaException">Not 22 characters, a character
-        /// outside the IFC alphabet, or a first byte above 255.</exception>
         public static Guid ExpandGuid(string globalId)
         {
             if (globalId == null || globalId.Length != 22)
@@ -221,9 +131,7 @@ namespace Wenta
             return n;
         }
 
-        // ---- STEP text helpers ----------------------------------------------
 
-        /// <summary>Sequential <c>#n=ENTITY(...);</c> line writer.</summary>
         private sealed class StepFile
         {
             private readonly StringBuilder _sb = new StringBuilder();
@@ -239,8 +147,6 @@ namespace Wenta
             public string Data { get { return _sb.ToString(); } }
         }
 
-        /// <summary>STEP real: invariant "R" with a guaranteed decimal point
-        /// ("5." / "1.E-05"), as Part 21 requires.</summary>
         private static string Real(double v)
         {
             if (double.IsNaN(v) || double.IsInfinity(v))
@@ -253,8 +159,6 @@ namespace Wenta
             return mant + exp;
         }
 
-        /// <summary>STEP string literal: apostrophes and backslashes doubled,
-        /// control characters dropped, non-ASCII as \X2\HHHH…\X0\.</summary>
         private static string Str(string s)
         {
             if (s == null) s = "";
@@ -308,16 +212,15 @@ namespace Wenta
             return "IFCDIRECTION((" + Real(x) + "," + Real(y) + "," + Real(z) + "))";
         }
 
-        // ---- layout: where each component sits --------------------------------
 
         private sealed class Layout
         {
             public readonly List<Point2> Verts = new List<Point2>();
-            public readonly List<int> Degree = new List<int>();      // chain ends per vertex
-            public readonly List<double> Diameter = new List<double>(); // max incident chain D
-            public int[] StartV;                                       // vertex at Points[0]
-            public int[] EndV;                                         // vertex at Points[last]
-            public bool[] Reversed;                                    // Points run downstream→upstream
+            public readonly List<int> Degree = new List<int>();
+            public readonly List<double> Diameter = new List<double>();
+            public int[] StartV;
+            public int[] EndV;
+            public bool[] Reversed;
             public readonly Dictionary<string, int> CompVertex = new Dictionary<string, int>();
         }
 
@@ -339,8 +242,6 @@ namespace Wenta
             return lay.Verts.Count - 1;
         }
 
-        /// <summary>Component id connected to the chain's inlet (predecessor
-        /// out-port) or outlet (successor in-port); null if unknown.</summary>
         private static string NeighbourComponent(Network net, string chainId, bool inlet)
         {
             Component c;
@@ -401,9 +302,6 @@ namespace Wenta
                 outComp[ci] = NeighbourComponent(net, ch.Id, false);
             }
 
-            // Fix component -> vertex by propagation over the tree: a chain
-            // with a known end fixes its other end; a chain joining a 3-end
-            // vertex to a 1-end vertex puts its Tee neighbour on the former.
             bool[] done = new bool[n];
             bool progress = true;
             while (progress)
@@ -413,7 +311,7 @@ namespace Wenta
                 {
                     if (done[ci]) continue;
                     int a = lay.StartV[ci], b = lay.EndV[ci];
-                    if (a == b) { done[ci] = true; continue; } // degenerate loop chain
+                    if (a == b) { done[ci] = true; continue; }
                     int va = -1, vb = -1;
                     bool haveIn = inComp[ci] != null && lay.CompVertex.TryGetValue(inComp[ci], out va);
                     bool haveOut = outComp[ci] != null && lay.CompVertex.TryGetValue(outComp[ci], out vb);
@@ -448,8 +346,6 @@ namespace Wenta
                     }
                 }
             }
-            // Anything left (e.g. a lone source→duct→terminal chain) follows the
-            // Topology.Trace convention: Points[0] is the upstream end.
             for (int ci = 0; ci < n; ci++)
             {
                 if (done[ci]) continue;
@@ -467,14 +363,12 @@ namespace Wenta
             return lay;
         }
 
-        // ---- builder -----------------------------------------------------------
 
-        /// <summary>Shared entity ids and export state.</summary>
         private sealed class Ctx
         {
             public StepFile F;
             public int DirZ, Identity, Body, StoreyPl;
-            public double H; // duct centreline height above the storey
+            public double H;
             public readonly Dictionary<string, int> Profiles = new Dictionary<string, int>();
             public readonly List<int> Products = new List<int>();
         }
@@ -487,7 +381,7 @@ namespace Wenta
                 throw new WentaException("IfcExport: ElevationM / DuctCentreHeightM must be finite");
 
             Network net = system.Network;
-            Solver.PropagateFlowrates(net); // flows only; fluid-independent, idempotent
+            Solver.PropagateFlowrates(net);
             Layout lay = Analyse(system);
 
             var f = new StepFile();
@@ -495,12 +389,10 @@ namespace Wenta
             c.F = f;
             c.H = opts.DuctCentreHeightM;
 
-            // shared geometry
             int origin = f.Add(Point3(0.0, 0.0, 0.0));
             c.DirZ = f.Add(Dir3(0.0, 0.0, 1.0));
             c.Identity = f.Add("IFCAXIS2PLACEMENT3D(" + Ref(origin) + ",$,$)");
 
-            // units
             int uLen = f.Add("IFCSIUNIT(*,.LENGTHUNIT.,$,.METRE.)");
             int uArea = f.Add("IFCSIUNIT(*,.AREAUNIT.,$,.SQUARE_METRE.)");
             int uVol = f.Add("IFCSIUNIT(*,.VOLUMEUNIT.,$,.CUBIC_METRE.)");
@@ -512,12 +404,10 @@ namespace Wenta
             int units = f.Add("IFCUNITASSIGNMENT(("
                 + Refs(new int[] { uLen, uArea, uVol, uTime, uAngle, uFlow }) + "))");
 
-            // representation contexts
             int ctx = f.Add("IFCGEOMETRICREPRESENTATIONCONTEXT($,'Model',3,1.E-05," + Ref(c.Identity) + ",$)");
             c.Body = f.Add("IFCGEOMETRICREPRESENTATIONSUBCONTEXT('Body','Model',*,*,*,*,"
                 + Ref(ctx) + ",$,.MODEL_VIEW.,$)");
 
-            // project + spatial structure
             int project = f.Add("IFCPROJECT(" + Gid("project:" + opts.ProjectName) + ",$,"
                 + Str(opts.ProjectName) + ",$,$,$,$,(" + Ref(ctx) + ")," + Ref(units) + ")");
             int sitePl = f.Add("IFCLOCALPLACEMENT($," + Ref(c.Identity) + ")");
@@ -535,7 +425,6 @@ namespace Wenta
             f.Add("IFCRELAGGREGATES(" + Gid("rel:site-building") + ",$,$,$," + Ref(site) + ",(" + Ref(bldg) + "))");
             f.Add("IFCRELAGGREGATES(" + Gid("rel:building-storey") + ",$,$,$," + Ref(bldg) + ",(" + Ref(storey) + "))");
 
-            // duct segments: one per straight leg, upstream -> downstream
             for (int ci = 0; ci < system.Chains.Count; ci++)
             {
                 Chain ch = system.Chains[ci];
@@ -577,7 +466,6 @@ namespace Wenta
                 }
             }
 
-            // fittings / terminals / source, in id order for determinism
             var ids = new List<string>(net.Components.Keys);
             ids.Sort(StringComparer.Ordinal);
             foreach (string id in ids)
@@ -586,7 +474,7 @@ namespace Wenta
                 bool isTee = comp is Tee, isTerm = comp is Terminal, isSrc = comp is Source;
                 if (!isTee && !isTerm && !isSrc) continue;
                 int v;
-                if (!lay.CompVertex.TryGetValue(id, out v)) continue; // not adjacent to any chain
+                if (!lay.CompVertex.TryGetValue(id, out v)) continue;
                 Point2 p = lay.Verts[v];
                 double d = lay.Diameter[v];
                 if (!(d > 0.0)) d = 0.2;
@@ -623,7 +511,6 @@ namespace Wenta
                 f.Add("IFCRELCONTAINEDINSPATIALSTRUCTURE(" + Gid("rel:storey-contains") + ",$,$,$,("
                     + Refs(c.Products) + ")," + Ref(storey) + ")");
 
-            // assemble
             var sb = new StringBuilder(f.Data.Length + 512);
             sb.Append("ISO-10303-21;\n");
             sb.Append("HEADER;\n");
@@ -641,8 +528,6 @@ namespace Wenta
             return sb.ToString();
         }
 
-        /// <summary>Flow through a component [m³/s]: first inlet port, else
-        /// first port (a Source only has an outlet); null if unset.</summary>
         private static double? FlowOf(Component comp)
         {
             double? q = comp.InletFlowrate();
@@ -650,7 +535,6 @@ namespace Wenta
             return q;
         }
 
-        /// <summary>Shared IfcCircleProfileDef per radius.</summary>
         private static int Profile(Ctx c, double radius)
         {
             string key = Real(radius);
@@ -663,13 +547,9 @@ namespace Wenta
             return id;
         }
 
-        /// <summary>Vertical cylinder of the given radius/height centred on
-        /// (p, duct height); returns the IfcProductDefinitionShape id.</summary>
         private static int Marker(Ctx c, Point2 p, double radius, double height, out int placement)
         {
             StepFile f = c.F;
-            // marker sizes are scaled diameters (0.6·D etc.): round away the
-            // binary noise so the text stays readable (0.15, not 0.15000000000000002)
             radius = Math.Round(radius, 9);
             height = Math.Round(height, 9);
             int loc = f.Add(Point3(p.X, p.Y, c.H - height / 2.0));
@@ -682,8 +562,6 @@ namespace Wenta
             return f.Add("IFCPRODUCTDEFINITIONSHAPE($,$,(" + Ref(rep) + "))");
         }
 
-        /// <summary>"Pset_Wenta" on <paramref name="product"/>: FlowRate (if
-        /// known), Diameter, Length (if given).</summary>
         private static void AddPset(Ctx c, string key, int product, double? flow, double diameter, double? length)
         {
             StepFile f = c.F;

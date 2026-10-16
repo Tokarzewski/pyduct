@@ -3,22 +3,12 @@ using System.Collections.Generic;
 
 namespace Wenta
 {
-    /// <summary>Pure-function solver. Port of `wenta.network.solver`:
-    /// 1. propagate flowrates upstream from terminals,
-    /// 2. compute per-port pressure drops (each component's Compute),
-    /// 3. critical-path DP (longest source→terminal path by node dp).</summary>
     public static class Solver
     {
-        /// <summary>Assign a flowrate to every port: terminal demands
-        /// propagated upstream (each node forwards its accumulated flow to
-        /// every predecessor).</summary>
         public static void PropagateFlowrates(Network network)
         {
             List<string> topo = network.TopoOrder();
 
-            // Reset component nodes as well as port nodes: flow is forwarded to
-            // every predecessor, so a stale component-node value would be
-            // re-propagated upstream and double the flows on a second solve.
             foreach (var kv in network.Components)
             {
                 network.SetNodeFlow(kv.Key, 0.0);
@@ -29,7 +19,6 @@ namespace Wenta
             foreach (Terminal term in network.Terminals())
                 network.SetNodeFlow(term.Ports[0].NodeId, term.Flowrate);
 
-            // reverse topological order: forward flow to every predecessor
             for (int i = topo.Count - 1; i >= 0; i--)
             {
                 string node = topo[i];
@@ -41,14 +30,11 @@ namespace Wenta
                 }
             }
 
-            // copy graph flowrates onto the Port objects
             foreach (var kv in network.Components)
                 foreach (Port p in kv.Value.Ports)
                     p.Flowrate = network.GetNodeFlow(p.NodeId);
         }
 
-        /// <summary>Call each component's Compute and scatter per-port
-        /// pressure drops / velocities onto the graph nodes.</summary>
         public static void ComputePressureDrops(Network network, Fluid fluid)
         {
             foreach (var kv in network.Components)
@@ -61,8 +47,6 @@ namespace Wenta
                 }
         }
 
-        /// <summary>Longest path (by node pressure drop) from any Source to
-        /// any Terminal — single-pass DP over the topological order.</summary>
         public static List<string> CriticalPath(Network network)
         {
             List<string> topo = network.TopoOrder();
@@ -114,7 +98,6 @@ namespace Wenta
             return sum;
         }
 
-        /// <summary>Full pipeline; returns the critical-path pressure drop [Pa].</summary>
         public static double Solve(Network network, Fluid fluid)
         {
             PropagateFlowrates(network);

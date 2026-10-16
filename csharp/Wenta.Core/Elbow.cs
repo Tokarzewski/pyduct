@@ -2,11 +2,6 @@ using System;
 
 namespace Wenta
 {
-    /// <summary>Round-elbow loss coefficient from the Hendiger/Ziętek/
-    /// Chludzińska table, looked up by R/D and bend angle.
-    /// Python uses scipy's RectBivariateSpline (interpolating cubic);
-    /// this port uses separable not-a-knot bicubic interpolation, which
-    /// agrees with scipy on this 6×10 table (parity tolerance 1e-4).</summary>
     public sealed class ElbowRound
     {
         private static readonly double[] RdGrid = { 0.50, 0.75, 1.00, 1.50, 2.00, 2.50 };
@@ -21,9 +16,9 @@ namespace Wenta
             {0.04, 0.05, 0.07, 0.09, 0.11, 0.12, 0.14, 0.14, 0.15, 0.17},
         };
 
-        public readonly double BendRadius; // R [m]
-        public readonly double Diameter;    // D [m]
-        public readonly double Angle;       // [deg]
+        public readonly double BendRadius;
+        public readonly double Diameter;
+        public readonly double Angle;
 
         public ElbowRound(double bendRadius, double diameter, double angle)
         {
@@ -48,8 +43,6 @@ namespace Wenta
         public double Zeta()
         {
             double rd = BendRadius / Diameter;
-            // Separable bicubic: cubic-spline the angle axis for each R/D row,
-            // then cubic-spline the R/D axis through the interpolated values.
             double[] byRd = new double[RdGrid.Length];
             for (int i = 0; i < RdGrid.Length; i++)
                 byRd[i] = Spline.Interpolate1D(AngleGrid, GetRow(i), Angle);
@@ -65,10 +58,6 @@ namespace Wenta
         }
     }
 
-    /// <summary>Not-a-knot cubic-spline interpolation (single axis).
-    /// Unknowns are the second derivatives M[0..n-1] solved from the
-    /// n-2 interior curvature equations plus two third-derivative
-    /// continuity (not-a-knot) end conditions.</summary>
     internal static class Spline
     {
         public static double Interpolate1D(double[] xs, double[] ys, double x)
@@ -84,7 +73,6 @@ namespace Wenta
             for (int i = 0; i < n - 1; i++)
                 h[i] = xs[i + 1] - xs[i];
 
-            // Build the n x n system  A * M = rhs  (banded, small).
             double[,] a = new double[n, n];
             double[] rhs = new double[n];
 
@@ -95,21 +83,17 @@ namespace Wenta
                 a[i, i + 1] = h[i];
                 rhs[i] = 6.0 * ((ys[i + 1] - ys[i]) / h[i] - (ys[i] - ys[i - 1]) / h[i - 1]);
             }
-            // not-a-knot left: 3rd-derivative continuity at x1
             a[0, 0] = -h[1];
             a[0, 1] = h[0] + h[1];
             a[0, 2] = -h[0];
             rhs[0] = 0.0;
-            // not-a-knot right: 3rd-derivative continuity at x(n-2)
             a[n - 1, n - 1] = -h[n - 3];
             a[n - 1, n - 2] = h[n - 2] + h[n - 3];
             a[n - 1, n - 3] = -h[n - 2];
             rhs[n - 1] = 0.0;
 
-            // Gaussian elimination with partial pivoting (n <= 10 here).
             double[] m = Solve(a, rhs);
 
-            // locate segment and evaluate
             int k = 0;
             while (k < n - 2 && x > xs[k + 1]) k++;
             double hh = h[k];
@@ -126,7 +110,6 @@ namespace Wenta
             int n = b.Length;
             for (int col = 0; col < n; col++)
             {
-                // pivot
                 int piv = col;
                 double best = Math.Abs(a[col, col]);
                 for (int r = col + 1; r < n; r++)
@@ -142,7 +125,6 @@ namespace Wenta
                     }
                     double tb = b[col]; b[col] = b[piv]; b[piv] = tb;
                 }
-                // eliminate below
                 for (int r = col + 1; r < n; r++)
                 {
                     double w = a[r, col] / a[col, col];

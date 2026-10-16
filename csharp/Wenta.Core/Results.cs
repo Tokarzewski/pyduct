@@ -4,26 +4,17 @@ using System.Globalization;
 
 namespace Wenta
 {
-    /// <summary>Results for a single component: one row per component,
-    /// aggregating its ports' flow, velocity and pressure drop.
-    /// Port of `venti::results` (SPEC FR-16).</summary>
     public sealed class ComponentResult
     {
         public string ComponentId;
         public string Name;
         public string ComponentType;
-        /// <summary>Volumetric flow entering the component [m^3/s].</summary>
         public double? FlowrateIn;
-        /// <summary>Volumetric flow leaving the component [m^3/s].</summary>
         public double? FlowrateOut;
-        /// <summary>Velocity at the inlet port [m/s].</summary>
         public double? VelocityIn;
-        /// <summary>Velocity at the outlet port [m/s].</summary>
         public double? VelocityOut;
-        /// <summary>Total pressure drop across all ports [Pa].</summary>
         public double PressureDrop;
 
-        /// <summary>Field names, in order, for a CSV header (matches ToDict()).</summary>
         public static readonly string[] Fields =
         {
             "component_id",
@@ -36,8 +27,6 @@ namespace Wenta
             "pressure_drop",
         };
 
-        /// <summary>Ordered (key, value) string pairs, mirroring the Rust
-        /// `to_dict` (missing options render as an empty string).</summary>
         public List<KeyValuePair<string, string>> ToDict()
         {
             var d = new List<KeyValuePair<string, string>>();
@@ -54,18 +43,8 @@ namespace Wenta
         }
     }
 
-    /// <summary>Extract results from a solved network into structured formats:
-    /// one row per component, aggregating flow/velocity/pressure-drop. Port of
-    /// `venti::results` (SPEC FR-16). Building blocks for schedules, CSVs and
-    /// reports. (The Rust `cli`-feature JSON helpers are omitted here — no JSON
-    /// library is available in this bare-csc build; `ExtractResults` /
-    /// `ComponentResult.ToDict()` give the same rows for a caller to serialize.)</summary>
     public static class Results
     {
-        /// <summary>Extract results from a solved network into a list, one row
-        /// per component. The network should have been solved
-        /// (<see cref="Network.Solve"/>) so flowrates and velocities are
-        /// populated.</summary>
         public static List<ComponentResult> ExtractResults(Network network)
         {
             var results = new List<ComponentResult>();
@@ -74,9 +53,6 @@ namespace Wenta
                 string cid = kv.Key;
                 Component c = kv.Value;
 
-                // A port's velocity is considered "set" once it has a flowrate
-                // (i.e. it went through solve); matches the Rust/Python reference
-                // semantics.
                 double? flowrateIn = FirstOpt(c.Inlets, p => p.Flowrate);
                 double? flowrateOut = FirstOpt(c.Outlets, p => p.Flowrate);
                 double? velocityIn = FirstOpt(c.Inlets, p => p.Flowrate.HasValue ? p.Velocity : null);
@@ -97,7 +73,6 @@ namespace Wenta
             return results;
         }
 
-        /// <summary>Isolate the first matching value from a list of ports.</summary>
         private static double? FirstOpt(IEnumerable<Port> ports, Func<Port, double?> f)
         {
             foreach (Port p in ports)
@@ -108,15 +83,11 @@ namespace Wenta
             return null;
         }
 
-        /// <summary>Format an optional double with the invariant culture
-        /// (plain <c>ToString()</c>); null renders as an empty string. Shared
-        /// by the CSV renderers in Results, Marking and Electrical.</summary>
         internal static string FmtOpt(double? v)
         {
             return v.HasValue ? v.Value.ToString(CultureInfo.InvariantCulture) : "";
         }
 
-        /// <summary>Export results as a CSV string with a header row.</summary>
         public static string ResultsAsCsv(Network network, char delimiter)
         {
             List<ComponentResult> results = ExtractResults(network);
@@ -133,13 +104,11 @@ namespace Wenta
             return string.Join("\n", lines.ToArray());
         }
 
-        /// <summary>Format results as a human-readable table.</summary>
         public static string ResultsSummary(Network network)
         {
             List<ComponentResult> results = ExtractResults(network);
             if (results.Count == 0) return "(no components)";
 
-            // Column widths mirroring the Rust/Python reference.
             string[] headerLabels = { "ID", "Name", "Type", "Q_in [m³/s]", "V_in [m/s]", "ΔP [Pa]" };
             int[] headerWidths = { 12, 20, 18, 13, 12, 11 };
 

@@ -16,7 +16,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # build.cmd locates csc.exe via vswhere when the BuildTools path is absent.
       - name: Build Wenta.Core + test runner
         shell: cmd
         run: csharp\build.cmd

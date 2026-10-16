@@ -3,16 +3,14 @@ using System.Collections.Generic;
 
 namespace Wenta
 {
-    /// <summary>Connection point on a Component; carries local flow state.
-    /// Port of `wenta.components.base`.</summary>
     public sealed class Port
     {
         public readonly string Name;
-        public readonly bool IsIn;        // true = air enters through this port
-        public double? Flowrate;          // [m^3/s]
-        public double? Velocity;          // [m/s]
-        public double PressureDrop;       // [Pa]
-        public string NodeId;             // set by Network.Add()
+        public readonly bool IsIn;
+        public double? Flowrate;
+        public double? Velocity;
+        public double PressureDrop;
+        public string NodeId;
 
         public Port(string name, bool isIn)
         {
@@ -21,8 +19,6 @@ namespace Wenta
         }
     }
 
-    /// <summary>A piece of ductwork with one or more ports. `compute()`
-    /// fills velocity + pressure drop on each port given upstream flows.</summary>
     public abstract class Component
     {
         public readonly string Name;
@@ -49,9 +45,6 @@ namespace Wenta
             get { foreach (Port p in Ports) if (!p.IsIn) yield return p; }
         }
 
-        /// <summary>Flowrate [m^3/s] on the component's first inlet port;
-        /// null when the component has no inlet port or the port's flowrate
-        /// has not been set (network not yet solved).</summary>
         public double? InletFlowrate()
         {
             foreach (Port p in Inlets)
@@ -59,8 +52,6 @@ namespace Wenta
             return null;
         }
 
-        /// <summary>Total pressure drop [Pa] across all of the component's
-        /// ports (sum of <see cref="Port.PressureDrop"/>).</summary>
         public double TotalPressureDrop()
         {
             double total = 0.0;
@@ -69,12 +60,8 @@ namespace Wenta
         }
     }
 
-    /// <summary>A rigid (sheet-metal) straight duct. Full Darcy–Weisbach drop
-    /// is reported on the inlet port; the outlet carries 0.</summary>
     public sealed class RigidDuct : Component
     {
-        /// <summary>Default absolute wall roughness [m] for galvanised sheet
-        /// steel (0.1 mm).</summary>
         public const double DefaultAbsoluteRoughness = 0.0001;
 
         public readonly CrossSection CrossSection;
@@ -113,15 +100,12 @@ namespace Wenta
         }
     }
 
-    /// <summary>Flexible round duct with manufacturer-supplied per-meter
-    /// pressure drop (product-specific curves).</summary>
     public sealed class FlexDuct : Component
     {
         public readonly double Diameter;
         public readonly double Length;
         public readonly double PressureDropPerMeter;
         public readonly double StretchPercentage;
-        /// <summary>Cross-section area [m^2] = π·(D/2)², computed once.</summary>
         public readonly double Area;
 
         public FlexDuct(string name, double diameter, double length,
@@ -157,8 +141,6 @@ namespace Wenta
         }
     }
 
-    /// <summary>A flow source (AHU/fan); flow is set by the solver as the sum
-    /// of downstream terminal demands. Contributes no pressure drop.</summary>
     public sealed class Source : Component
     {
         public Source(string name) : base(name)
@@ -173,8 +155,6 @@ namespace Wenta
         }
     }
 
-    /// <summary>A one-port terminal: diffuser, grille, register or cap.
-    /// flowrate is the demanded volumetric flow [m^3/s] (0 for a cap).</summary>
     public sealed class Terminal : Component
     {
         public readonly double Flowrate;
@@ -208,8 +188,6 @@ namespace Wenta
         }
     }
 
-    /// <summary>Generic in-line fitting (elbow, reducer, damper...). Local
-    /// drop reported on the outlet port.</summary>
     public sealed class TwoPortFitting : Component
     {
         public readonly CrossSection CrossSection;
@@ -238,8 +216,6 @@ namespace Wenta
         }
     }
 
-    /// <summary>Three-port branch fitting: combined (in), straight (out),
-    /// branch (out). Each leg has its own loss coefficient.</summary>
     public sealed class Tee : Component
     {
         public readonly CrossSection CrossSection;

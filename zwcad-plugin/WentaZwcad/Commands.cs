@@ -10,11 +10,6 @@ using ZwSoft.ZwCAD.Runtime;
 
 namespace WentaZwcad
 {
-    /// <summary>
-    /// Wenta duct plugin for ZWCAD 2021 — now powered by Wenta.Core
-    /// (the C# port of the wenta library: sizing, solver, catalog, BOM).
-    /// All math calls go through Wenta.*; no formula lives in this file.
-    /// </summary>
     public class Commands
     {
         private const string LogFile = "wenta_zwcad_test.txt";
@@ -41,7 +36,6 @@ namespace WentaZwcad
             if (doc == null) return;
             Editor ed = doc.Editor;
 
-            // ---- shape keyword ------------------------------------------------
             PromptKeywordOptions shapeOpts = new PromptKeywordOptions("\nDuct shape [Round/Rectangular] <Rectangular>: ");
             shapeOpts.Keywords.Add("Round");
             shapeOpts.Keywords.Add("Rectangular");
@@ -52,7 +46,6 @@ namespace WentaZwcad
                 return;
             bool round = shapeRes.Status == PromptStatus.OK && shapeRes.StringResult == "Round";
 
-            // ---- flow ----------------------------------------------------------
             PromptDoubleOptions flowOpts = new PromptDoubleOptions("\nDesign flow [m³/s]: ");
             flowOpts.DefaultValue = 0.1;
             flowOpts.AllowZero = false;
@@ -61,7 +54,6 @@ namespace WentaZwcad
             if (flowRes.Status != PromptStatus.OK) return;
             double flow = flowRes.Value;
 
-            // ---- target velocity ----------------------------------------------
             PromptDoubleOptions velOpts = new PromptDoubleOptions("\nTarget velocity [m/s]: ");
             velOpts.DefaultValue = 4.0;
             velOpts.AllowZero = false;
@@ -70,13 +62,11 @@ namespace WentaZwcad
             if (velRes.Status != PromptStatus.OK) return;
             double targetV = velRes.Value;
 
-            // ---- size via the wenta core ----------------------------------------
             Wenta.Sizing.SizingResult r = Wenta.Sizing.VelocityMethod(
                 flow,
                 round ? Wenta.Sizing.ShapeRound : Wenta.Sizing.ShapeRectangular,
                 targetV);
 
-            // equal-friction Δp/m at the chosen section (for the label)
             double dpPerM = DpPerMeterAt(flow, r.Section);
 
             Database db = doc.Database;
@@ -92,8 +82,6 @@ namespace WentaZwcad
                 if (round)
                 {
                     Wenta.Round rs = (Wenta.Round)r.Section;
-                    // Drawing units are mm and the section sits in the 0..D square,
-                    // like the rectangle below (the label is placed at top = D mm).
                     double d = rs.Diameter * 1000.0;
                     outline = new Circle(new Point3d(d / 2.0, d / 2.0, 0), Vector3d.ZAxis, d / 2.0);
                     label = string.Format("Ø{0} mm", Math.Round(d));
@@ -114,7 +102,6 @@ namespace WentaZwcad
                 ms.AppendEntity(outline);
                 tr.AddNewlyCreatedDBObject(outline, true);
 
-                // ---- annotation -------------------------------------------------
                 double top = round ? ((Wenta.Round)r.Section).Diameter * 1000.0
                                    : ((Wenta.Rectangular)r.Section).Height * 1000.0;
                 DBText text = new DBText();
@@ -125,7 +112,6 @@ namespace WentaZwcad
                 ms.AppendEntity(text);
                 tr.AddNewlyCreatedDBObject(text, true);
 
-                // ---- design record in XData --------------------------------------
                 AttachXData(tr, db, outline, flow, r.Velocity, round ? 1 : 0, label);
 
                 tr.Commit();
@@ -181,9 +167,6 @@ namespace WentaZwcad
             if (doc == null) return;
             Editor ed = doc.Editor;
 
-            // Reference tee network (same topology as the parity vector):
-            // AHU -> D315 duct 20 m -> tee -> (D200 duct 5 m -> T 0.06) +
-            //                             (flex D125 3 m -> T 0.04)
             var net = new Wenta.Network { Name = "bom-demo" };
             net.Add("ahu", new Wenta.Source("AHU"));
             net.Add("duct", new Wenta.RigidDuct("duct", new Wenta.Round(0.315), 20.0));
@@ -212,7 +195,6 @@ namespace WentaZwcad
             Log(string.Format("WENTABOM ok  {0} rows  {1:0.00} Pa", bom.Rows.Count, dp));
         }
 
-        // ---------------------------------------------------------------- helpers
 
         private static double DpPerMeterAt(double flow, Wenta.CrossSection s)
         {

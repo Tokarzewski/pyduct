@@ -3,18 +3,12 @@ using System.Collections.Generic;
 
 namespace Wenta
 {
-    /// <summary>A directed graph of ductwork components + ports.
-    /// Port of `wenta.network.network` (NetworkX-free implementation):
-    /// nodes are component ids and "componentId:portName" port ids;
-    /// in-ports point at their component, components point at out-ports,
-    /// connections go out-port -> in-port.</summary>
     public sealed class Network
     {
         public string Name = "";
         public readonly Dictionary<string, Component> Components =
             new Dictionary<string, Component>();
 
-        // graph: node -> (predecessors, successors). Node flow/dp per solve.
         private readonly Dictionary<string, List<string>> _succ =
             new Dictionary<string, List<string>>();
         private readonly Dictionary<string, List<string>> _pred =
@@ -23,7 +17,7 @@ namespace Wenta
             new Dictionary<string, double>();
         private readonly Dictionary<string, double> _nodeDp =
             new Dictionary<string, double>();
-        private List<string> _topo; // cached
+        private List<string> _topo;
 
         public static string PortNodeId(string componentId, string portName)
         {
@@ -41,14 +35,12 @@ namespace Wenta
                 string pid = PortNodeId(componentId, p.Name);
                 p.NodeId = pid;
                 AddNode(pid);
-                if (p.IsIn) AddEdge(pid, componentId);      // port -> component
-                else        AddEdge(componentId, pid);      // component -> port
+                if (p.IsIn) AddEdge(pid, componentId);
+                else        AddEdge(componentId, pid);
             }
             return component;
         }
 
-        /// <summary>Connect source -> target. Each endpoint is
-        /// "&lt;componentId&gt;" or "&lt;componentId&gt;.&lt;portName&gt;".</summary>
         public void Connect(string source, string target)
         {
             string srcCid; Port srcPort;
@@ -61,11 +53,9 @@ namespace Wenta
         public double NodeFlow(string nodeId) { return _nodeFlow[nodeId]; }
         public double NodeDp(string nodeId) { return _nodeDp[nodeId]; }
 
-        /// <summary>Topological order of all nodes (cached).</summary>
         public List<string> TopoOrder()
         {
             if (_topo != null) return _topo;
-            // Kahn's algorithm, insertion-order tiebreak.
             var order = new List<string>(_succ.Count);
             var indeg = new Dictionary<string, int>(_succ.Count);
             foreach (var kv in _succ)
@@ -111,7 +101,6 @@ namespace Wenta
             return list;
         }
 
-        /// <summary>Structural problems; empty list = healthy.</summary>
         public List<string> Validate()
         {
             var problems = new List<string>();
@@ -124,7 +113,7 @@ namespace Wenta
                 {
                     List<string> neighbours = p.IsIn ? _pred[p.NodeId] : _succ[p.NodeId];
                     foreach (string nId in neighbours)
-                        if (nId.Contains(":")) { connected = true; break; } // port nodes
+                        if (nId.Contains(":")) { connected = true; break; }
                     if (connected) break;
                 }
                 if (!connected)
@@ -133,13 +122,11 @@ namespace Wenta
             return problems;
         }
 
-        /// <summary>Run the full solver; returns critical-path pressure drop [Pa].</summary>
         public double Solve(Fluid fluid = null)
         {
             return Solver.Solve(this, fluid ?? Fluid.StandardAir());
         }
 
-        // ---- internals ----------------------------------------------------
 
         private void AddNode(string id)
         {

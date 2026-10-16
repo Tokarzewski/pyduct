@@ -2,12 +2,10 @@ using System;
 
 namespace Wenta
 {
-    /// <summary>Unit converters between SI (wenta's native units) and US customary.
-    /// Port of `wenta.units` / `wentamojo.units` — constants identical.</summary>
     public static class Units
     {
-        private const double CFM_TO_M3S = 0.0004719474432; // ft^3/min -> m^3/s
-        private const double INWC_TO_PA = 249.0889;       // inch H2O (4 °C) -> Pa
+        private const double CFM_TO_M3S = 0.0004719474432;
+        private const double INWC_TO_PA = 249.0889;
         private const double FT_TO_M = 0.3048;
         private const double IN_TO_M = 0.0254;
         private const double FPM_TO_MS = 0.00508;
@@ -25,7 +23,6 @@ namespace Wenta
         public static double FToC(double fahrenheit) { return (fahrenheit - 32.0) * 5.0 / 9.0; }
         public static double CToF(double celsius) { return celsius * 9.0 / 5.0 + 32.0; }
 
-        /// <summary>ACH = flowrate × 3600 / room volume.</summary>
         public static double AirChangesPerHour(double flowrateM3s, double volumeM3)
         {
             if (volumeM3 <= 0.0)
@@ -36,7 +33,6 @@ namespace Wenta
         }
     }
 
-    /// <summary>Exception mirroring Python's ValueError contract.</summary>
     public class WentaException : Exception
     {
         public WentaException(string message) : base(message) { }

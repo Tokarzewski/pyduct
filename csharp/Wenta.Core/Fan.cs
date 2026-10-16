@@ -2,10 +2,6 @@ using System;
 
 namespace Wenta
 {
-    /// <summary>A single point on a vendor fan curve.
-    /// <see cref="FlowM3s"/> is the volumetric flow through the fan [m^3/s] and
-    /// <see cref="StaticPressurePa"/> is the static pressure the fan develops
-    /// at that flow [Pa].</summary>
     public struct FanPoint
     {
         public readonly double FlowM3s;
@@ -18,33 +14,11 @@ namespace Wenta
         }
     }
 
-    /// <summary>Fan selection: vendor fan curves (wentylatory) and duty-point
-    /// picking. Port of `venti/src/fan.rs`.
-    ///
-    /// A ductwork system is designed for a target duty point: a design flow
-    /// (m^3/s) and the static pressure the fan must develop at that flow (Pa)
-    /// to push air through the sized network. A fan is modelled by its
-    /// static-pressure curve — the static pressure the fan delivers as a
-    /// function of flow, tabulated as a polyline of points copied from a
-    /// vendor catalogue. Selection is the classic "fan curve vs. system
-    /// curve" procedure, inverted: instead of plotting the fan curve against
-    /// the system curve, we ask which fan, at the design flow, still
-    /// delivers at least the required static pressure (a non-negative
-    /// pressure margin).
-    ///
-    /// All quantities are SI: flow in m^3/s, static pressure in Pa, shaft
-    /// power in W.</summary>
     public sealed class FanCurve
     {
         public readonly string Name;
         public readonly FanPoint[] Points;
 
-        /// <summary>Build a fan curve from its name and tabulated points.
-        /// Throws when fewer than 2 points are given (a curve needs at
-        /// least a segment), when flows are not strictly increasing (equal
-        /// or decreasing flow makes the flow -&gt; pressure mapping
-        /// ambiguous), or when any value is non-finite (NaN / infinity
-        /// breaks interpolation).</summary>
         public FanCurve(string name, FanPoint[] points)
         {
             if (points == null || points.Length < 2)
@@ -65,14 +39,6 @@ namespace Wenta
             Points = points;
         }
 
-        /// <summary>Static pressure [Pa] delivered by the fan at
-        /// <paramref name="flowM3s"/> [m^3/s].
-        ///
-        /// The vendor curve is interpolated piecewise-linearly between the
-        /// two points bracketing the requested flow. Throws when
-        /// <paramref name="flowM3s"/> lies outside the tabulated curve range
-        /// (the catalogue data is not defined beyond its measured points),
-        /// or when it is not finite.</summary>
         public double StaticPressureAt(double flowM3s)
         {
             if (!IsFinite(flowM3s))
@@ -82,8 +48,6 @@ namespace Wenta
             if (flowM3s < first.FlowM3s || flowM3s > last.FlowM3s)
                 throw new WentaException("fan '" + Name + "': flow " + flowM3s + " m3/s outside curve range ["
                     + first.FlowM3s + " m3/s ... " + last.FlowM3s + " m3/s]");
-            // `flowM3s` is finite and inside [first, last], so exactly one
-            // segment brackets it (including the knot values on its boundaries).
             for (int i = 0; i < Points.Length - 1; i++)
             {
                 FanPoint a = Points[i];
@@ -94,30 +58,17 @@ namespace Wenta
                     return a.StaticPressurePa + t * (b.StaticPressurePa - a.StaticPressurePa);
                 }
             }
-            // Defensive: unreachable for finite in-range flows on a validated curve.
             throw new WentaException("fan '" + Name + "': no segment brackets flow " + flowM3s + " m3/s");
         }
 
-        /// <summary>True when <paramref name="v"/> is neither NaN nor infinite.</summary>
         internal static bool IsFinite(double v)
         {
             return !double.IsNaN(v) && !double.IsInfinity(v);
         }
     }
 
-    /// <summary>Duty-point power and fan-selection helpers.
-    /// Port of the free functions in `venti/src/fan.rs`.</summary>
     public static class Fan
     {
-        /// <summary>Shaft power [W] the fan must develop for a duty point
-        /// (fan power input to the fluid, sometimes called "air power"
-        /// before motor/impeller efficiencies are folded in).
-        /// Closed form: P = Q * p / eta, with Q = flow [m^3/s],
-        /// p = static pressure [Pa] and eta = the total (impeller x motor)
-        /// efficiency in (0, 1].
-        /// Throws when <paramref name="efficiency"/> is outside (0, 1],
-        /// when flow or pressure are negative, or when any input is
-        /// non-finite.</summary>
         public static double Power(double flowM3s, double pressurePa, double efficiency)
         {
             if (!FanCurve.IsFinite(flowM3s) || !FanCurve.IsFinite(pressurePa)
@@ -132,18 +83,6 @@ namespace Wenta
             return flowM3s * pressurePa / efficiency;
         }
 
-        /// <summary>Pressure margin [Pa] of <paramref name="fan"/> at the
-        /// design flow: the static pressure the fan's curve delivers at
-        /// <paramref name="designFlowM3s"/> minus <paramref name="requiredStaticPa"/>.
-        ///
-        /// A positive margin means the fan beats the requirement at the duty
-        /// point; zero means it delivers exactly the required pressure; a
-        /// negative margin means it falls short. Returns null when
-        /// <paramref name="designFlowM3s"/> is outside the fan's tabulated
-        /// curve range — the margin is undefined there, so that fan cannot
-        /// be compared at this duty point.
-        /// Throws for a negative or non-finite <paramref name="designFlowM3s"/>
-        /// or <paramref name="requiredStaticPa"/>.</summary>
         public static double? Margin(FanCurve fan, double designFlowM3s, double requiredStaticPa)
         {
             if (!FanCurve.IsFinite(designFlowM3s) || designFlowM3s < 0.0)
@@ -152,27 +91,12 @@ namespace Wenta
             if (!FanCurve.IsFinite(requiredStaticPa) || requiredStaticPa < 0.0)
                 throw new WentaException("margin_pa: required pressure must be a finite value >= 0 Pa, got "
                     + requiredStaticPa);
-            // Outside the tabulated range the curve is undefined -> no margin.
             if (designFlowM3s < fan.Points[0].FlowM3s
                 || designFlowM3s > fan.Points[fan.Points.Length - 1].FlowM3s)
                 return null;
             return fan.StaticPressureAt(designFlowM3s) - requiredStaticPa;
         }
 
-        /// <summary>Pick the first fan from <paramref name="curves"/> that
-        /// delivers the required static pressure at the design flow.
-        ///
-        /// For each fan in catalogue order the curve static pressure at
-        /// <paramref name="designFlowM3s"/> is compared with
-        /// <paramref name="requiredStaticPa"/>; the index of the first fan
-        /// whose margin (curve pressure - required) is &gt;= 0 is returned.
-        /// Fans whose curve does not cover the design flow (margin
-        /// undefined) are skipped, as are fans that fall short. Null means
-        /// no fan in the catalogue meets the duty point.
-        /// Throws for a negative or non-finite <paramref name="designFlowM3s"/>
-        /// or <paramref name="requiredStaticPa"/> (raised on the first fan
-        /// compared; an empty catalogue never evaluates the arguments and
-        /// simply returns null).</summary>
         public static int? PickFan(FanCurve[] curves, double designFlowM3s, double requiredStaticPa)
         {
             for (int i = 0; i < curves.Length; i++)

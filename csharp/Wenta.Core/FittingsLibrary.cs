@@ -2,14 +2,8 @@ using System;
 
 namespace Wenta
 {
-    /// <summary>Loss-coefficient correlations for common HVAC fittings.
-    /// Port of `wentamojo.components.fittings_library` — ASHRAE Fundamentals,
-    /// Hendiger, Idelchik.</summary>
     public static class FittingsLibrary
     {
-        /// <summary>Round reducer (ASHRAE correlation).
-        /// zeta ≈ 0.04 + 0.37·(1 − A_out/A_in), referenced to the outlet
-        /// velocity; angle factor softens below 45°.</summary>
         public static double ReducerRound(double dInlet, double dOutlet, double angleDeg = 45.0)
         {
             if (dOutlet > dInlet)
@@ -22,9 +16,6 @@ namespace Wenta
             return zeta * angleFactor;
         }
 
-        /// <summary>Round expander / diffuser. Borda–Carnot sudden-enlargement
-        /// baseline scaled by a piecewise diffuser factor; referenced to the
-        /// inlet velocity.</summary>
         public static double ExpanderRound(double dInlet, double dOutlet, double angleDeg = 45.0)
         {
             if (dInlet > dOutlet)
@@ -41,7 +32,6 @@ namespace Wenta
             return diffuserFactor * zetaSudden;
         }
 
-        /// <summary>(zeta_main, zeta_branch) for a splitting tee.</summary>
         public static void JunctionTeeBranch(double dMain, double dBranch,
             double flowrateMain, double flowrateBranch, out double zetaMain, out double zetaBranch)
         {
@@ -56,8 +46,6 @@ namespace Wenta
             zetaBranch = 0.3 + 0.5 * (1.0 - area) + 0.4 * split;
         }
 
-        /// <summary>(zeta_main, zeta_branch) for a combining tee — larger
-        /// constants than splitting; use for return-air plenums.</summary>
         public static void JunctionTeeCombine(double dMain, double dBranch,
             double flowrateMain, double flowrateBranch, out double zetaMain, out double zetaBranch)
         {
@@ -70,8 +58,6 @@ namespace Wenta
             zetaBranch = 0.4 + 0.6 * (1.0 - area) + 0.3 * split;
         }
 
-        /// <summary>Butterfly-damper loss coefficient (0–100 % open).
-        /// ~0.1 fully open; zeta ≈ 0.1 + (1 − open)² · 10.</summary>
         public static double DamperButterfly(double openPercentage = 100.0)
         {
             if (openPercentage < 0.0 || openPercentage > 100.0)
@@ -82,8 +68,6 @@ namespace Wenta
             return 0.1 + closedFrac * closedFrac * 10.0;
         }
 
-        /// <summary>Ceiling-diffuser face-velocity loss coefficient:
-        /// zeta = 0.4 / area_throw.</summary>
         public static double DiffuserCeiling(double areaThrow = 1.0)
         {
             if (areaThrow <= 0.0)
@@ -91,7 +75,6 @@ namespace Wenta
             return 0.4 / areaThrow;
         }
 
-        /// <summary>Return-grille loss coefficient: zeta = 0.25·(1 + blockage).</summary>
         public static double GrilleReturn(double blockageFactor = 0.15)
         {
             if (blockageFactor < 0.0 || blockageFactor > 1.0)
@@ -99,9 +82,6 @@ namespace Wenta
             return 0.25 * (1.0 + blockageFactor);
         }
 
-        /// <summary>Smooth-radius rectangular elbow (Idelchik §6) with aspect
-        /// correction: zeta_90 ≈ 0.21/(r/W)^0.5 capped at 1.5, ×(H/W)^0.25,
-        /// angle scales linearly off 90°.</summary>
         public static double RectangularElbow(double width, double height,
             double bendRadius, double angleDeg = 90.0)
         {
@@ -120,8 +100,6 @@ namespace Wenta
             return zeta90 * aspectCorrection * (angleDeg / 90.0);
         }
 
-        /// <summary>Sharp-corner mitered elbow; quadratic fit to ASHRAE points
-        /// (≤5 % error at 45/60/90/120°). vaned=true cuts the loss to ~40 %.</summary>
         public static double MiteredElbow(double angleDeg = 90.0, bool vaned = false)
         {
             if (angleDeg <= 0.0 || angleDeg > 180.0)

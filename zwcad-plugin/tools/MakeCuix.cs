@@ -1,20 +1,3 @@
-// ----------------------------------------------------------------------------
-// MakeCuix — assemble Wenta.CUIX, a partial CUIX package for ZWCAD 2021 that
-// adds a 'Wenta' ribbon tab with buttons. Modeled 1:1 on ZWSOFT's own
-// APP+.cuix partial package (same XML schema, same package layout).
-//
-// C# port of the former make_cuix.py (issue #64: C#-only repo). Produces the
-// same part names, the same XML strings, the same PNG pixels and the same
-// STORED (uncompressed) zip method. Dependency-free: the PNG writer hand-rolls
-// the IHDR/IDAT/IEND chunks, the zlib wrapper, CRC-32 and Adler-32, and the
-// zip container is written by hand too — .NET Framework's ZipArchive emits
-// CompressionLevel.NoCompression entries as method 8 (Deflate), not method 0
-// (STORED), which is what ZWSOFT's own CUIX packages use.
-//
-// Usage: MakeCuix.exe [outdir]      (default: bin)  ->  <outdir>\Wenta.CUIX
-// Built by zwcad-plugin\build.cmd with the bare csc toolchain; references
-// System.dll (DeflateStream) and System.Core.dll only.
-// ----------------------------------------------------------------------------
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -25,9 +8,6 @@ namespace WentaZwcad.Tools
 {
     internal static class MakeCuix
     {
-        // --------------------------------------------------------------------
-        // 1. tiny PNG writer (no dependencies)
-        // --------------------------------------------------------------------
 
         private struct Px
         {
@@ -39,7 +19,7 @@ namespace WentaZwcad.Tools
         private static readonly Px TealDark = new Px(0, 84, 84, 255);
         private static readonly Px Gray = new Px(96, 110, 128, 255);
         private static readonly Px White = new Px(255, 255, 255, 255);
-        private static readonly Px Bg = new Px(255, 255, 255, 0);   // transparent background
+        private static readonly Px Bg = new Px(255, 255, 255, 0);
 
         private static readonly uint[] CrcTable = BuildCrcTable();
 
@@ -91,7 +71,6 @@ namespace WentaZwcad.Tools
             return r;
         }
 
-        /// <summary>PNG chunk: big-endian length, tag, data, CRC-32 over tag+data.</summary>
         private static void Chunk(Stream s, string tag, byte[] data)
         {
             byte[] tagBytes = Encoding.ASCII.GetBytes(tag);
@@ -101,8 +80,6 @@ namespace WentaZwcad.Tools
             WriteBE(s, Crc32(Concat(tagBytes, data)));
         }
 
-        /// <summary>zlib stream: 2-byte header (deflate, 32K window, max level),
-        /// raw deflate body, big-endian Adler-32 of the uncompressed data.</summary>
         private static byte[] ZlibCompress(byte[] raw)
         {
             var ms = new MemoryStream();
@@ -114,14 +91,13 @@ namespace WentaZwcad.Tools
             return ms.ToArray();
         }
 
-        /// <summary>8-bit RGBA, non-interlaced, filter type 0 on every scanline.</summary>
         private static byte[] MakePng(int width, int height, Px[,] pixels)
         {
             var raw = new byte[height * (1 + 4 * width)];
             int o = 0;
             for (int r = 0; r < height; r++)
             {
-                raw[o++] = 0;                                   // filter: None
+                raw[o++] = 0;
                 for (int c = 0; c < width; c++)
                 {
                     Px p = pixels[r, c];
@@ -132,11 +108,11 @@ namespace WentaZwcad.Tools
             var ihdr = new MemoryStream();
             WriteBE(ihdr, (uint)width);
             WriteBE(ihdr, (uint)height);
-            ihdr.WriteByte(8);      // bit depth
-            ihdr.WriteByte(6);      // colour type: RGBA
-            ihdr.WriteByte(0);      // compression
-            ihdr.WriteByte(0);      // filter
-            ihdr.WriteByte(0);      // interlace
+            ihdr.WriteByte(8);
+            ihdr.WriteByte(6);
+            ihdr.WriteByte(0);
+            ihdr.WriteByte(0);
+            ihdr.WriteByte(0);
 
             var png = new MemoryStream();
             png.Write(new byte[] { 0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A }, 0, 8);
@@ -155,12 +131,11 @@ namespace WentaZwcad.Tools
             return px;
         }
 
-        /// <summary>Duct cross-section: teal rounded-ish rectangle outline + airflow line.</summary>
         private static byte[] IconDuct(int size = 32)
         {
             Px[,] px = Blank(size);
-            int m = 5;                      // margin
-            int w = size - 2 * m;           // inner square size
+            int m = 5;
+            int w = size - 2 * m;
             for (int r = 0; r < size; r++)
                 for (int c = 0; c < size; c++)
                 {
@@ -168,14 +143,12 @@ namespace WentaZwcad.Tools
                                 ((c == m || c == m + w) && m <= r && r <= m + w);
                     if (edge) px[r, c] = Teal;
                 }
-            // airflow: horizontal line through the middle
             int mid = size / 2;
             for (int c = m + 4; c < m + w - 3; c++)
                 px[mid, c] = TealDark;
             return MakePng(size, size, px);
         }
 
-        /// <summary>Palette panel: window with title bar.</summary>
         private static byte[] IconPanel(int size = 32)
         {
             Px[,] px = Blank(size);
@@ -191,7 +164,6 @@ namespace WentaZwcad.Tools
             return MakePng(size, size, px);
         }
 
-        /// <summary>Info: teal circle with a white 'i'.</summary>
         private static byte[] IconInfo(int size = 32)
         {
             Px[,] px = Blank(size);
@@ -203,24 +175,18 @@ namespace WentaZwcad.Tools
                     double d2 = (r - cx) * (r - cx) + (c - cy) * (c - cy);
                     if (d2 <= rad * rad) px[r, c] = Teal;
                 }
-            // the 'i': dot at (cy-5), stem cy-2..cy+5
             foreach (int c in new[] { 14, 15, 16 })
-                px[10, c] = px[11, c] = White;              // dot
+                px[10, c] = px[11, c] = White;
             for (int r = 14; r < 21; r++)
-                px[r, 15] = White;                          // stem
+                px[r, 15] = White;
             return MakePng(size, size, px);
         }
 
-        // --------------------------------------------------------------------
-        // 2. CUI XML parts
-        // --------------------------------------------------------------------
 
-        /// <summary>The source file may be checked out with CRLF; the package
-        /// parts always use LF (as the Python tool's string literals did).</summary>
         private static string Lf(string s) { return s.Replace("\r\n", "\n"); }
 
         private const string HeaderCui = @"<?xml version=""1.0""?>
-<CustSection xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
+<CustSection xmlns:xsi=""http:
   <FileVersion MajorVersion=""0"" MinorVersion=""6"" IncrementalVersion=""1"" UserVersion=""1"" />
   <Header>
     <CommonConfiguration>
@@ -232,7 +198,7 @@ namespace WentaZwcad.Tools
 </CustSection>";
 
         private const string MenuGroupCui = @"<?xml version=""1.0""?>
-<MenuGroup xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" Name=""Wenta"" DisplayName=""Wenta"">
+<MenuGroup xmlns:xsd=""http:
   <MacroGroup Name=""WentaMacros"">
     <MenuMacro UID=""WENTA_DUCT"">
       <Macro type=""Any"">
@@ -289,7 +255,7 @@ namespace WentaZwcad.Tools
 
         private const string RibbonRootCui = @"<?xml version=""1.0""?>
 <RibbonRoot>
-  <RibbonPanelSourceCollection xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"">
+  <RibbonPanelSourceCollection xmlns:xsi=""http:
     <RibbonPanelSource UID=""WENTA_RBPS"" Text=""Wenta"" HiddenInEditor=""false"" KeyTip=""WE"">
       <ModifiedRev MajorVersion=""0"" MinorVersion=""0"" UserVersion=""0"" />
       <Alias>ID_WentaPanel</Alias>
@@ -336,7 +302,6 @@ namespace WentaZwcad.Tools
   </RibbonTabSourceCollection>
 </RibbonRoot>";
 
-        // Ordered: order matters for the zip, _rels/.rels and Menu_Package_Info.xml.
         private static readonly KeyValuePair<string, string>[] Stubs =
         {
             new KeyValuePair<string, string>("AcceleratorRoot.cui", @"<AcceleratorRoot xmlns:xsi=""http://www.w3.org/2001/XMLSchema-instance"" xmlns:xsd=""http://www.w3.org/2001/XMLSchema"" />"),
@@ -365,9 +330,6 @@ namespace WentaZwcad.Tools
             new KeyValuePair<string, byte[]>("wenta_info_32.png", IconInfo()),
         };
 
-        // NB: WorkspaceRoot.cui is listed here *and* in Stubs, so (exactly as
-        // the Python tool did) it appears twice in .rels and in the package
-        // info, but is written to the zip only once.
         private static readonly string[] MainParts =
             { "Header.cui", "WorkspaceRoot.cui", "MenuGroup.cui", "RibbonRoot.cui" };
 
@@ -395,7 +357,6 @@ namespace WentaZwcad.Tools
 
         private static string PackageInfo()
         {
-            // Mirrors Python's datetime.now().isoformat() (microsecond precision).
             string now = DateTime.Now.ToString("yyyy-MM-ddTHH:mm:ss.ffffff");
             var parts = new List<string>(MainParts) { "Menu_Package_Info.xml" };
             foreach (var stub in Stubs) parts.Add(stub.Key);
@@ -409,15 +370,9 @@ namespace WentaZwcad.Tools
                    "<MenuPackageParts>\n" + string.Join("\n", rows) + "\n</MenuPackageParts>";
         }
 
-        // --------------------------------------------------------------------
-        // 3. package it (STORED method, like ZWSOFT's own CUIX)
-        // --------------------------------------------------------------------
 
         private static readonly Encoding Utf8NoBom = new UTF8Encoding(false);
 
-        /// <summary>Minimal zip writer: every entry STORED (method 0), no zip64,
-        /// no data descriptors, no extra fields. Field values mirror what Python's
-        /// zipfile.writestr produced (version 2.0, external attr 0o600 &lt;&lt; 16).</summary>
         private sealed class StoredZipWriter : IDisposable
         {
             private readonly Stream _out;
@@ -441,7 +396,7 @@ namespace WentaZwcad.Tools
 
             public void Add(string name, byte[] data)
             {
-                byte[] nameBytes = Utf8NoBom.GetBytes(name);   // all part names are ASCII
+                byte[] nameBytes = Utf8NoBom.GetBytes(name);
                 uint crc = Crc32(data);
                 uint size = (uint)data.Length;
                 uint offset = (uint)_out.Position;
@@ -450,40 +405,38 @@ namespace WentaZwcad.Tools
                 int dosTime = (t.Hour << 11) | (t.Minute << 5) | (t.Second / 2);
                 int dosDate = ((t.Year - 1980) << 9) | (t.Month << 5) | t.Day;
 
-                // local file header
                 LE32(_out, 0x04034B50);
-                LE16(_out, 20);                 // version needed to extract: 2.0
-                LE16(_out, 0);                  // general purpose flags
-                LE16(_out, 0);                  // method: STORED
+                LE16(_out, 20);
+                LE16(_out, 0);
+                LE16(_out, 0);
                 LE16(_out, dosTime);
                 LE16(_out, dosDate);
                 LE32(_out, crc);
-                LE32(_out, size);               // compressed size
-                LE32(_out, size);               // uncompressed size
+                LE32(_out, size);
+                LE32(_out, size);
                 LE16(_out, nameBytes.Length);
-                LE16(_out, 0);                  // extra field length
+                LE16(_out, 0);
                 _out.Write(nameBytes, 0, nameBytes.Length);
                 _out.Write(data, 0, data.Length);
 
-                // central directory record (written at the end)
                 var cd = new MemoryStream();
                 LE32(cd, 0x02014B50);
-                LE16(cd, 20);                   // version made by: 2.0, MS-DOS
-                LE16(cd, 20);                   // version needed to extract
-                LE16(cd, 0);                    // flags
-                LE16(cd, 0);                    // method: STORED
+                LE16(cd, 20);
+                LE16(cd, 20);
+                LE16(cd, 0);
+                LE16(cd, 0);
                 LE16(cd, dosTime);
                 LE16(cd, dosDate);
                 LE32(cd, crc);
                 LE32(cd, size);
                 LE32(cd, size);
                 LE16(cd, nameBytes.Length);
-                LE16(cd, 0);                    // extra field length
-                LE16(cd, 0);                    // comment length
-                LE16(cd, 0);                    // disk number start
-                LE16(cd, 0);                    // internal attributes
-                LE32(cd, 0x01800000u);          // external attributes: 0o600 << 16
-                LE32(cd, offset);               // local header offset
+                LE16(cd, 0);
+                LE16(cd, 0);
+                LE16(cd, 0);
+                LE16(cd, 0);
+                LE32(cd, 0x01800000u);
+                LE32(cd, offset);
                 cd.Write(nameBytes, 0, nameBytes.Length);
                 _central.Add(cd.ToArray());
             }
@@ -495,15 +448,14 @@ namespace WentaZwcad.Tools
                     _out.Write(rec, 0, rec.Length);
                 uint cdSize = (uint)_out.Position - cdStart;
 
-                // end of central directory
                 LE32(_out, 0x06054B50);
-                LE16(_out, 0);                  // this disk
-                LE16(_out, 0);                  // disk with central directory
-                LE16(_out, _central.Count);     // entries on this disk
-                LE16(_out, _central.Count);     // entries total
+                LE16(_out, 0);
+                LE16(_out, 0);
+                LE16(_out, _central.Count);
+                LE16(_out, _central.Count);
                 LE32(_out, cdSize);
                 LE32(_out, cdStart);
-                LE16(_out, 0);                  // comment length
+                LE16(_out, 0);
                 _out.Flush();
             }
         }

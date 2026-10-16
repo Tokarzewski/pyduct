@@ -2,48 +2,23 @@ using System;
 
 namespace Wenta
 {
-    /// <summary>A selectable sizing standard (dimension set) for duct sizing.</summary>
     public enum Standard
     {
-        /// <summary>EN 1505:2001 (rectangular) + EN 1506:2007 (round).
-        /// Uses the existing <see cref="StandardSizes"/> tables verbatim, so the
-        /// canonical EN behaviour is preserved.</summary>
         En1505_1506,
 
-        /// <summary>ASHRAE / SMACNA nominal sizes (inch-based series, converted to mm).</summary>
         AsHrae,
 
-        /// <summary>DIN 24155 series (Renard R10/R20 preferred numbers).</summary>
         Din
     }
 
-    /// <summary>Configurable STANDARDS (size tables) for duct sizing. Port of
-    /// `venti/src/standards.rs`.
-    ///
-    /// Different projects and regions size ductwork to different preferred
-    /// standard dimension sets. This class exposes the three most common ones
-    /// so the sizing code can choose between EN 1505/1506, ASHRAE/SMACNA, and
-    /// DIN without changing the sizing machinery itself.
-    ///
-    /// All dimension tables are in millimetres.
-    ///
-    /// The EN tables are reused verbatim from <see cref="StandardSizes"/>
-    /// (itself a port of `venti::data::standard_sizes`); the ASHRAE/DIN tables
-    /// are declared inline here, matching the Rust `const` arrays.</summary>
     public static class Standards
     {
-        /// <summary>ASHRAE round ducts — customary nominal diameters in inches
-        /// converted to millimetres and rounded to whole mm: 4..40 in one-inch
-        /// steps.</summary>
         public static readonly int[] AshraeRoundDuctSizes =
         {
             102, 127, 152, 178, 203, 229, 254, 305, 356, 406, 457, 508, 559, 610, 660, 711, 762, 813, 864,
             914, 965, 1016,
         };
 
-        /// <summary>ASHRAE / SMACNA rectangular ducts — customary nominal
-        /// width×height in inches converted to mm and rounded (`w × h`,
-        /// `w &gt;= h`).</summary>
         public static readonly int[][] AshraeRectangularDuctSizes =
         {
             new[] {152, 102}, new[] {203, 102}, new[] {203, 152}, new[] {254, 102}, new[] {254, 152},
@@ -57,16 +32,11 @@ namespace Wenta
             new[] {1676, 559}, new[] {1829, 610},
         };
 
-        /// <summary>DIN 24155 round ducts — nominal diameter in mm from the
-        /// Renard R10 series.</summary>
         public static readonly int[] DinRoundDuctSizes =
         {
             63, 80, 100, 125, 160, 200, 250, 315, 400, 500, 630, 800, 1000, 1250,
         };
 
-        /// <summary>DIN 24155 rectangular ducts — `w × h` in mm where both
-        /// sides come from the Renard R10/R20 preferred-number series and
-        /// `w &gt;= h`.</summary>
         public static readonly int[][] DinRectangularDuctSizes =
         {
             new[] {100, 100},
@@ -85,7 +55,6 @@ namespace Wenta
             new[] {2000, 100}, new[] {2000, 125}, new[] {2000, 160}, new[] {2000, 200}, new[] {2000, 250}, new[] {2000, 315}, new[] {2000, 400}, new[] {2000, 500}, new[] {2000, 630}, new[] {2000, 800}, new[] {2000, 1000}, new[] {2000, 1250}, new[] {2000, 1600}, new[] {2000, 2000},
         };
 
-        /// <summary>The standard round duct sizes for a given <see cref="Standard"/>, in mm.</summary>
         public static int[] StandardRoundSizes(Standard standard)
         {
             switch (standard)
@@ -97,8 +66,6 @@ namespace Wenta
             }
         }
 
-        /// <summary>The standard rectangular duct sizes for a given
-        /// <see cref="Standard"/>, as `[width, height]` pairs in mm.</summary>
         public static int[][] StandardRectangularSizes(Standard standard)
         {
             switch (standard)
@@ -110,14 +77,6 @@ namespace Wenta
             }
         }
 
-        /// <summary>Return the nearest standard round diameter [mm] for the
-        /// given <see cref="Standard"/>.
-        ///
-        /// With `roundUp = true` (default), picks the smallest standard size
-        /// that is &gt;= `diameterMm`; otherwise picks the closest standard
-        /// size in either direction (ties favour the lower size). Values below
-        /// the smallest / above the largest standard size are clamped to the
-        /// respective end of the table.</summary>
         public static int NearestRoundSizeFor(Standard standard, double diameterMm, bool roundUp = true)
         {
             return StandardSizes.NearestInTable(StandardRoundSizes(standard), diameterMm, roundUp,

@@ -5,10 +5,6 @@ using ZwSoft.ZwCAD.ApplicationServices;
 
 namespace WentaZwcad
 {
-    /// <summary>
-    /// Dockable "Wenta" sizing palette: flow / target velocity / shape in,
-    /// one click queues a fully-answered WENTADUCT in the active drawing.
-    /// </summary>
     public class WentaPanel : UserControl
     {
         private readonly NumericUpDown _flow = new NumericUpDown();
@@ -53,7 +49,7 @@ namespace WentaZwcad
             _velocity.DropDownStyle = ComboBoxStyle.DropDownList;
             foreach (string v in new[] { "2.0", "2.5", "3.0", "4.0", "5.0", "6.0", "7.5" })
                 _velocity.Items.Add(v);
-            _velocity.SelectedIndex = 3; // 4.0
+            _velocity.SelectedIndex = 3;
             _velocity.SelectedIndexChanged += delegate { UpdatePreview(); };
             Controls.Add(_velocity);
 
@@ -112,7 +108,6 @@ namespace WentaZwcad
             UpdatePreview();
         }
 
-        /// <summary>Live preview: the section WENTADUCT would pick right now.</summary>
         private void UpdatePreview()
         {
             try

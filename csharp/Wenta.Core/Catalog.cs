@@ -7,52 +7,19 @@ using System.Web.Script.Serialization;
 
 namespace Wenta
 {
-    /// <summary>Open ζ-catalog: pluggable manufacturer loss data.
-    ///
-    /// The competitive answer to Wentyle's sponsored vendor libraries and
-    /// Ventpack's PartShelf24: an *open* JSON format anyone can produce.
-    /// Fittings are matched by id or by (type + size window); each entry
-    /// carries provenance so drawings document which data sized them.
-    /// The full format specification lives in <c>csharp/catalogs/FORMAT.md</c>.
-    ///
-    /// Format (catalog JSON):
-    /// {
-    ///   "name": "example-generic-rect",
-    ///   "version": 1,                        // schema version (integer)
-    ///   "description": "optional free text",
-    ///   "fittings": [
-    ///     {
-    ///       "id": "rect-elbow-r1.0",          // unique within the file
-    ///       "type": "rect_elbow",           // rect_elbow | round_elbow | tee |
-    ///                                        // damper | diffuser | grille | ...
-    ///       "size_min_mm": [100, 100],      // inclusive window [w,h] or [d]
-    ///       "size_max_mm": [1200, 2000],
-    ///       "zeta": 0.21,
-    ///       "source": "Hendiger tab. 4.2",
-    ///       "knr": "2.08.02.01",            // optional KNR estimate code
-    ///       "notes": "optional free text"
-    ///     }
-    ///   ]
-    /// }
-    ///
-    /// Several catalogs (a generic base plus vendor overrides) combine with
-    /// <see cref="Merge(IList{ZetaCatalog})"/>: later catalogs override earlier
-    /// ones by entry id, and every override is recorded in
-    /// <see cref="Warnings"/> so a conflict is never silent.</summary>
     public sealed class ZetaCatalog
     {
         public sealed class CatalogEntry
         {
             public string Id;
             public string Type;
-            public double[] SizeMinMm;   // may be null (applies to all sizes)
-            public double[] SizeMaxMm;   // may be null
+            public double[] SizeMinMm;
+            public double[] SizeMaxMm;
             public double Zeta;
             public string Source;
             public string Knr;
             public string Notes;
 
-            /// <summary>Field-by-field copy (size arrays are copied too).</summary>
             public CatalogEntry Clone()
             {
                 var c = new CatalogEntry();
@@ -68,10 +35,6 @@ namespace Wenta
             }
         }
 
-        /// <summary>Highest catalog <c>version</c> this build understands.
-        /// <see cref="Parse"/> rejects catalogs declaring a newer version.
-        /// Adding optional fields does not bump it; renaming or removing
-        /// fields, or changing the matching rules, does.</summary>
         public const int SchemaVersion = 1;
 
         public string Name;
@@ -79,25 +42,14 @@ namespace Wenta
         public int Version = SchemaVersion;
         public readonly List<CatalogEntry> Fittings = new List<CatalogEntry>();
 
-        /// <summary>Override records produced by <see cref="Merge(IList{ZetaCatalog})"/>,
-        /// one line per id that a later catalog replaced:
-        /// <c>id X: zeta A (source S1) overridden by zeta B (source S2)</c>.
-        /// Empty for a catalog that came straight from <see cref="Parse"/>.</summary>
         public readonly List<string> Warnings = new List<string>();
 
-        /// <summary>Load a catalog from a JSON file.</summary>
         public static ZetaCatalog Load(string path)
         {
             string json = File.ReadAllText(path);
             return Parse(json, path);
         }
 
-        /// <summary>Parse catalog JSON. <paramref name="origin"/> (a path or
-        /// label) is only used in error messages. Throws
-        /// <see cref="WentaException"/> for a missing <c>fittings</c> array,
-        /// a <c>version</c> newer than <see cref="SchemaVersion"/> (or not a
-        /// positive integer), an entry without <c>id</c> or <c>zeta</c>, a
-        /// duplicate id, or a half-specified / mismatched size window.</summary>
         public static ZetaCatalog Parse(string json, string origin)
         {
             var ser = new JavaScriptSerializer();
@@ -164,7 +116,6 @@ namespace Wenta
             return cat;
         }
 
-        /// <summary>Exact-id lookup.</summary>
         public CatalogEntry ById(string id)
         {
             foreach (CatalogEntry e in Fittings)
@@ -172,8 +123,6 @@ namespace Wenta
             return null;
         }
 
-        /// <summary>Match by type and size window (mm). First match wins;
-        /// entries without a size window match any size of that type.</summary>
         public CatalogEntry Match(string type, double[] sizeMm)
         {
             foreach (CatalogEntry e in Fittings)
@@ -191,8 +140,6 @@ namespace Wenta
             return null;
         }
 
-        /// <summary>ζ for (type, size); falls back to the built-in
-        /// correlation library when the catalog has no match.</summary>
         public double ZetaFor(string type, double[] sizeMm)
         {
             CatalogEntry e = Match(type, sizeMm);
@@ -200,17 +147,7 @@ namespace Wenta
             return FittingsCorrelationFallback(type, sizeMm);
         }
 
-        // ---- vendor merge ---------------------------------------------------
 
-        /// <summary>Combine several catalogs into one. Entries are keyed by id:
-        /// an id already present is <b>replaced in place</b> (it keeps the
-        /// earlier catalog's position, so <see cref="Match"/> order is stable)
-        /// and every such override is appended to <see cref="Warnings"/>; ids
-        /// not seen before are appended after all earlier entries. Later
-        /// catalogs therefore win over earlier ones — pass the generic base
-        /// first and the vendor overrides last. Entries are copied, so the
-        /// result does not alias its inputs. <c>Name</c> is the inputs' names
-        /// joined with "+", <c>Version</c> the highest input version.</summary>
         public static ZetaCatalog Merge(IList<ZetaCatalog> catalogs)
         {
             if (catalogs == null || catalogs.Count == 0)
@@ -219,8 +156,6 @@ namespace Wenta
             var names = new StringBuilder();
             int version = 0;
             var position = new Dictionary<string, int>();
-            // Catalog that currently owns each merged slot (for the warning's
-            // "(source ...)" fallback when an entry has no source of its own).
             var owner = new List<ZetaCatalog>();
             for (int c = 0; c < catalogs.Count; c++)
             {
@@ -234,7 +169,6 @@ namespace Wenta
                     names.Append(cat.Name);
                 }
                 if (cat.Version > version) version = cat.Version;
-                // Warnings of already-merged inputs are carried over.
                 foreach (string w in cat.Warnings) merged.Warnings.Add(w);
                 foreach (CatalogEntry e in cat.Fittings)
                 {
@@ -260,14 +194,11 @@ namespace Wenta
             return merged;
         }
 
-        /// <summary>Two-catalog convenience: <c>Merge(new[] { baseCatalog, overrides })</c>.</summary>
         public static ZetaCatalog Merge(ZetaCatalog baseCatalog, ZetaCatalog overrides)
         {
             return Merge(new ZetaCatalog[] { baseCatalog, overrides });
         }
 
-        /// <summary>Exact line format (documented in FORMAT.md, keep in sync):
-        /// <c>id {id}: zeta {old} (source {oldSource}) overridden by zeta {new} (source {newSource})</c>.</summary>
         private static string OverrideWarning(CatalogEntry old, ZetaCatalog oldCatalog,
                                               CatalogEntry replacement, ZetaCatalog replacementCatalog)
         {
@@ -278,8 +209,6 @@ namespace Wenta
                 + " (source " + Provenance(replacement, replacementCatalog) + ")";
         }
 
-        /// <summary>Entry source, falling back to the owning catalog's name,
-        /// then "unknown" — so a warning never reads "(source )".</summary>
         private static string Provenance(CatalogEntry e, ZetaCatalog owner)
         {
             if (!string.IsNullOrEmpty(e.Source)) return e.Source;
@@ -289,11 +218,9 @@ namespace Wenta
 
         private static string FormatZeta(double z)
         {
-            // Culture-invariant so warnings are byte-identical on pl-PL machines.
             return z.ToString("R", CultureInfo.InvariantCulture);
         }
 
-        // ---- helpers -----------------------------------------------------------
 
         private static int ParseVersion(object v, string name, string origin)
         {
